@@ -52,3 +52,6 @@ $RECYCLE.BIN/
 .env
 .env.local
 *.local
+
+# 本机 git 配置备份（机器专属，不发布）
+docs/git-config-backup.txt
