@@ -181,3 +181,5 @@ A：先 `Ctrl`+`F5` 强制刷新。静态资源已设 `no-store`，正常情况�
 课程内容：MIT © [callous-0923](https://github.com/callous-0923)
 
 前端依赖：marked (MIT) · KaTeX (MIT) · highlight.js (BSD-3-Clause)
+
+第三方内容声明详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)

@@ -19,29 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-=====================================================================
-第三方内容声明 / Third-Party Notices
-=====================================================================
-
-本仓库包含的本地阅读平台（_webapp/）与转换脚本（_scripts/、setup.ps1）
-为本项目原创，采用上述 MIT License 授权。
-
-本仓库**不包含**课程正文内容。setup.ps1 会从下列上游仓库拉取：
-
-  AI Agent 全栈课程
-  https://github.com/callous-0923/agent-study
-  Copyright (c) callous-0923
-  Licensed under the MIT License
-  37 章 AI Agent 全栈课程，含可运行 Python 源码。
-  本脚本仅做本地化转换（相对路径改写、移除外部分析脚本），
-  不修改课程实质内容，并保留其原始 LICENSE 文件。
-
-前端依赖（_webapp/static/vendor/）：
-
-  marked        https://github.com/markedjs/marked          MIT
-  KaTeX         https://github.com/KaTeX/KaTeX              MIT
-  highlight.js  https://github.com/highlightjs/highlight.js BSD-3-Clause
-
-字体文件（_webapp/static/vendor/fonts/）随 KaTeX 一同分发，
-版权归 KaTeX 项目及各自字体作者所有。
