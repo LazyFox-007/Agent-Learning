@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>agent学习平台</title>
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/static/mascot-64.png" sizes="64x64">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/vendor/katex.min.css">
+<link rel="stylesheet" href="/static/vendor/hljs-light.css" id="hljs-light">
+<link rel="stylesheet" href="/static/vendor/hljs-dark.css" id="hljs-dark" disabled>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ================= 顶栏 ================= -->
+<header class="topbar">
+  <button class="icon-btn" id="btnSidebar" title="收起/展开侧栏 (Ctrl+B)">☰</button>
+  <a class="brand" href="#/" title="回到首页">
+    <img class="brand-mark" src="/static/mascot-64.png" alt="agent学习平台 吉祥物" width="28" height="28">
+    <span class="brand-text">agent学习平台</span>
+  </a>
+
+  <nav class="crumbs" id="crumbs"></nav>
+
+  <div class="topbar-right">
+    <button class="icon-btn" id="btnSearch" title="搜索 (Ctrl+K)">🔍</button>
+    <button class="icon-btn" id="btnToc" title="目录 (Ctrl+I)">☰</button>
+    <button class="icon-btn" id="btnTheme" title="切换主题">🌓</button>
+  </div>
+</header>
+
+<!-- ================= 搜索面板 ================= -->
+<div class="search-overlay" id="searchOverlay" hidden>
+  <div class="search-box">
+    <div class="search-input-row">
+      <span class="search-ico">🔍</span>
+      <input type="text" id="searchInput" placeholder="全文搜索（至少 2 个字符）…  Esc 关闭" autocomplete="off" spellcheck="false">
+      <button class="icon-btn" id="btnSearchClose">✕</button>
+    </div>
+    <div class="search-hint" id="searchHint">支持 Markdown / 代码 / Notebook 内容搜索</div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<!-- ================= 主体 ================= -->
+<div class="layout" id="layout">
+
+  <!-- 侧栏 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-tabs">
+      <button class="side-tab active" data-pane="tree">目录</button>
+      <button class="side-tab" data-pane="recent">最近</button>
+      <button class="side-tab" data-pane="progress">进度</button>
+    </div>
+
+    <div class="side-pane" id="pane-tree">
+      <div class="tree-toolbar">
+        <input type="text" id="treeFilter" placeholder="过滤文件名…" autocomplete="off">
+        <button class="icon-btn sm" id="btnCollapseAll" title="全部收起">⊟</button>
+      </div>
+      <div class="tree" id="tree"><div class="tree-loading">加载中…</div></div>
+    </div>
+
+    <div class="side-pane" id="pane-recent" hidden>
+      <div class="pane-hint">最近浏览的文件（本机保存）</div>
+      <div class="recent-list" id="recentList"></div>
+    </div>
+
+    <div class="side-pane" id="pane-progress" hidden>
+      <div class="pane-hint">各版块已读进度</div>
+      <div class="progress-list" id="progressList"></div>
+    </div>
+  </aside>
+
+  <!-- 内容区 -->
+  <main class="content" id="content">
+    <div class="welcome" id="welcome">
+      <h1>agent学习平台</h1>
+      <p class="welcome-sub">AI Agent 全栈课程 · 7 层 37 章 —— 点击任意章节直接开始学习</p>
+
+      <div class="welcome-stats" id="welcomeStats"></div>
+
+      <section class="rm-sec">
+        <h2 class="rm-h2">课程总览</h2>
+        <div class="rm-sub" id="rmCoursesSub"></div>
+        <div class="course-grid" id="rmCourses"></div>
+      </section>
+
+      <section class="rm-sec" id="rmPaths"></section>
+
+      <section class="rm-sec">
+        <h2 class="rm-h2">课程结构（7 层 / 37 章）</h2>
+        <div class="rm-sub">点章节直接开讲义；右侧 <b>py</b> 标记可打开对应 Python 源码。<b>不要跳层</b>，第 1–2 层建立直觉，第 3 层起才是硬核。</div>
+        <div class="timeline" id="rmTimeline"></div>
+      </section>
+
+      <section class="rm-sec" id="rmExtra"></section>
+
+      <section class="rm-sec" id="rmAgent"></section>
+
+      <section class="rm-sec" id="rmEnv"></section>
+
+      <section class="rm-sec" id="rmIdm"></section>
+
+      <div class="welcome-tips">
+        <div class="tip-row"><kbd>Ctrl</kbd>+<kbd>K</kbd><span>全文搜索</span></div>
+        <div class="tip-row"><kbd>Ctrl</kbd>+<kbd>B</kbd><span>收起侧栏</span></div>
+        <div class="tip-row"><kbd>Ctrl</kbd>+<kbd>I</kbd><span>显示/隐藏目录</span></div>
+        <div class="tip-row"><kbd>Esc</kbd><span>关闭搜索</span></div>
+      </div>
+    </div>
+    <article class="doc" id="doc" hidden></article>
+  </main>
+
+  <!-- 目录（TOC） -->
+  <aside class="toc" id="toc" hidden>
+    <div class="toc-title">本页目录</div>
+    <nav class="toc-nav" id="tocNav"></nav>
+  </aside>
+</div>
+
+<!-- ================= 右下角浮动导航 ================= -->
+<div class="fab-stack" id="fabStack">
+  <button class="fab" id="fabTop" title="回到顶部 (Alt+↑)" hidden>
+    <span class="fab-ico">↑</span>
+    <span class="fab-label">回顶部</span>
+  </button>
+  <button class="fab fab-primary" id="fabHome" title="回到根目录 (Alt+Home)" hidden>
+    <span class="fab-ico">⌂</span>
+    <span class="fab-label">根目录</span>
+  </button>
+</div>
+
+<!-- ================= 状态提示 ================= -->
+<div class="toast" id="toast"></div>
+<div class="loading-bar" id="loadingBar"></div>
+
+<script src="/static/vendor/marked.min.js"></script>
+<script src="/static/vendor/katex.min.js"></script>
+<script src="/static/vendor/auto-render.min.js"></script>
+<script src="/static/vendor/highlight.min.js"></script>
+<script src="/static/roadmap.js"></script>
+<script src="/static/renderers.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
