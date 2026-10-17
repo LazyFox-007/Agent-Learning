@@ -87,33 +87,126 @@
     return ICONS[node.kind] || ICONS.unknown;
   }
 
+  /* ---------- 目录树：友好的显示名 ---------- */
+
+  /* 阿拉伯数字 -> 中文序数（1 一 … 99 九十九） */
+  function cnNum(n) {
+    var D = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    if (n <= 0) return String(n);
+    if (n < 10) return D[n];
+    if (n === 10) return '十';
+    if (n < 20) return '十' + D[n - 10];
+    if (n < 100) {
+      var t = Math.floor(n / 10), r = n % 10;
+      return D[t] + '十' + (r ? D[r] : '');
+    }
+    return String(n);
+  }
+
+  /* chapter_19_workflow_patterns -> { seq:20, title:'Agentic Workflow 设计模式' }
+     标题取自 roadmap.js，是课程里的中文正式名 */
+  var _chapMap = null;
+  function chapterMap() {
+    if (_chapMap) return _chapMap;
+    _chapMap = {};
+    var RM = window.ROADMAP || {};
+    (RM.stages || []).forEach(function (st) {
+      (st.items || []).forEach(function (it) {
+        var m = String(it.path || '').match(/(chapter_(\d+)_[^/]+)\//);
+        if (!m) return;
+        _chapMap[m[1]] = { seq: parseInt(m[2], 10) + 1, title: it.title, no: it.no };
+      });
+    });
+    return _chapMap;
+  }
+
+  /* 这些是工程文件，不是学习内容 —— 默认收起来 */
+  var HIDE_NAMES = {
+    'README.md': 1, 'README-课程原版.md': 1, 'LICENSE': 1,
+    'THIRD-PARTY-NOTICES.md': 1, '.gitignore': 1, '.gitattributes': 1,
+    'setup.ps1': 1, 'requirements.txt': 1, 'pyproject.toml': 1,
+    'package.json': 1, 'package-lock.json': 1, 'docs': 1, '.github': 1
+  };
+
+  function isHidden(node) {
+    if (state.showAllFiles) return false;
+    return !!HIDE_NAMES[node.name];
+  }
+
+  function filterNodes(list) {
+    return (list || []).filter(function (n) { return !isHidden(n); });
+  }
+
+  /* 覆盖显示名；返回 null 表示按原名显示 */
+  function displayOverride(node) {
+    var cm = chapterMap();
+
+    // 章节文件夹：第N节 + 中文标题
+    if (node.type === 'dir' && cm[node.name]) {
+      return { cls: 'is-lesson', badge: cnNum(cm[node.name].seq), label: cm[node.name].title };
+    }
+
+    // 根目录：去掉 01- 这种排序前缀
+    if (node.type === 'dir' && node.path.indexOf('/') < 0) {
+      var clean = node.name.replace(/^\d+[-_]/, '');
+      if (clean !== node.name) return { cls: 'is-root', badge: '', label: clean };
+    }
+
+    // 章节里的文件：讲义 / Python 源码
+    if (node.type === 'file') {
+      var parts = node.path.split('/');
+      var parent = parts[parts.length - 2];
+      if (parent && cm[parent]) {
+        if (/\.html?$/i.test(node.name))   return { cls: 'is-file', badge: '', label: '讲义', kind: 'html' };
+        if (/\.py$/i.test(node.name))      return { cls: 'is-file', badge: '', label: 'Python 源码', kind: 'py' };
+      }
+    }
+    return null;
+  }
+
   /* =================================================================
      文件树
      ================================================================= */
   function makeRow(node, depth) {
+    var ov = displayOverride(node);
+
     var row = document.createElement('div');
-    row.className = 'trow';
+    row.className = 'trow' + (ov ? ' ' + ov.cls : '');
     row.dataset.path = node.path;
     row.dataset.type = node.type;
-    row.style.paddingLeft = (6 + depth * 13) + 'px';
+    if (ov && ov.kind) row.dataset.kind = ov.kind;
+    row.style.paddingLeft = (6 + depth * 12) + 'px';
 
     var arrow = document.createElement('span');
     arrow.className = 'tarrow' + (node.type === 'file' ? ' leaf' : '');
     arrow.textContent = '▶';
     row.appendChild(arrow);
 
-    var ico = document.createElement('span');
-    ico.className = 'tico';
-    ico.textContent = iconFor(node);
-    row.appendChild(ico);
+    if (ov && ov.badge) {
+      // 章节序号徽章 —— 想换课程图标的话，替换这个 .tbadge 的内容即可
+      var badge = document.createElement('span');
+      badge.className = 'tbadge';
+      badge.textContent = ov.badge;
+      row.appendChild(badge);
+    } else if (ov && ov.kind) {
+      var dot = document.createElement('span');
+      dot.className = 'tdot';
+      row.appendChild(dot);
+    } else {
+      var ico = document.createElement('span');
+      ico.className = 'tico';
+      ico.textContent = iconFor(node);
+      row.appendChild(ico);
+    }
 
     var name = document.createElement('span');
     name.className = 'tname';
-    name.textContent = node.name;
-    name.title = node.path;
+    name.textContent = ov ? ov.label : node.name;
+    name.title = ov ? (ov.label + '\n' + node.path) : node.path;
     row.appendChild(name);
 
-    if (node.type === 'file' && node.size != null) {
+    // 章节序号已在徽章里，尺寸对讲义无意义，只在非章节文件上显示
+    if (node.type === 'file' && node.size != null && !(ov && ov.kind)) {
       var sz = document.createElement('span');
       sz.className = 'tsize';
       sz.textContent = R.humanSize(node.size);
@@ -164,7 +257,7 @@
   function fillChildren(path, container, depth) {
     var data = state.treeCache[path];
     container.innerHTML = '';
-    var all = (data.dirs || []).concat(data.files || []);
+    var all = filterNodes((data.dirs || []).concat(data.files || []));
     if (!all.length) {
       container.innerHTML = '<div class="tree-loading">（空目录）</div>';
       return;
@@ -217,7 +310,7 @@
     return api('/api/tree', { path: '' }).then(function (data) {
       state.treeCache[''] = data;
       tree.innerHTML = '';
-      var all = (data.dirs || []).concat(data.files || []);
+      var all = filterNodes((data.dirs || []).concat(data.files || []));
       renderNodes(tree, all, 0);
     }).catch(function (e) {
       tree.innerHTML = '<div class="tree-loading">加载失败: ' + R.esc(e.message) + '</div>';
@@ -919,6 +1012,17 @@
     if (state.fabScroll) state.fabScroll();
   }
 
+  /* 同步「显示全部文件」按钮的视觉状态 */
+  function syncAllFilesBtn() {
+    var b = $('#btnAllFiles');
+    if (!b) return;
+    var on = !!state.showAllFiles;
+    b.classList.toggle('on', on);
+    b.textContent = on ? '◉' : '◎';
+    b.title = on ? '当前显示全部文件（点此隐藏 README 等）'
+                 : '当前只显示学习内容（点此显示 README 等工程文件）';
+  }
+
   function bindPanels() {
     $$('.side-tab').forEach(function (tab) {
       tab.addEventListener('click', function () {
@@ -974,7 +1078,9 @@
     state.readSet = lsGet(LS.read, {});
     state.recent = lsGet(LS.recent, []);
     state.tocHidden = lsGet(LS.toc, false);
+    state.showAllFiles = lsGet('studyai.allfiles', false);
     if (lsGet(LS.sidebar, false)) $('#sidebar').classList.add('collapsed');
+    syncAllFilesBtn();
 
     // 事件
     $('#btnTheme').addEventListener('click', function () {
@@ -1016,6 +1122,15 @@
       $$('.tarrow').forEach(function (a) { a.classList.remove('open'); });
       state.expanded = {};
       toast('已全部收起');
+    });
+    // 显示/隐藏 README、LICENSE 这类工程文件
+    $('#btnAllFiles').addEventListener('click', function () {
+      state.showAllFiles = !state.showAllFiles;
+      lsSet('studyai.allfiles', state.showAllFiles);
+      syncAllFilesBtn();
+      state.treeCache = {};          // 缓存里含被过滤的条目，必须清掉重建
+      state.expanded = {};
+      initTree().then(function () { toast(state.showAllFiles ? '已显示全部文件' : '已隐藏工程文件'); });
     });
     $('#crumbs').addEventListener('click', function (ev) {
       var a = ev.target.closest('a[data-dir]');
