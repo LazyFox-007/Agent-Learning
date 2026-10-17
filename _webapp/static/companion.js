@@ -596,9 +596,33 @@
     if (CP.el.testOut) CP.el.testOut.textContent = '';
   }
 
+  /* 顶栏状态标记：演示模式 / 未配置密钥，避免把假回答当成真的 */
+  function syncModeBadge() {
+    var el = CP.el.mode;
+    if (!el) return;
+    var c = CP.cfg || {};
+    var isMock = String(c.base_url || '').indexOf('mock://') === 0;
+    var noKey = !isMock && !c.configured;
+    if (isMock) {
+      el.hidden = false;
+      el.textContent = '演示模式';
+      el.className = 'cp-mode is-mock';
+      el.title = '当前返回的是固定示例，不是真实模型回答。点 ⚙ 配置真实模型。';
+    } else if (noKey) {
+      el.hidden = false;
+      el.textContent = '未配置';
+      el.className = 'cp-mode is-warn';
+      el.title = '还没填 API Key，点 ⚙ 设置';
+    } else {
+      el.hidden = true;
+      el.textContent = '';
+    }
+  }
+
   function loadConfigIntoForm() {
     fetch('/api/ai/config').then(function (r) { return r.json(); }).then(function (c) {
       CP.cfg = c;
+      syncModeBadge();
       var sel = CP.el.preset;
       if (sel) {
         sel.innerHTML = Object.keys(CP.presets).map(function (k) {
@@ -730,6 +754,7 @@
     CP.el = {
       root:     $('#companion'),
       ctx:      $('#cpCtx'),
+      mode:     $('#cpMode'),
       msgs:     $('#cpMsgs'),
       quick:    $('#cpQuick'),
       input:    $('#cpInput'),
@@ -840,6 +865,12 @@
 
     // 选中冒泡
     initSelectionChip();
+
+    // 启动就读一次配置，顶栏才能立刻标出「演示模式 / 未配置」
+    fetch('/api/ai/config')
+      .then(function (r) { return r.json(); })
+      .then(function (c) { CP.cfg = c; syncModeBadge(); })
+      .catch(function () {});
 
     // 恢复上次状态
     switchTab(lsGet(LS.tab, 'chat'));

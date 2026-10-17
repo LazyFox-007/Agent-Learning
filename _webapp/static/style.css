@@ -134,8 +134,18 @@ html[data-theme="dark"] .brand-mark{box-shadow:0 1px 4px rgba(0,0,0,.5)}
 .trow.is-lesson .tname{font-weight:600;color:var(--ink);letter-spacing:-.1px}
 .trow.is-lesson.active .tname{color:var(--accent)}
 
-/* 章节前的统一课程图标（大肥鱼读书）
-   路径由 app.js 的 ICON_LESSON 指定，这里只管尺寸与微动效 */
+/* 顶栏状态标记：演示模式 / 未配置密钥 */
+.cp-mode{
+  font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:99px;
+  margin-left:4px;vertical-align:1px;letter-spacing:.2px;white-space:nowrap;
+}
+.cp-mode[hidden]{display:none}
+.cp-mode.is-mock{background:#fff3bf;color:#b8860b;border:1px solid #ffe066}
+.cp-mode.is-warn{background:#ffe3e3;color:#c92a2a;border:1px solid #ffa8a8}
+html[data-theme="dark"] .cp-mode.is-mock{background:#3a3000;color:#ffd43b;border-color:#5c4a00}
+html[data-theme="dark"] .cp-mode.is-warn{background:#3b1010;color:#ff8787;border-color:#5c1a1a}
+
+/* 章节前的统一课程图标（大肥鱼读书）   路径由 app.js 的 ICON_LESSON 指定，这里只管尺寸与微动效 */
 .tfish{
   flex-shrink:0;width:20px;height:20px;object-fit:contain;
   margin-right:-1px;display:block;
