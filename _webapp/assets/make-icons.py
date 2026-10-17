@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """把吉祥物图转成 Windows 快捷方式图标 + 网页图标"""
 from PIL import Image
 import os
@@ -23,7 +23,7 @@ print("裁水印后: %dx%d -> 正方形 %dx%d" % (w2, h2, side, side))
 
 # --- 2) 生成多尺寸 .ico ---
 SIZES = [256, 128, 64, 48, 32, 24, 16]
-ico = os.path.join(ASSETS, "mascot.ico")
+ico = os.path.join(ASSETS, "mascot-shortcut.ico")
 im2.save(ico, format="ICO", sizes=[(s, s) for s in SIZES])
 print("已生成 %s (%.1f KB)  尺寸: %s" % (ico, os.path.getsize(ico)/1024, SIZES))
 
