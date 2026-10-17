@@ -4,7 +4,7 @@
 
 两个来源，各司其职：
   v2 (透明)     -> 界面内图标：顶栏、头像、目录树、陪读面板
-  v4 (圆角底色) -> 应用图标：favicon、Windows 快捷方式、apple-touch
+  v4 (圆角底色) -> 网页图标：favicon、apple-touch、fish-app.ico
 
 白色背景转透明用「从边缘洪水填充」，不是全局去白 ——
 鱼的肚皮、眼镜镜片高光必须保留。
@@ -91,9 +91,9 @@ for size, name, folder in [
     app.resize((size, size), Image.LANCZOS).save(os.path.join(folder, name), "PNG")
     print("  %s  %dpx" % (name, size))
 
-ico = os.path.join(ASSETS, "mascot.ico")
+ico = os.path.join(ASSETS, "fish-app.ico")
 app.save(ico, format="ICO", sizes=[(s, s) for s in [256, 128, 64, 48, 32, 24, 16]])
-print("  mascot.ico  %.1f KB" % (os.path.getsize(ico) / 1024))
+print("  fish-app.ico  %.1f KB" % (os.path.getsize(ico) / 1024))
 
 fav = os.path.join(STATIC, "favicon.ico")
 app.save(fav, format="ICO", sizes=[(s, s) for s in [64, 48, 32, 16]])
