@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/mascot.png" width="110" alt="mascot">
+<img src="docs/icon.png" width="110" alt="agent学习平台">
 
 # agent学习平台
 
@@ -8,9 +8,18 @@
 
 零第三方 Python 依赖 · 只监听本机 · 断网可用
 
+[![Gitee](https://img.shields.io/badge/Gitee-国内快速访问-c71d23?style=flat-square)](https://gitee.com/haveink/agent-learning-platform)
+[![GitHub](https://img.shields.io/badge/GitHub-LazyFox--007-181717?style=flat-square&logo=github)](https://github.com/LazyFox-007/Agent-Learning)
+
 <img src="docs/screenshot-course.png" width="880" alt="课程页">
 
 </div>
+
+---
+
+> 📍 **两个镜像，内容同步** —— 国内建议用 Gitee，访问快且稳定。
+> - Gitee：https://gitee.com/haveink/agent-learning-platform
+> - GitHub：https://github.com/LazyFox-007/Agent-Learning
 
 ---
 
@@ -73,9 +82,11 @@
 **需要**：Python 3.8+ · git
 
 ```powershell
-# 1) 克隆
-git clone https://github.com/LazyFox-007/Agent-Learning.git
-cd Agent-Learning
+# 1) 克隆（国内用 Gitee，海外用 GitHub，两边内容一致）
+git clone https://gitee.com/haveink/agent-learning-platform.git
+# 或：git clone https://github.com/LazyFox-007/Agent-Learning.git
+
+cd agent-learning-platform
 
 # 2) 一键安装（拉取课程 + 生成索引与路线数据）
 powershell -ExecutionPolicy Bypass -File setup.ps1
@@ -90,6 +101,10 @@ python server.py
 > 端口被占用时会自动往后找（8777~8796），不会冲突。
 
 **没有 Node.js 也能用。** Node 只在重新生成课程索引时才用到，首页数据已随仓库提供。
+
+> ⚠️ `setup.ps1` 会从 GitHub 拉课程。如果 GitHub 连不上，
+> 用 [Watt Toolkit](https://steampp.net/) 之类工具加速，或手动改
+> `_scripts/import-agent-course.ps1` 里的 `$Upstream` 地址。
 
 ---
 
