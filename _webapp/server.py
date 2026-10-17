@@ -46,12 +46,48 @@ AI_CONFIG_FILE = WEBAPP / ".ai-config.json"
 
 # 预设服务商（全部走 OpenAI 兼容协议）
 AI_PRESETS = {
-    "deepseek": {"name": "DeepSeek",     "base_url": "https://api.deepseek.com/v1",                         "model": "deepseek-chat"},
-    "qwen":     {"name": "通义千问",      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",  "model": "qwen-plus"},
-    "moonshot": {"name": "Kimi",         "base_url": "https://api.moonshot.cn/v1",                          "model": "moonshot-v1-8k"},
-    "openai":   {"name": "OpenAI",       "base_url": "https://api.openai.com/v1",                            "model": "gpt-4o-mini"},
-    "ollama":   {"name": "Ollama 本地",  "base_url": "http://127.0.0.1:11434/v1",                            "model": "qwen2.5:7b"},
-    "mock":     {"name": "演示模式（无需密钥）", "base_url": "mock://demo",                                    "model": "mock-fish"},
+    "deepseek": {
+        "name": "DeepSeek", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat",
+        "tag": "推荐", "badge": "cheap",
+        "desc": "国内直连、价格极低，最省事的选择",
+        "home": "https://platform.deepseek.com/api_keys",
+        "key_hint": "sk- 开头",
+    },
+    "qwen": {
+        "name": "通义千问", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "model": "qwen-plus",
+        "tag": "有免费额度", "badge": "free",
+        "desc": "阿里云百炼，新用户通常有免费 token",
+        "home": "https://bailian.console.aliyun.com/",
+        "key_hint": "sk- 开头",
+    },
+    "moonshot": {
+        "name": "Kimi", "base_url": "https://api.moonshot.cn/v1", "model": "moonshot-v1-8k",
+        "tag": "长文本", "badge": "cheap",
+        "desc": "月之暗面，适合读长章节",
+        "home": "https://platform.moonshot.cn/console/api-keys",
+        "key_hint": "sk- 开头",
+    },
+    "openai": {
+        "name": "OpenAI", "base_url": "https://api.openai.com/v1", "model": "gpt-4o-mini",
+        "tag": "需代理", "badge": "paid",
+        "desc": "国内直连通常不通，需要网络代理",
+        "home": "https://platform.openai.com/api-keys",
+        "key_hint": "sk- 开头",
+    },
+    "ollama": {
+        "name": "Ollama 本地", "base_url": "http://127.0.0.1:11434/v1", "model": "qwen2.5:7b",
+        "tag": "完全免费", "badge": "free",
+        "desc": "跑在自己电脑上，断网可用；需先装 Ollama 并 pull 模型",
+        "home": "https://ollama.com/download",
+        "key_hint": "本地服务不用填 Key",
+    },
+    "mock": {
+        "name": "演示模式", "base_url": "mock://demo", "model": "mock-fish",
+        "tag": "不联网", "badge": "demo",
+        "desc": "返回固定示例，只用来看界面长什么样",
+        "home": "",
+        "key_hint": "不需要 Key",
+    },
 }
 
 AI_CONFIG_DEFAULT = {
@@ -646,6 +682,86 @@ class Handler(BaseHTTPRequestHandler):
             "max_tokens": cfg.get("max_tokens"),
         })
 
+    @staticmethod
+    def _classify_llm_error(e):
+        """把模型调用失败翻译成人话。
+
+        返回 dict: {kind, message, hint}
+          kind    —— 前端用来决定怎么展示（auth / network / billing ...）
+          message —— 发生了什么
+          hint    —— 该怎么办
+        """
+        import socket
+        import urllib.error
+
+        code = None
+        detail = ""
+        if isinstance(e, urllib.error.HTTPError):
+            code = e.code
+            try:
+                detail = e.read().decode("utf-8", "replace")
+            except Exception:
+                detail = ""
+            if not detail:
+                detail = str(e)
+        else:
+            detail = str(e) or e.__class__.__name__
+
+        low = detail.lower()
+
+        if code == 401 or "invalid_api_key" in low or "incorrect api key" in low \
+                or "unauthorized" in low or "invalid token" in low:
+            return {"kind": "auth",
+                    "message": "API Key 无效或已过期",
+                    "hint": "确认 Key 复制完整（首尾不要有空格），或去服务商后台重新生成一个"}
+
+        if code == 403:
+            return {"kind": "forbidden",
+                    "message": "这个 Key 没有调用权限",
+                    "hint": "确认账号已开通对应模型；部分服务商要求先实名或充值才能调用"}
+
+        if code == 404:
+            return {"kind": "notfound",
+                    "message": "接口地址或模型名不存在",
+                    "hint": "接口地址一般以 /v1 结尾；模型名要和服务商文档完全一致（如 deepseek-chat）"}
+
+        if code == 402 or "insufficient" in low or "balance" in low \
+                or "quota" in low or "欠费" in detail or "额度" in detail:
+            return {"kind": "billing",
+                    "message": "账户余额不足或额度已用完",
+                    "hint": "去服务商后台充值后再试"}
+
+        if code == 429:
+            return {"kind": "ratelimit",
+                    "message": "请求太频繁，被限流了",
+                    "hint": "等几十秒再试；免费额度通常有每分钟次数限制"}
+
+        if code and 500 <= code < 600:
+            return {"kind": "server",
+                    "message": "服务商那边出错了（HTTP %d）" % code,
+                    "hint": "稍后重试；持续失败可以换一家服务商"}
+
+        if isinstance(e, (TimeoutError, socket.timeout)) or "timed out" in low:
+            return {"kind": "timeout",
+                    "message": "连接超时",
+                    "hint": "检查网络；国内直连 OpenAI 通常需要代理"}
+
+        if "getaddrinfo" in low or "name or service not known" in low \
+                or "connection refused" in low or "connection reset" in low \
+                or "failed to establish" in low:
+            return {"kind": "network",
+                    "message": "连不上这个接口地址",
+                    "hint": "检查地址拼写；用本地 Ollama 的话要先启动服务（默认 127.0.0.1:11434）"}
+
+        if "certificate" in low or "ssl" in low:
+            return {"kind": "ssl",
+                    "message": "TLS 证书校验失败",
+                    "hint": "公共 API 一般不会这样；自建服务用自签证书需要额外配置"}
+
+        return {"kind": "unknown",
+                "message": (detail.strip() or str(e))[:300],
+                "hint": "把这个错误发给开发者看看"}
+
     def _api_ai_test(self):
         """测试连通性：发一个极短的请求，返回耗时与模型回复。"""
         raw = self._read_body()
@@ -662,19 +778,27 @@ class Handler(BaseHTTPRequestHandler):
             cfg["api_key"] = str(data["api_key"]).strip()
 
         if not cfg.get("base_url"):
-            return self._err(400, "还没配置接口地址")
+            return self._json({"ok": False, "kind": "empty",
+                               "error": "还没填接口地址",
+                               "hint": "选一个服务商就会自动填好"}, 200)
 
         if str(cfg["base_url"]).startswith("mock://"):
-            return self._json({"ok": True, "ms": 12, "reply": "演示模式无需联网", "model": cfg.get("model")})
+            return self._json({"ok": True, "ms": 12, "reply": "演示模式无需联网",
+                               "model": cfg.get("model")})
 
         if not cfg.get("api_key"):
-            return self._err(400, "还没填写 API Key")
+            return self._json({"ok": False, "kind": "nokey",
+                               "error": "还没填 API Key",
+                               "hint": "去服务商后台创建一个，粘贴到上面的输入框"}, 200)
 
         t0 = time.time()
         try:
-            reply = self._llm_call(cfg, [{"role": "user", "content": "只回复两个字：你好"}], stream=False, max_tokens=16)
+            reply = self._llm_call(cfg, [{"role": "user", "content": "只回复两个字：你好"}],
+                                   stream=False, max_tokens=16)
         except Exception as e:
-            return self._json({"ok": False, "error": str(e)}, 200)
+            info = self._classify_llm_error(e)
+            info.update({"ok": False, "error": info.pop("message")})
+            return self._json(info, 200)
         return self._json({
             "ok": True,
             "ms": int((time.time() - t0) * 1000),
@@ -766,7 +890,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             resp = self._llm_call(cfg, full, stream=True)
         except Exception as e:
-            sse_event(self, {"type": "error", "message": "调用模型失败：%s" % e})
+            info = self._classify_llm_error(e)
+            sse_event(self, {"type": "error",
+                             "message": info["message"],
+                             "kind": info["kind"],
+                             "hint": info["hint"]})
             _chunked_end(self)
             return
 

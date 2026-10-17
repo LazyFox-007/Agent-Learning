@@ -134,6 +134,91 @@ html[data-theme="dark"] .brand-mark{box-shadow:0 1px 4px rgba(0,0,0,.5)}
 .trow.is-lesson .tname{font-weight:600;color:var(--ink);letter-spacing:-.1px}
 .trow.is-lesson.active .tname{color:var(--accent)}
 
+/* ---- 设置：服务商卡片 ---- */
+.cp-dialog--setup{max-width:500px}
+.cp-lead{
+  font-size:12.5px;line-height:1.7;color:var(--ink3);margin:0 0 2px;
+}
+.cp-providers{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+}
+.cp-prov{
+  display:flex;flex-direction:column;gap:3px;text-align:left;
+  padding:9px 11px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--line);background:var(--bg3);color:var(--ink2);
+  font-family:inherit;transition:.14s;
+}
+.cp-prov:hover{border-color:var(--accent2);background:var(--accent-bg)}
+.cp-prov.on{
+  border-color:var(--accent);background:var(--accent-bg);
+  box-shadow:0 0 0 1px var(--accent) inset;
+}
+.cp-prov-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cp-prov-top b{font-size:13px;font-weight:700;color:var(--ink)}
+.cp-prov.on .cp-prov-top b{color:var(--accent)}
+.cp-prov-badge{
+  font-style:normal;font-size:9.5px;font-weight:700;padding:1px 5px;
+  border-radius:99px;line-height:1.5;white-space:nowrap;
+}
+.cp-prov-badge.b-free{background:#e6fcf5;color:#0ca678}
+.cp-prov-badge.b-cheap{background:#e7f5ff;color:#1971c2}
+.cp-prov-badge.b-paid{background:#fff4e6;color:#e8590c}
+.cp-prov-badge.b-demo{background:#f1f3f5;color:#868e96}
+html[data-theme="dark"] .cp-prov-badge.b-free{background:#0b2e26;color:#63e6be}
+html[data-theme="dark"] .cp-prov-badge.b-cheap{background:#10263a;color:#74c0fc}
+html[data-theme="dark"] .cp-prov-badge.b-paid{background:#3a2210;color:#ffa94d}
+html[data-theme="dark"] .cp-prov-badge.b-demo{background:#23262b;color:#adb5bd}
+.cp-prov-desc{font-size:11px;line-height:1.5;color:var(--ink4)}
+
+.cp-field-hint{font-size:11px;color:var(--ink4);line-height:1.5}
+
+/* 高级折叠 */
+.cp-advanced{
+  border:1px solid var(--line);border-radius:9px;background:var(--bg3);
+  padding:0 12px;
+}
+.cp-advanced summary{
+  cursor:pointer;font-size:12px;font-weight:600;color:var(--ink3);
+  padding:9px 0;list-style:none;user-select:none;
+}
+.cp-advanced summary::-webkit-details-marker{display:none}
+.cp-advanced summary::before{content:"▸ ";color:var(--ink4)}
+.cp-advanced[open] summary::before{content:"▾ "}
+.cp-advanced summary:hover{color:var(--ink)}
+.cp-adv-body{display:flex;flex-direction:column;gap:10px;padding:2px 0 12px}
+
+/* 底部：申请链接靠左 */
+.cp-getkey{
+  font-size:12px;font-weight:600;color:var(--accent);
+  text-decoration:none;margin-right:auto;padding:6px 0;
+  border-bottom:1px solid transparent;transition:.14s;
+}
+.cp-getkey:hover{border-bottom-color:var(--accent)}
+.cp-getkey[hidden]{display:none}
+.cp-foot-spacer{flex:1}
+.cp-dlg-foot{flex-wrap:wrap;align-items:center}
+
+/* ---- 空对话里的连接引导 ---- */
+.cp-cta{
+  display:flex;align-items:center;gap:10px;width:100%;
+  margin-top:14px;padding:11px 13px;border-radius:11px;cursor:pointer;
+  border:1px solid var(--accent);background:var(--accent-bg);
+  color:var(--accent);font-family:inherit;text-align:left;
+  transition:.16s;
+}
+.cp-cta:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(59,91,219,.18)}
+.cp-cta.warn{border-color:#f59f00;background:#fff9db;color:#b8860b}
+html[data-theme="dark"] .cp-cta.warn{background:#3a3000;color:#ffd43b;border-color:#7a6200}
+.cp-cta-ico{font-size:17px;line-height:1;flex-shrink:0}
+.cp-cta-txt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.cp-cta-txt b{font-size:13px;font-weight:700}
+.cp-cta-txt i{font-style:normal;font-size:11px;opacity:.78;line-height:1.45}
+.cp-cta-arrow{font-size:15px;opacity:.6;flex-shrink:0}
+
+@media(max-width:520px){
+  .cp-providers{grid-template-columns:1fr}
+}
+
 /* 顶栏状态标记：演示模式 / 未配置密钥 */
 .cp-mode{
   font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:99px;
@@ -969,6 +1054,8 @@ html[data-theme="dark"]{
   background:var(--bg2);padding:1px 4px;border-radius:3px;
 }
 .cp-field{display:flex;flex-direction:column;gap:5px}
+/* .cp-field 是 flex，会盖掉 UA 的 [hidden]{display:none}，必须显式声明 */
+.cp-field[hidden]{display:none}
 .cp-field>span{font-size:12px;font-weight:600;color:var(--ink3)}
 .cp-field input[type=text],.cp-field input[type=password],.cp-field select{
   border:1px solid var(--line);border-radius:8px;background:var(--bg3);color:var(--ink);

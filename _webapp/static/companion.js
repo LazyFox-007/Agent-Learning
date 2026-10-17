@@ -25,6 +25,7 @@
     el: {},
     cfg: null,
     presets: {},
+    presetKey: '',      // 设置里当前选中的服务商
     ctx: { path: '', chapter: '', heading: '', progress: '', selection: '' },
     msgs: [],           // 当前章节的对话
     noteTimer: null,
@@ -217,15 +218,7 @@
     var box = CP.el.msgs;
     if (!box) return;
     if (!CP.msgs.length) {
-      box.innerHTML =
-        '<div class="cp-empty">' +
-          '<img src="/static/mascot-64.png" class="cp-empty-fish" alt="">' +
-          '<div class="cp-empty-t">大肥鱼在这儿</div>' +
-          '<div class="cp-empty-d">' +
-            '在讲义里划一段文字，右边会冒出「问大肥鱼」；<br>' +
-            '或者点下面的快捷指令，让我总结、出题、举例子。' +
-          '</div>' +
-        '</div>';
+      renderEmptyState();
       return;
     }
     box.innerHTML = CP.msgs.map(function (m, i) {
@@ -233,6 +226,46 @@
     }).join('');
     bindMsgActions(box);
     scrollBottom();
+  }
+
+  /* 空对话时的引导。未连接真实模型就先把「连接」摆在最显眼的位置 */
+  function renderEmptyState() {
+    var box = CP.el.msgs;
+    if (!box) return;
+    var c = CP.cfg || {};
+    var isMock = String(c.base_url || '').indexOf('mock://') === 0;
+    var noKey = !isMock && !c.configured;
+
+    var cta = '';
+    if (isMock) {
+      cta =
+        '<button class="cp-cta" id="cpCtaSetup">' +
+          '<span class="cp-cta-ico">🔑</span>' +
+          '<span class="cp-cta-txt"><b>连接真实模型</b><i>现在是演示模式，回答是固定示例</i></span>' +
+          '<span class="cp-cta-arrow">→</span>' +
+        '</button>';
+    } else if (noKey) {
+      cta =
+        '<button class="cp-cta warn" id="cpCtaSetup">' +
+          '<span class="cp-cta-ico">⚠️</span>' +
+          '<span class="cp-cta-txt"><b>还没填 API Key</b><i>填上才能真的回答问题</i></span>' +
+          '<span class="cp-cta-arrow">→</span>' +
+        '</button>';
+    }
+
+    box.innerHTML =
+      '<div class="cp-empty">' +
+        '<img src="/static/mascot-64.png" class="cp-empty-fish" alt="">' +
+        '<div class="cp-empty-t">大肥鱼在这儿</div>' +
+        (cta ||
+          '<div class="cp-empty-d">' +
+            '在讲义里划一段文字，右边会冒出「问大肥鱼」；<br>' +
+            '或者点下面的快捷指令，让我总结、出题、举例子。' +
+          '</div>') +
+      '</div>';
+
+    var btn = $('#cpCtaSetup', box);
+    if (btn) btn.addEventListener('click', openSettings);
   }
 
   function msgHtml(m, idx) {
@@ -583,17 +616,95 @@
   }
 
   /* ------------------------------------------------------------------
-     设置对话框
+     设置：服务商卡片 + 高级折叠 + 保存并测试
      ------------------------------------------------------------------ */
+  var BADGE_TEXT = { free: '免费', cheap: '便宜', paid: '需付费', demo: '不联网' };
+  var PRESET_ORDER = ['deepseek', 'qwen', 'moonshot', 'ollama', 'openai', 'mock'];
+
+  // 不需要 API Key 的服务商
+  function needsKey(k) { return k !== 'mock' && k !== 'ollama'; }
+
+  function setTestOut(text, cls) {
+    var out = CP.el.testOut;
+    if (!out) return;
+    out.textContent = text || '';
+    out.className = 'cp-test-out' + (cls ? ' ' + cls : '');
+  }
+
+  function renderProviders() {
+    var box = CP.el.providers;
+    if (!box) return;
+    var keys = Object.keys(CP.presets).sort(function (a, b) {
+      var ia = PRESET_ORDER.indexOf(a), ib = PRESET_ORDER.indexOf(b);
+      return (ia < 0 ? 8 : ia) - (ib < 0 ? 8 : ib);
+    });
+    box.innerHTML = keys.map(function (k) {
+      var p = CP.presets[k];
+      var on = CP.presetKey === k;
+      var badge = BADGE_TEXT[p.badge] || '';
+      return '<button type="button" class="cp-prov' + (on ? ' on' : '') + '" data-preset="' + esc(k) + '">' +
+        '<span class="cp-prov-top"><b>' + esc(p.name) + '</b>' +
+        (badge ? '<i class="cp-prov-badge b-' + esc(p.badge) + '">' + esc(badge) + '</i>' : '') +
+        '</span>' +
+        '<span class="cp-prov-desc">' + esc(p.desc || '') + '</span>' +
+        '</button>';
+    }).join('');
+  }
+
+  function selectPreset(k) {
+    var p = CP.presets[k];
+    if (!p) return;
+    CP.presetKey = k;
+    renderProviders();
+
+    if (CP.el.baseUrl) CP.el.baseUrl.value = p.base_url || '';
+    if (CP.el.model) CP.el.model.value = p.model || '';
+
+    var link = CP.el.getKey;
+    if (link) {
+      if (p.home) { link.href = p.home; link.hidden = false; }
+      else { link.hidden = true; link.removeAttribute('href'); }
+    }
+    if (CP.el.keyField) CP.el.keyField.hidden = !needsKey(k);
+    if (CP.el.keyHint) CP.el.keyHint.textContent = p.key_hint || '';
+  }
+
   function openSettings() {
     var m = CP.el.modal;
     if (!m) return;
     m.hidden = false;
-    loadConfigIntoForm();
+    setTestOut('', '');
+
+    fetch('/api/ai/config').then(function (r) { return r.json(); }).then(function (c) {
+      CP.cfg = c;
+      syncModeBadge();
+
+      CP.presetKey = CP.presets[c.preset] ? c.preset : 'deepseek';
+      selectPreset(CP.presetKey);
+
+      // 已有自定义地址/模型时，覆盖回用户存的值（selectPreset 会用预设默认值）
+      if (c.base_url) CP.el.baseUrl.value = c.base_url;
+      if (c.model) CP.el.model.value = c.model;
+      if (CP.el.key) {
+        CP.el.key.value = '';
+        CP.el.key.placeholder = c.key_masked ? ('已保存 ' + c.key_masked + '（留空则不改）') : '粘贴 API Key';
+      }
+      if (CP.el.temp) {
+        CP.el.temp.value = c.temperature;
+        CP.el.tempVal.textContent = Number(c.temperature).toFixed(1);
+      }
+      // 地址和预设不一致 → 自动展开高级，让用户看到真实配置
+      var p = CP.presets[CP.presetKey];
+      var custom = p && c.base_url && c.base_url !== p.base_url;
+      if (CP.el.advanced) CP.el.advanced.open = !!custom;
+    }).catch(function () {
+      setTestOut('读取配置失败', 'bad');
+    });
   }
+
   function closeSettings() {
     if (CP.el.modal) CP.el.modal.hidden = true;
-    if (CP.el.testOut) CP.el.testOut.textContent = '';
+    setTestOut('', '');
   }
 
   /* 顶栏状态标记：演示模式 / 未配置密钥，避免把假回答当成真的 */
@@ -619,35 +730,9 @@
     }
   }
 
-  function loadConfigIntoForm() {
-    fetch('/api/ai/config').then(function (r) { return r.json(); }).then(function (c) {
-      CP.cfg = c;
-      syncModeBadge();
-      var sel = CP.el.preset;
-      if (sel) {
-        sel.innerHTML = Object.keys(CP.presets).map(function (k) {
-          var p = CP.presets[k];
-          return '<option value="' + esc(k) + '"' + (c.preset === k ? ' selected' : '') + '>' + esc(p.name) + '</option>';
-        }).join('');
-      }
-      if (CP.el.baseUrl) CP.el.baseUrl.value = c.base_url || '';
-      if (CP.el.model) CP.el.model.value = c.model || '';
-      if (CP.el.key) {
-        CP.el.key.value = '';
-        CP.el.key.placeholder = c.key_masked ? ('已保存：' + c.key_masked + '（留空则不修改）') : 'sk-...';
-      }
-      if (CP.el.temp) {
-        CP.el.temp.value = c.temperature;
-        CP.el.tempVal.textContent = Number(c.temperature).toFixed(1);
-      }
-    }).catch(function () {
-      if (CP.el.testOut) CP.el.testOut.textContent = '读取配置失败';
-    });
-  }
-
-  function saveSettings() {
+  function saveAndTest() {
     var body = {
-      preset: CP.el.preset ? CP.el.preset.value : undefined,
+      preset: CP.presetKey,
       base_url: CP.el.baseUrl ? CP.el.baseUrl.value.trim() : undefined,
       model: CP.el.model ? CP.el.model.value.trim() : undefined,
       temperature: CP.el.temp ? Number(CP.el.temp.value) : undefined
@@ -655,41 +740,51 @@
     var k = CP.el.key ? CP.el.key.value.trim() : '';
     if (k) body.api_key = k;
 
+    setTestOut('正在保存…', '');
     fetch('/api/ai/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     }).then(function (r) { return r.json(); }).then(function (c) {
       CP.cfg = c;
-      closeSettings();
-      toast(c.configured ? '已保存' : '已保存，但还没配置密钥');
-    }).catch(function () { toast('保存失败'); });
+      syncModeBadge();
+      renderEmptyState();
+      return runTest();
+    }).then(function (ok) {
+      if (ok) {
+        setTimeout(function () { closeSettings(); toast('已连接，开始陪读'); }, 800);
+      }
+    }).catch(function () {
+      setTestOut('保存失败，看看服务是不是停了', 'bad');
+    });
   }
 
-  function testConn() {
-    var out = CP.el.testOut;
-    if (out) out.textContent = '正在测试…';
+  // 返回 Promise<boolean>
+  function runTest() {
     var body = {
       base_url: CP.el.baseUrl ? CP.el.baseUrl.value.trim() : '',
       model: CP.el.model ? CP.el.model.value.trim() : ''
     };
     var k = CP.el.key ? CP.el.key.value.trim() : '';
     if (k) body.api_key = k;
-    fetch('/api/ai/test', {
+
+    setTestOut('正在测试连接…', '');
+    return fetch('/api/ai/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     }).then(function (r) { return r.json(); }).then(function (o) {
       if (o.ok) {
-        out.textContent = '✅ 连通（' + o.ms + 'ms）· ' + (o.reply || '').replace(/\n/g, ' ');
-        out.className = 'cp-test-out ok';
-      } else {
-        out.textContent = '❌ ' + (o.error || '失败');
-        out.className = 'cp-test-out bad';
+        setTestOut('✅ 连通（' + o.ms + 'ms）' + (o.reply ? ' · ' + o.reply : ''), 'ok');
+        return true;
       }
+      var msg = '❌ ' + (o.error || '连接失败');
+      if (o.hint) msg += '\n💡 ' + o.hint;
+      setTestOut(msg, 'bad');
+      return false;
     }).catch(function (e) {
-      out.textContent = '❌ ' + e.message;
-      out.className = 'cp-test-out bad';
+      setTestOut('❌ ' + e.message, 'bad');
+      return false;
     });
   }
 
@@ -762,7 +857,11 @@
       typing:   $('#cpTyping'),
       chip:     $('#cpSelChip'),
       modal:    $('#cpModal'),
-      preset:   $('#cpPreset'),
+      providers:$('#cpProviders'),
+      getKey:   $('#cpGetKey'),
+      keyField: $('#cpKeyField'),
+      keyHint:  $('#cpKeyHint'),
+      advanced: $('#cpAdvanced'),
       baseUrl:  $('#cpBaseUrl'),
       model:    $('#cpModel'),
       key:      $('#cpKey'),
@@ -778,14 +877,10 @@
     };
     if (!CP.el.root) return;
 
-    // 预设表
+    // 预设表（服务商卡片的数据源）
     fetch('/api/ai/presets').then(function (r) { return r.json(); }).then(function (o) {
       CP.presets = o.presets || {};
-      if (CP.el.preset) {
-        CP.el.preset.innerHTML = Object.keys(CP.presets).map(function (k) {
-          return '<option value="' + esc(k) + '">' + esc(CP.presets[k].name) + '</option>';
-        }).join('');
-      }
+      renderProviders();
     }).catch(function () {});
 
     // 关闭 / 设置 / 清空
@@ -841,24 +936,37 @@
     if (CP.el.modal) {
       var closeBtn = $('#cpModalClose');
       if (closeBtn) closeBtn.addEventListener('click', closeSettings);
+
       var saveBtn = $('#cpSave');
-      if (saveBtn) saveBtn.addEventListener('click', saveSettings);
+      if (saveBtn) saveBtn.addEventListener('click', saveAndTest);
       var testBtn = $('#cpTest');
-      if (testBtn) testBtn.addEventListener('click', testConn);
+      if (testBtn) testBtn.addEventListener('click', function () { runTest(); });
+
       CP.el.modal.addEventListener('click', function (ev) {
         if (ev.target === CP.el.modal) closeSettings();
       });
-      if (CP.el.preset) {
-        CP.el.preset.addEventListener('change', function () {
-          var p = CP.presets[CP.el.preset.value];
-          if (!p) return;
-          CP.el.baseUrl.value = p.base_url;
-          CP.el.model.value = p.model;
+
+      // 服务商卡片：委托点击
+      if (CP.el.providers) {
+        CP.el.providers.addEventListener('click', function (ev) {
+          var card = ev.target.closest('.cp-prov');
+          if (!card) return;
+          selectPreset(card.dataset.preset);
+          setTestOut('', '');
+          if (CP.el.key) CP.el.key.focus();
         });
       }
+
       if (CP.el.temp) {
         CP.el.temp.addEventListener('input', function () {
           CP.el.tempVal.textContent = Number(CP.el.temp.value).toFixed(1);
+        });
+      }
+
+      // 在 Key 输入框里按回车 = 保存并测试
+      if (CP.el.key) {
+        CP.el.key.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') { ev.preventDefault(); saveAndTest(); }
         });
       }
     }
