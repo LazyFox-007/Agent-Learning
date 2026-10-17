@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第27章：Agent Prompt 工程 —— 工具描述也是 Prompt — AI Agent 全栈课程</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: #f8f9fa; color: #1a1a2e; line-height: 1.8;
+}
+.page-wrapper { display: flex; min-height: 100vh; }
+
+/* 侧边栏 TOC */
+.sidebar {
+  width: 240px; min-width: 240px; background: #0f172a; color: #e2e8f0;
+  padding: 24px 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; font-size: .85em; border-right: 1px solid #1e293b;
+}
+.sidebar-title {
+  font-weight: 700; font-size: 1.05em; padding: 0 18px 16px;
+  border-bottom: 1px solid #1e293b; margin-bottom: 12px; color: white;
+}
+.sidebar-title a { color: #8ab4f8; text-decoration: none; }
+.sidebar-title a:hover { text-decoration: underline; }
+.sidebar-layer {
+  padding: 6px 18px; margin-top: 8px; color: #64748b;
+  font-size: .78em; text-transform: uppercase; letter-spacing: .5px;
+}
+.sidebar-link {
+  display: block; padding: 5px 18px 5px 18px; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: all .15s; font-size: .88em;
+}
+.sidebar-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+.sidebar-link.active {
+  color: #60a5fa; background: rgba(96,165,250,.1);
+  border-left-color: #60a5fa; font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1; min-width: 0; padding: 40px 24px 80px;
+  max-width: calc(100vw - 240px);
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 48px 32px; border-radius: 12px; margin-bottom: 36px;
+}
+.hero h1 { font-size: 2em; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { opacity: 0.9; font-size: 1.05em; }
+
+/* 讲义标题层级 */
+.lecture { background: white; border-radius: 10px; padding: 36px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 32px; }
+.lecture h2 {
+  font-size: 1.25em; color: #667eea; margin: 28px 0 12px;
+  padding-bottom: 6px; border-bottom: 2px solid #e8e8ff;
+}
+.lecture h3 {
+  font-size: 1.08em; color: #555; margin: 22px 0 8px;
+  padding-left: 10px; border-left: 3px solid #667eea;
+}
+.lecture p { margin: 10px 0; }
+.lecture ul, .lecture ol { margin: 8px 0 8px 24px; }
+.lecture li { margin: 4px 0; }
+.lecture pre {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+  padding: 18px 22px; overflow-x: auto; font-size: .88em;
+  line-height: 1.55; margin: 14px 0;
+}
+.lecture code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; }
+.lecture p code, .lecture li code {
+  background: #eee8ff; padding: 1px 6px; border-radius: 4px;
+  font-size: .92em; color: #6c3cc0;
+}
+.lecture strong { color: #333; }
+.lecture em { color: #555; }
+.lecture blockquote {
+  border-left: 4px solid #667eea; padding: 8px 16px;
+  margin: 14px 0; background: #f4f4ff; border-radius: 0 8px 8px 0;
+  color: #555;
+}
+.lecture table {
+  border-collapse: collapse; width: 100%; margin: 16px 0;
+  font-size: .92em; background: white; border-radius: 6px; overflow: hidden;
+}
+.lecture table th {
+  background: #667eea; color: white; font-weight: 600;
+  padding: 10px 14px; text-align: left;
+}
+.lecture table td {
+  padding: 9px 14px; border-bottom: 1px solid #e8e8f0;
+}
+.lecture table tr:hover td { background: #f4f4ff; }
+.lecture hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+/* 架构图 / 流程图 — 与代码块相同的 pre 渲染方式 */
+.diagram-label {
+  font-size: .85em; font-weight: 600; color: #8ab4f8;
+  background: linear-gradient(135deg, #2d3a5c 0%, #1e2d4a 100%);
+  padding: 8px 18px; letter-spacing: .5px; margin: 18px 0 0 0;
+  border-radius: 10px 10px 0 0; border: 1px solid #3a4a6a; border-bottom: none;
+}
+.diagram-pre {
+  border-radius: 0 0 10px 10px; margin: 0 0 18px 0;
+  border-top: none; border: 1px solid #2a3045;
+}
+.ascii-art {
+  background: #1a1e2b; color: #c0caf5; border-radius: 0 0 10px 10px;
+  padding: 18px 22px; overflow-x: auto; font-size: .8em;
+  line-height: 1.3; margin: 0;
+  font-family: "JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace;
+  border: none; white-space: pre;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 目标/考点标签 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: .85em; font-weight: 500;
+}
+.tag-goal { background: #e8f5e9; color: #2e7d32; }
+.tag-interview { background: #fff3e0; color: #e65100; }
+
+/* 代码块区域 */
+.code-section { margin-top: 24px; }
+.code-section summary {
+  font-size: 1.1em; font-weight: 600; cursor: pointer;
+  padding: 10px 16px; background: #1e1e2e; color: #cdd6f4;
+  border-radius: 8px 8px 0 0; user-select: none;
+}
+.code-section pre {
+  margin: 0; border-radius: 0 0 8px 8px; max-height: 70vh;
+  overflow-y: auto;
+}
+.code-block {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 0 0 8px 8px;
+  padding: 20px 24px; overflow-x: auto; font-size: .85em;
+  line-height: 1.6; max-height: 70vh; overflow-y: auto;
+}
+
+/* IDE 风格语法高亮颜色 */
+.code-block .k { color: #c586c0; }     /* 关键字 def/class/import */
+.code-block .s { color: #ce9178; }     /* 字符串 */
+.code-block .h { color: #6a9955; }     /* 注释 */
+.code-block .d { color: #dcdcaa; }     /* 装饰器 */
+.code-block .n { color: #b5cea8; }     /* 数字 */
+.code-block .f { color: #4ec9b0; }     /* 函数名 */
+.code-block .b { color: #569cd6; }     /* 内置函数 */
+
+/* 讲义→代码 视觉过渡 */
+.code-bridge {
+  text-align: center; color: #667eea; font-size: .9em;
+  padding: 8px 0 4px; font-weight: 500;
+}
+.code-badges {
+  padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 6px;
+  background: #2a2a3e; border-bottom: 1px solid #444;
+}
+.code-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: .8em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.code-badge-func { background: #1e3a5f; color: #4ec9b0; }
+.code-badge-class { background: #1e3a5f; color: #dcdcaa; }
+.code-badge-const { background: #1e3a5f; color: #b5cea8; }
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main-content { max-width: calc(100vw - 200px); }
+}
+@media (max-width: 768px) {
+  .page-wrapper { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; height: auto; max-height: 45vh;
+    position: static; display: none; }
+  .sidebar.open { display: block; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .main-content { max-width: 100%; padding: 16px 10px 60px; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0; }
+  .hero { padding: 28px 18px; }
+  .hero h1 { font-size: 1.4em; }
+  .lecture { padding: 20px 16px; }
+}
+
+/* 打印 */
+@media print {
+  body { background: white; }
+  .lecture { box-shadow: none; }
+  .code-block { background: #f5f5f5; color: #222; }
+}
+
+/* 上/下章导航 */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 32px 0; gap: 16px;
+}
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 22px; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: .95em; transition: all .2s;
+}
+.nav-prev { background: #f0f0ff; color: #667eea; }
+.nav-prev:hover { background: #e0e0ff; }
+.nav-next { background: #667eea; color: white; }
+.nav-next:hover { background: #5560d8; }
+.nav-disabled { background: #eee; color: #999; cursor: not-allowed; pointer-events: none; }
+.nav-home { background: #f5f5f5; color: #555; }
+.nav-home:hover { background: #e0e0e0; }
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: .88em; color: #888; margin-bottom: 20px;
+}
+.breadcrumb a { color: #667eea; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* 移动端侧边栏开关 */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; background: #667eea;
+  color: white; border: none; font-size: 1.2em; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102,126,234,.4);
+}
+@media (max-width: 768px) { .sidebar-toggle { display: flex; align-items: center; justify-content: center; } }
+
+/* 浏览量统计徽章 */
+
+
+
+</style>
+
+</head>
+<body>
+<div class="page-wrapper">
+<!-- generated-from-sha256:181b5000dccf0759c934fe2e30ea94f6619d0cec7b8517ce333ed85143c6fa0b -->
+<div class="sidebar" id="sidebar">
+<div class="sidebar-title"><a href="../index.html">🤖 AI Agent 全栈课程</a></div>
+<div class="sidebar-layer">第1层 理论基础</div>
+<a class="sidebar-link" href="../chapter_00_overview/00_course_overview.html">Ch0 课程概览与环境搭建</a>
+<a class="sidebar-link" href="../chapter_01_fundamentals/01_hello_agent.html">Ch1 第一个 Agent</a>
+<a class="sidebar-link" href="../chapter_02_components/02_agent_components.html">Ch2 Agent 核心组件</a>
+<a class="sidebar-link" href="../chapter_03_types/03_agent_types.html">Ch3 Agent 类型分类</a>
+<div class="sidebar-layer">第2层 工程实践</div>
+<a class="sidebar-link" href="../chapter_04_frameworks/04_frameworks.html">Ch4 主流框架实战</a>
+<a class="sidebar-link" href="../chapter_05_multi_agent/05_multi_agent.html">Ch5 多智能体系统</a>
+<a class="sidebar-link" href="../chapter_06_evaluation/06_evaluation.html">Ch6 评估与测试</a>
+<a class="sidebar-link" href="../chapter_07_interview/07_interview_prep.html">Ch7 求职面试准备</a>
+<div class="sidebar-layer">第3层 深度技术</div>
+<a class="sidebar-link" href="../chapter_08_claude_code/08_claude_code_architecture.html">Ch8 Claude Code 架构</a>
+<a class="sidebar-link" href="../chapter_09_rag_deepdive/09_rag_deepdive.html">Ch9 RAG 深度解析</a>
+<a class="sidebar-link" href="../chapter_10_mcp/10_mcp_deepdive.html">Ch10 MCP 深度解析</a>
+<a class="sidebar-link" href="../chapter_11_tool_calling/11_tool_calling_deepdive.html">Ch11 Tool Calling 底层</a>
+<a class="sidebar-link" href="../chapter_12_infrastructure/12_infrastructure.html">Ch12 Agent 生产基础设施</a>
+<div class="sidebar-layer">第4层 工程化前沿</div>
+<a class="sidebar-link" href="../chapter_13_fastapi/13_fastapi_agent_service.html">Ch13 FastAPI 服务化</a>
+<a class="sidebar-link" href="../chapter_14_sqlite/14_sqlite_agent_storage.html">Ch14 SQLite 持久化</a>
+<a class="sidebar-link" href="../chapter_15_a2a/15_a2a_protocol.html">Ch15 Google A2A 协议</a>
+<a class="sidebar-link" href="../chapter_16_memgpt/16_memgpt_letta.html">Ch16 MemGPT/Letta 记忆</a>
+<a class="sidebar-link" href="../chapter_17_computer_use/17_computer_use.html">Ch17 Computer Use</a>
+<a class="sidebar-link" href="../chapter_18_security/18_agent_security.html">Ch18 Agent 安全与护栏</a>
+<div class="sidebar-layer">第5层 高级架构</div>
+<a class="sidebar-link" href="../chapter_19_workflow_patterns/19_workflow_patterns.html">Ch19 Agentic Workflow 设</a>
+<a class="sidebar-link" href="../chapter_20_context_engineering/20_context_engineering.html">Ch20 Context Engineerin</a>
+<a class="sidebar-link" href="../chapter_21_streaming/21_streaming_architecture.html">Ch21 Streaming & 实时架构</a>
+<a class="sidebar-link" href="../chapter_22_dspy/22_dspy.html">Ch22 DSPy 自动优化</a>
+<a class="sidebar-link" href="../chapter_23_code_agents/23_code_agents.html">Ch23 代码 Agent 架构横评</a>
+<a class="sidebar-link" href="../chapter_24_observability/24_observability.html">Ch24 Agent 可观测性</a>
+<div class="sidebar-layer">第6层 基础补强</div>
+<a class="sidebar-link" href="../chapter_25_vectordb/25_vectordb.html">Ch25 向量数据库选型</a>
+<a class="sidebar-link" href="../chapter_26_model_routing/26_model_routing.html">Ch26 模型路由策略</a>
+<a class="sidebar-link active" href="../chapter_27_prompt_eng/27_prompt_engineering.html">Ch27 Agent Prompt 工程</a>
+<a class="sidebar-link" href="../chapter_28_cache/28_cache.html">Ch28 语义缓存与 Token 优化</a>
+<div class="sidebar-layer">第7层 专家进阶</div>
+<a class="sidebar-link" href="../chapter_29_multimodal/29_multimodal.html">Ch29 Multi-Modal Agent</a>
+<a class="sidebar-link" href="../chapter_30_reliability/30_reliability.html">Ch30 Agent 可靠性工程</a>
+<a class="sidebar-link" href="../chapter_31_benchmarks/31_benchmarks.html">Ch31 Agent 评测体系深度</a>
+<a class="sidebar-link" href="../chapter_32_self_improving/32_self_improving.html">Ch32 Self-Improving Age</a>
+<a class="sidebar-link" href="../chapter_33_prompt_cache/33_prompt_cache.html">Ch33 Prompt Caching & 推</a>
+<a class="sidebar-link" href="../chapter_34_finetune/34_finetune.html">Ch34 模型微调 for Function </a>
+<a class="sidebar-link" href="../chapter_35_data_flywheel/35_data_flywheel.html">Ch35 数据飞轮</a>
+<a class="sidebar-link" href="../chapter_36_defense/36_defense.html">Ch36 Agent 纵深安全</a>
+</div>
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div class="main-content"><div class="container"><div class="breadcrumb"><a href="../index.html">📖 AI Agent 全栈课程</a> &raquo; <strong>第27章 Agent Prompt 工程 — System Prompt 模板·工具描述</strong></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_26_model_routing/26_model_routing.html" title="模型路由策略 — Threshold·Cascade·Semantic·Cost-Aware">← 第26章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_28_cache/28_cache.html" title="语义缓存与 Token 优化 — 三级缓存·预算管理">第28章 →</a>
+</div><div class="hero"><h1>第27章 Agent Prompt 工程 —— 工具描述也是 Prompt</h1><p class="subtitle">📖 AI Agent 全栈学习课程 · 可运行讲义</p></div><div class="lecture"><div class="tag-row"><span class="tag tag-goal">1. 掌握 Agent System Prompt 的结构化设计模板</span><span class="tag tag-goal">2. 理解「工具描述 = Prompt 工程」的核心理念</span><span class="tag tag-goal">3. 学会 Few-shot 在 Agent 工具调用中的应用</span><span class="tag tag-goal">4. 掌握 Chain-of-Thought 在 Agent 规划中的使用</span><span class="tag tag-interview">🎤 「Agent 的 System Prompt 和普通 LLM 的有什么不同？」</span><span class="tag tag-interview">🎤 「工具描述写得好不好对 Agent 表现有多大影响？」</span><span class="tag tag-interview">🎤 「Few-shot 在 Function Calling 中怎么用？」</span></div><p>&nbsp;</p>
+<p>内容核对：2026-08-01</p>
+<p>说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>综合 Anthropic Prompt Engineering Guide + 业界实践</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>27.1 Agent Prompt 和普通 Prompt 的区别</h2>
+<p>&nbsp;</p>
+<p>很多人觉得「写 Prompt 有什么难的，告诉 AI 要做啥不就行了」。</p>
+<p>但对于 Agent，这个想法会导致灾难性的性能差距。</p>
+<p>&nbsp;</p>
+<p>普通 LLM Prompt：「请翻译这段文字」——只需要告诉模型输出什么。</p>
+<p>&nbsp;</p>
+<p>Agent Prompt 需要同时回答 5 个问题（缺一个都会翻车）：</p>
+<li>1. 你是谁（角色）——「不能做什么」和「能做什么」同样重要</li>
+<li>2. 你能做什么（工具列表）——格式错误 = LLM 根本不会调工具</li>
+<li>3. 什么时候该做什么（工具选择逻辑）——群发邮件 or 单发？</li>
+<li>4. 什么不该做（边界/安全约束）——不是所有请求都应该执行</li>
+<li>5. 输出格式是什么——JSON? 自然语言? 两者切换?</li>
+<p>&nbsp;</p>
+<p>类比：</p>
+<p>普通 Prompt = 给厨师一个菜名（「来一份蛋炒饭」）</p>
+<p>Agent Prompt = 给厨师菜谱 + 全套厨具说明书 + 工作流程 + 安全手册</p>
+<p>&nbsp;</p>
+<p>面试官常问：「你的 Agent System Prompt 怎么写？」——如果你能张嘴说出</p>
+<p>这 5 个模块，已经超过了 80% 的候选人。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>27.2 Agent System Prompt 模板（面试送分题！）</h2>
+<p>&nbsp;</p>
+<p>标准化模板（基于 Anthropic 2025 推荐）：</p>
+<p>&nbsp;</p>
+<p><system></p>
+<p><role></p>
+<p>你是一个 [角色描述]。</p>
+<p></role></p>
+<p><capabilities></p>
+<p>你可以使用的工具：[工具列表]</p>
+<p></capabilities></p>
+<p><tool_guidance></p>
+<p>每个工具的使用场景和注意事项...</p>
+<p></tool_guidance></p>
+<p><workflow></p>
+<p>解决问题时应该遵循的工作流程...</p>
+<p></workflow></p>
+<p><constraints></p>
+<p>你不能做的事情...</p>
+<p></constraints></p>
+<p><output_format></p>
+<p>输出格式要求...</p>
+<p></output_format></p>
+<p></system></p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (64 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">add_capabilities</span><span class="code-badge code-badge-func">add_tool_guidance</span><span class="code-badge code-badge-func">add_workflow</span><span class="code-badge code-badge-func">add_constraints</span><span class="code-badge code-badge-func">add_output_format</span><span class="code-badge code-badge-func">build</span><span class="code-badge code-badge-func">estimate_tokens</span><span class="code-badge code-badge-class">AgentPromptBuilder</span></div><div class="code-block"><pre><span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+
+
+<span class="k">class</span> <span class="f">AgentPromptBuilder</span>:
+    <span class="s">"""Agent Prompt 构建器 —— 按模块组装，而非手写字符串。"""</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, role: <span class="b">str</span> = <span class="s">"AI 助手"</span>):
+        <span class="k">self</span>.role = role
+        <span class="k">self</span>.sections = {}
+
+    <span class="k">def</span> <span class="f">add_capabilities</span>(<span class="k">self</span>, tools: <span class="b">list</span>[<span class="b">dict</span>]):
+        <span class="s">"""添加工具能力声明。"""</span>
+        tool_lines = []
+        <span class="k">for</span> t <span class="k">in</span> tools:
+            tool_lines.append(f<span class="s">"- {t['name']}: {t.get('description', '')}"</span>)
+        <span class="k">self</span>.sections[<span class="s">"capabilities"</span>] = <span class="s">"\n"</span>.join(tool_lines)
+
+    <span class="k">def</span> <span class="f">add_tool_guidance</span>(<span class="k">self</span>, guidance: <span class="b">dict</span>[<span class="b">str</span>, <span class="b">str</span>]):
+        <span class="s">"""添加工具选择指引（什么时候用哪个工具）。"""</span>
+        lines = []
+        <span class="k">for</span> tool_name, guide <span class="k">in</span> guidance.items():
+            lines.append(f"<span class="h">### {tool_name}\n{guide}")</span>
+        <span class="k">self</span>.sections[<span class="s">"tool_guidance"</span>] = <span class="s">"\n\n"</span>.join(lines)
+
+    <span class="k">def</span> <span class="f">add_workflow</span>(<span class="k">self</span>, steps: <span class="b">list</span>[<span class="b">str</span>]):
+        <span class="s">"""添加工作流程。"""</span>
+        <span class="k">self</span>.sections[<span class="s">"workflow"</span>] = <span class="s">"\n"</span>.join(
+            f<span class="s">"{i+1}. {step}"</span> <span class="k">for</span> i, step <span class="k">in</span> <span class="b">enumerate</span>(steps)
+        )
+
+    <span class="k">def</span> <span class="f">add_constraints</span>(<span class="k">self</span>, constraints: <span class="b">list</span>[<span class="b">str</span>]):
+        <span class="s">"""添加安全约束。"""</span>
+        <span class="k">self</span>.sections[<span class="s">"constraints"</span>] = <span class="s">"\n"</span>.join(
+            f<span class="s">"- {c}"</span> <span class="k">for</span> c <span class="k">in</span> constraints
+        )
+
+    <span class="k">def</span> <span class="f">add_output_format</span>(<span class="k">self</span>, fmt_desc: <span class="b">str</span>):
+        <span class="s">"""添加输出格式。"""</span>
+        <span class="k">self</span>.sections[<span class="s">"output_format"</span>] = fmt_desc
+
+    <span class="k">def</span> <span class="f">build</span>(<span class="k">self</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""构建完整的 Agent System Prompt。"""</span>
+        parts = [<span class="s">"&lt;system&gt;"</span>]
+        parts.append(f<span class="s">"  &lt;role&gt;{self.role}&lt;/role&gt;"</span>)
+
+        <span class="k">for</span> key <span class="k">in</span> [<span class="s">"capabilities"</span>, <span class="s">"tool_guidance"</span>, <span class="s">"workflow"</span>,
+                     <span class="s">"constraints"</span>, <span class="s">"output_format"</span>]:
+            <span class="k">if</span> key <span class="k">in</span> <span class="k">self</span>.sections:
+                tag = key.replace(<span class="s">"_"</span>, <span class="s">"-"</span>)  <span class="h"># tool_guidance → tool-guidance</span>
+                <span class="k">if</span> tag == <span class="s">"capabilities"</span>:
+                    tag = <span class="s">"capabilities"</span>
+                parts.append(f<span class="s">"  &lt;{tag}&gt;"</span>)
+                parts.append(<span class="k">self</span>.sections[key])
+                parts.append(f<span class="s">"  &lt;/{tag}&gt;"</span>)
+
+        parts.append(<span class="s">"&lt;/system&gt;"</span>)
+        <span class="k">return</span> <span class="s">"\n"</span>.join(parts)
+
+    <span class="k">def</span> <span class="f">estimate_tokens</span>(<span class="k">self</span>) -&gt; <span class="b">int</span>:
+        <span class="s">"""估算 Prompt 的 token 数。"""</span>
+        <span class="k">return</span> <span class="b">len</span>(<span class="k">self</span>.build()) // <span class="n">4</span></pre></div></details></div><div class="lecture"><h2>27.3 工具描述 = Prompt 工程 —— 本章核心！</h2>
+<p>&nbsp;</p>
+<p>工具描述不是给开发者看的文档，是给 LLM 看的「使用说明」。</p>
+<p>&nbsp;</p>
+<p>好工具描述的三个要素：</p>
+<li>1. 做什么：准确描述工具的功能</li>
+<li>2. 什么时候用：描述适用的场景</li>
+<li>3. 什么时候不用：描述边界条件</li>
+<p>&nbsp;</p>
+<p>对比（面试金句！）：</p>
+<p>&nbsp;</p>
+<p>✗ 差： "查询天气"</p>
+<p>✅ 好： "查询指定城市当天的实时天气，包括气温、湿度、风力。</p>
+<p>适用于用户询问天气相关问题时。不支持未来天气预报。</p>
+<p>示例调用：get_weather(city='北京')"</p>
+<p>&nbsp;</p>
+<p>工具描述评分卡：</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌────────────────────────┬──────────┐
+  │ 描述要素                  │ 加分      │
+  ├────────────────────────┼──────────┤
+  │ 有功能描述                │ +1       │
+  │ 有使用场景                │ +2       │
+  │ 有边界条件                │ +2       │
+  │ 有调用示例                │ +1       │
+  │ 参数有 enum 限制          │ +2       │
+  │ 参数有详细描述            │ +1       │
+  └────────────────────────┴──────────┘</pre></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (113 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">score_tool_description</span><span class="code-badge code-badge-class">ToolDescriptionOptimizer</span></div><div class="code-block"><pre><span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+
+<span class="k">class</span> <span class="f">ToolDescriptionOptimizer</span>:
+    <span class="s">"""工具描述优化器 —— 系统化提升工具调用准确率。"""</span>
+
+    BAD_EXAMPLES = [
+        {
+            <span class="s">"name"</span>: <span class="s">"do_stuff"</span>,
+            <span class="s">"description"</span>: <span class="s">"处理数据"</span>,
+            <span class="s">"parameters"</span>: {
+                <span class="s">"type"</span>: <span class="s">"object"</span>,
+                <span class="s">"properties"</span>: {<span class="s">"data"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>}},
+            },
+        },
+        {
+            <span class="s">"name"</span>: <span class="s">"search"</span>,
+            <span class="s">"description"</span>: <span class="s">"搜索"</span>,
+            <span class="s">"parameters"</span>: {
+                <span class="s">"type"</span>: <span class="s">"object"</span>,
+                <span class="s">"properties"</span>: {<span class="s">"q"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>}},
+            },
+        },
+    ]
+
+    GOOD_EXAMPLES = [
+        {
+            <span class="s">"name"</span>: <span class="s">"send_email"</span>,
+            <span class="s">"description"</span>: (
+                <span class="s">"向指定邮箱发送邮件。适用于发送通知、报告、提醒等场景。"</span>
+                <span class="s">"不支持发送带附件的邮件。收件人地址必须包含 @。"</span>
+                <span class="s">"示例：send_email(to='user@example.com', subject='日报', body='...')"</span>
+            ),
+            <span class="s">"parameters"</span>: {
+                <span class="s">"type"</span>: <span class="s">"object"</span>,
+                <span class="s">"properties"</span>: {
+                    <span class="s">"to"</span>: {
+                        <span class="s">"type"</span>: <span class="s">"string"</span>,
+                        <span class="s">"description"</span>: <span class="s">"收件人邮箱，如 user@example.com"</span>,
+                    },
+                    <span class="s">"subject"</span>: {
+                        <span class="s">"type"</span>: <span class="s">"string"</span>,
+                        <span class="s">"description"</span>: <span class="s">"邮件主题，不超过 100 字"</span>,
+                    },
+                    <span class="s">"body"</span>: {
+                        <span class="s">"type"</span>: <span class="s">"string"</span>,
+                        <span class="s">"description"</span>: <span class="s">"邮件正文，纯文本格式"</span>,
+                    },
+                },
+                <span class="s">"required"</span>: [<span class="s">"to"</span>, <span class="s">"subject"</span>, <span class="s">"body"</span>],
+            },
+        },
+        {
+            <span class="s">"name"</span>: <span class="s">"get_stock_price"</span>,
+            <span class="s">"description"</span>: (
+                <span class="s">"查询股票实时价格。适用于查询个股当前报价。"</span>
+                <span class="s">"不支持历史价格查询和批量查询。"</span>
+                <span class="s">"示例：get_stock_price(symbol='AAPL') 返回 '185.50 USD'"</span>
+            ),
+            <span class="s">"parameters"</span>: {
+                <span class="s">"type"</span>: <span class="s">"object"</span>,
+                <span class="s">"properties"</span>: {
+                    <span class="s">"symbol"</span>: {
+                        <span class="s">"type"</span>: <span class="s">"string"</span>,
+                        <span class="s">"description"</span>: <span class="s">"股票代码，如 AAPL、TSLA、BABA"</span>,
+                        <span class="s">"enum"</span>: [<span class="s">"AAPL"</span>, <span class="s">"TSLA"</span>, <span class="s">"GOOGL"</span>, <span class="s">"MSFT"</span>, <span class="s">"BABA"</span>],
+                    },
+                },
+                <span class="s">"required"</span>: [<span class="s">"symbol"</span>],
+            },
+        },
+    ]
+
+    <span <span class="k">class</span>="d">@classmethod</span>
+    <span class="k">def</span> <span class="f">score_tool_description</span>(cls, tool: <span class="b">dict</span>) -&gt; <span class="b">dict</span>:
+        <span class="s">"""评估工具描述的质量。
+
+        Returns:
+            评分详情。
+        """</span>
+        desc = tool.get(<span class="s">"description"</span>, <span class="s">""</span>)
+        params = tool.get(<span class="s">"parameters"</span>, {}).get(<span class="s">"properties"</span>, {})
+        scores = {
+            <span class="s">"has_description"</span>: <span class="b">len</span>(desc) &gt; <span class="n">10</span>,
+            <span class="s">"has_use_case"</span>: <span class="b">any</span>(w <span class="k">in</span> desc <span class="k">for</span> w <span class="k">in</span> [<span class="s">"适用于"</span>, <span class="s">"用于"</span>, <span class="s">"当你"</span>, <span class="s">"when"</span>]),
+            <span class="s">"has_boundary"</span>: <span class="b">any</span>(w <span class="k">in</span> desc <span class="k">for</span> w <span class="k">in</span> [<span class="s">"不支持"</span>, <span class="s">"不适用"</span>, <span class="s">"不适用于"</span>]),
+            <span class="s">"has_example"</span>: <span class="b">any</span>(w <span class="k">in</span> desc <span class="k">for</span> w <span class="k">in</span> [<span class="s">"示例"</span>, <span class="s">"example"</span>, <span class="s">"e.g."</span>]),
+            <span class="s">"has_enum"</span>: <span class="b">any</span>(<span class="s">"enum"</span> <span class="k">in</span> p <span class="k">for</span> p <span class="k">in</span> params.values()),
+            <span class="s">"has_param_desc"</span>: <span class="b">all</span>(
+                <span class="s">"description"</span> <span class="k">in</span> p <span class="k">for</span> p <span class="k">in</span> params.values()
+            ) <span class="k">if</span> params <span class="k">else</span> <span class="k">False</span>,
+        }
+
+        <span class="k">return</span> {
+            <span class="s">"tool_name"</span>: tool.get(<span class="s">"name"</span>, <span class="s">"unknown"</span>),
+            <span class="s">"scores"</span>: scores,
+            <span class="s">"total"</span>: <span class="b">sum</span>(scores.values()),
+            <span class="s">"max"</span>: <span class="b">len</span>(scores),
+            <span class="s">"grade"</span>: cls._grade(<span class="b">sum</span>(scores.values()), <span class="b">len</span>(scores)),
+        }
+
+    <span <span class="k">class</span>="d">@classmethod</span>
+    <span class="k">def</span> <span class="f">_grade</span>(cls, score: <span class="b">int</span>, total: <span class="b">int</span>) -&gt; <span class="b">str</span>:
+        pct = score / total
+        <span class="k">if</span> pct &gt;= <span class="n">0.8</span>:
+            <span class="k">return</span> <span class="s">"A (生产级)"</span>
+        <span class="k">if</span> pct &gt;= <span class="n">0.5</span>:
+            <span class="k">return</span> <span class="s">"B (可用)"</span>
+        <span class="k">if</span> pct &gt;= <span class="n">0.3</span>:
+            <span class="k">return</span> <span class="s">"C (需改进)"</span>
+        <span class="k">return</span> <span class="s">"D (不可用)"</span></pre></div></details></div><div class="lecture"><h2>27.4 对话模板优化 —— 平衡信息密度</h2>
+<p>&nbsp;</p>
+<p>Prompt 不是越长越好，需要权衡：</p>
+<p>&nbsp;</p>
+<p>太短 → 信息不足，LLM 靠猜测</p>
+<p>太长 → 信息过载，LLM 抓不住重点</p>
+<p>&nbsp;</p>
+<p>Golden Zone：</p>
+<p>System Prompt: 200-800 tokens</p>
+<p>工具描述: 每个工具 50-200 tokens</p>
+<p>总上下文: 不超过窗口的 70%（留空间给对话历史和生成）</p>
+<p>&nbsp;</p>
+<p>面试金句：</p>
+<p>"好 Prompt 的标准不是'全'，是'精'。</p>
+<p>每条信息都要有明确的 token 价值 vs 成本评估。"</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>27.5 本章总结</h2>
+<p>&nbsp;</p>
+<p>核心要点回顾：</p>
+<p>&nbsp;</p>
+<li>1. Agent Prompt 需要结构化 6 个模块</li>
+<li>2. 工具描述是 Agent Prompt 工程的核心</li>
+<li>3. 好工具描述 = 做什么 + 什么时候用 + 什么时候不用 + 示例</li>
+<p>&nbsp;</p>
+<p>面试速记：</p>
+<p>「Agent 的 System Prompt 怎么设计？」</p>
+<p>→ 6 模块模板：role/capabilities/tool_guidance/workflow/constraints/output</p>
+<p>→ 核心：工具描述 = Prompt 工程（告诉 LLM 何时用、何时不用）</p>
+<p>→ 用 enum 限制参数 → 减少幻觉</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (75 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">demo_prompt_engineering</span></div><div class="code-block"><pre><span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+
+<span class="k">def</span> <span class="f">demo_prompt_engineering</span>():
+    <span class="s">"""演示 Agent Prompt 工程。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Agent Prompt 构建演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    <span class="h"># 构建一个完整的 Agent Prompt</span>
+    builder = AgentPromptBuilder(<span class="s">"专业的客服 Agent"</span>)
+
+    tools = [
+        {<span class="s">"name"</span>: <span class="s">"search_knowledge_base"</span>,
+         <span class="s">"description"</span>: <span class="s">"在知识库中搜索产品信息，适用于产品规格/使用说明查询"</span>},
+        {<span class="s">"name"</span>: <span class="s">"check_order_status"</span>,
+         <span class="s">"description"</span>: <span class="s">"查询订单状态，适用于用户询问发货/物流信息"</span>},
+        {<span class="s">"name"</span>: <span class="s">"create_ticket"</span>,
+         <span class="s">"description"</span>: <span class="s">"创建工单，适用于需要人工处理的复杂问题"</span>},
+    ]
+    builder.add_capabilities(tools)
+    builder.add_tool_guidance({
+        <span class="s">"search_knowledge_base"</span>: <span class="s">"用户问产品相关问题时使用。转换口语为关键词。"</span>,
+        <span class="s">"check_order_status"</span>: <span class="s">"用户提供订单号时使用。需要先验证订单号格式。"</span>,
+        <span class="s">"create_ticket"</span>: <span class="s">"知识库和订单查询都无法解决时使用。简要描述问题。"</span>,
+    })
+    builder.add_workflow([
+        <span class="s">"理解用户意图"</span>,
+        <span class="s">"判断是否需要工具 → search_knowledge_base 或 check_order_status"</span>,
+        <span class="s">"如果需要人工介入 → create_ticket"</span>,
+        <span class="s">"用友好语气给出最终回答"</span>,
+    ])
+    builder.add_constraints([
+        <span class="s">"不透露系统内部实现"</span>,
+        <span class="s">"不执行退款/删除等危险操作"</span>,
+        <span class="s">"对不确定的信息标注「据我所知」"</span>,
+    ])
+    builder.add_output_format(<span class="s">"Markdown 格式，含要点列表"</span>)
+
+    prompt = builder.build()
+    <span class="b">print</span>(prompt)
+    <span class="b">print</span>(f<span class="s">"\n  📏 估算 Token: {builder.estimate_tokens()}"</span>)
+
+    <span class="h"># 工具描述评分</span>
+    <span class="b">print</span>(f<span class="s">"\n{'='*60}"</span>)
+    <span class="b">print</span>(f<span class="s">"  工具描述质量评估"</span>)
+    <span class="b">print</span>(f<span class="s">"{'='*60}"</span>)
+    <span class="k">for</span> tool <span class="k">in</span> ToolDescriptionOptimizer.BAD_EXAMPLES:
+        result = ToolDescriptionOptimizer.score_tool_description(tool)
+        <span class="b">print</span>(f<span class="s">"  {result['tool_name']}: {result['total']}/{result['max']} = {result['grade']}"</span>)
+
+    <span class="k">for</span> tool <span class="k">in</span> ToolDescriptionOptimizer.GOOD_EXAMPLES:
+        result = ToolDescriptionOptimizer.score_tool_description(tool)
+        <span class="b">print</span>(f<span class="s">"  {result['tool_name']}: {result['total']}/{result['max']} = {result['grade']}"</span>)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第27章：Agent Prompt 工程                              ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  System Prompt 模板 · 工具描述 · Few-shot             ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+    demo_prompt_engineering()
+    <span class="b">print</span>(<span class="s">"\n▶ 工具描述 Checklist"</span>)
+    <span class="k">for</span> item <span class="k">in</span> [
+        <span class="s">"✅ 有功能描述"</span>,
+        <span class="s">"✅ 有使用场景（什么时候用）"</span>,
+        <span class="s">"✅ 有边界条件（什么时候不用）"</span>,
+        <span class="s">"✅ 有调用示例"</span>,
+        <span class="s">"✅ 参数有 enum 限制"</span>,
+        <span class="s">"✅ 参数有详细描述"</span>,
+    ]:
+        <span class="b">print</span>(f<span class="s">"  {item}"</span>)
+    <span class="b">print</span>(<span class="s">"\n✅ 第27章完成！"</span>)</pre></div></details></div><hr style="margin:36px 0"><div class="code-section"><details><summary>📦 完整源代码 (388 行)</summary><div class="code-block"><pre><span class="s">"""
+第27章：Agent Prompt 工程 —— 工具描述也是 Prompt
+===================================================
+
+内容核对：2026-08-01
+说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。
+
+📌 本章目标：
+  1. 掌握 Agent System Prompt 的结构化设计模板
+  2. 理解「工具描述 = Prompt 工程」的核心理念
+  3. 学会 Few-shot 在 Agent 工具调用中的应用
+  4. 掌握 Chain-of-Thought 在 Agent 规划中的使用
+
+📌 面试高频点：
+  - 「Agent 的 System Prompt 和普通 LLM 的有什么不同？」
+  - 「工具描述写得好不好对 Agent 表现有多大影响？」
+  - 「Few-shot 在 Function Calling 中怎么用？」
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+综合 Anthropic Prompt Engineering Guide + 业界实践
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+27.1 Agent Prompt 和普通 Prompt 的区别
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+很多人觉得「写 Prompt 有什么难的，告诉 AI 要做啥不就行了」。
+但对于 Agent，这个想法会导致灾难性的性能差距。
+
+普通 LLM Prompt：「请翻译这段文字」——只需要告诉模型输出什么。
+
+Agent Prompt 需要同时回答 5 个问题（缺一个都会翻车）：
+  1. 你是谁（角色）——「不能做什么」和「能做什么」同样重要
+  2. 你能做什么（工具列表）——格式错误 = LLM 根本不会调工具
+  3. 什么时候该做什么（工具选择逻辑）——群发邮件 or 单发？
+  4. 什么不该做（边界/安全约束）——不是所有请求都应该执行
+  5. 输出格式是什么——JSON? 自然语言? 两者切换?
+
+类比：
+  普通 Prompt = 给厨师一个菜名（「来一份蛋炒饭」）
+  Agent Prompt = 给厨师菜谱 + 全套厨具说明书 + 工作流程 + 安全手册
+
+面试官常问：「你的 Agent System Prompt 怎么写？」——如果你能张嘴说出
+这 5 个模块，已经超过了 80% 的候选人。
+
+
+27.2 Agent System Prompt 模板（面试送分题！）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+标准化模板（基于 Anthropic 2025 推荐）：
+
+  &lt;system&gt;
+    &lt;role&gt;
+      你是一个 [角色描述]。
+    &lt;/role&gt;
+    &lt;capabilities&gt;
+      你可以使用的工具：[工具列表]
+    &lt;/capabilities&gt;
+    &lt;tool_guidance&gt;
+      每个工具的使用场景和注意事项...
+    &lt;/tool_guidance&gt;
+    &lt;workflow&gt;
+      解决问题时应该遵循的工作流程...
+    &lt;/workflow&gt;
+    &lt;constraints&gt;
+      你不能做的事情...
+    &lt;/constraints&gt;
+    &lt;output_format&gt;
+      输出格式要求...
+    &lt;/output_format&gt;
+  &lt;/system&gt;
+"""</span>
+
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+
+
+<span class="k">class</span> <span class="f">AgentPromptBuilder</span>:
+    <span class="s">"""Agent Prompt 构建器 —— 按模块组装，而非手写字符串。"""</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, role: <span class="b">str</span> = <span class="s">"AI 助手"</span>):
+        <span class="k">self</span>.role = role
+        <span class="k">self</span>.sections = {}
+
+    <span class="k">def</span> <span class="f">add_capabilities</span>(<span class="k">self</span>, tools: <span class="b">list</span>[<span class="b">dict</span>]):
+        <span class="s">"""添加工具能力声明。"""</span>
+        tool_lines = []
+        <span class="k">for</span> t <span class="k">in</span> tools:
+            tool_lines.append(f<span class="s">"- {t['name']}: {t.get('description', '')}"</span>)
+        <span class="k">self</span>.sections[<span class="s">"capabilities"</span>] = <span class="s">"\n"</span>.join(tool_lines)
+
+    <span class="k">def</span> <span class="f">add_tool_guidance</span>(<span class="k">self</span>, guidance: <span class="b">dict</span>[<span class="b">str</span>, <span class="b">str</span>]):
+        <span class="s">"""添加工具选择指引（什么时候用哪个工具）。"""</span>
+        lines = []
+        <span class="k">for</span> tool_name, guide <span class="k">in</span> guidance.items():
+            lines.append(f"<span class="h">### {tool_name}\n{guide}")</span>
+        <span class="k">self</span>.sections[<span class="s">"tool_guidance"</span>] = <span class="s">"\n\n"</span>.join(lines)
+
+    <span class="k">def</span> <span class="f">add_workflow</span>(<span class="k">self</span>, steps: <span class="b">list</span>[<span class="b">str</span>]):
+        <span class="s">"""添加工作流程。"""</span>
+        <span class="k">self</span>.sections[<span class="s">"workflow"</span>] = <span class="s">"\n"</span>.join(
+            f<span class="s">"{i+1}. {step}"</span> <span class="k">for</span> i, step <span class="k">in</span> <span class="b">enumerate</span>(steps)
+        )
+
+    <span class="k">def</span> <span class="f">add_constraints</span>(<span class="k">self</span>, constraints: <span class="b">list</span>[<span class="b">str</span>]):
+        <span class="s">"""添加安全约束。"""</span>
+        <span class="k">self</span>.sections[<span class="s">"constraints"</span>] = <span class="s">"\n"</span>.join(
+            f<span class="s">"- {c}"</span> <span class="k">for</span> c <span class="k">in</span> constraints
+        )
+
+    <span class="k">def</span> <span class="f">add_output_format</span>(<span class="k">self</span>, fmt_desc: <span class="b">str</span>):
+        <span class="s">"""添加输出格式。"""</span>
+        <span class="k">self</span>.sections[<span class="s">"output_format"</span>] = fmt_desc
+
+    <span class="k">def</span> <span class="f">build</span>(<span class="k">self</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""构建完整的 Agent System Prompt。"""</span>
+        parts = [<span class="s">"&lt;system&gt;"</span>]
+        parts.append(f<span class="s">"  &lt;role&gt;{self.role}&lt;/role&gt;"</span>)
+
+        <span class="k">for</span> key <span class="k">in</span> [<span class="s">"capabilities"</span>, <span class="s">"tool_guidance"</span>, <span class="s">"workflow"</span>,
+                     <span class="s">"constraints"</span>, <span class="s">"output_format"</span>]:
+            <span class="k">if</span> key <span class="k">in</span> <span class="k">self</span>.sections:
+                tag = key.replace(<span class="s">"_"</span>, <span class="s">"-"</span>)  <span class="h"># tool_guidance → tool-guidance</span>
+                <span class="k">if</span> tag == <span class="s">"capabilities"</span>:
+                    tag = <span class="s">"capabilities"</span>
+                parts.append(f<span class="s">"  &lt;{tag}&gt;"</span>)
+                parts.append(<span class="k">self</span>.sections[key])
+                parts.append(f<span class="s">"  &lt;/{tag}&gt;"</span>)
+
+        parts.append(<span class="s">"&lt;/system&gt;"</span>)
+        <span class="k">return</span> <span class="s">"\n"</span>.join(parts)
+
+    <span class="k">def</span> <span class="f">estimate_tokens</span>(<span class="k">self</span>) -&gt; <span class="b">int</span>:
+        <span class="s">"""估算 Prompt 的 token 数。"""</span>
+        <span class="k">return</span> <span class="b">len</span>(<span class="k">self</span>.build()) // <span class="n">4</span>
+
+
+<span class="s">"""
+27.3 工具描述 = Prompt 工程 —— 本章核心！
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+工具描述不是给开发者看的文档，是给 LLM 看的「使用说明」。
+
+好工具描述的三个要素：
+  1. 做什么：准确描述工具的功能
+  2. 什么时候用：描述适用的场景
+  3. 什么时候不用：描述边界条件
+
+对比（面试金句！）：
+
+  ✗ 差： "查询天气"
+  ✅ 好： "查询指定城市当天的实时天气，包括气温、湿度、风力。
+          适用于用户询问天气相关问题时。不支持未来天气预报。
+          示例调用：get_weather(city='北京')"
+
+工具描述评分卡：
+  ┌────────────────────────┬──────────┐
+  │ 描述要素                  │ 加分      │
+  ├────────────────────────┼──────────┤
+  │ 有功能描述                │ +1       │
+  │ 有使用场景                │ +2       │
+  │ 有边界条件                │ +2       │
+  │ 有调用示例                │ +1       │
+  │ 参数有 enum 限制          │ +2       │
+  │ 参数有详细描述            │ +1       │
+  └────────────────────────┴──────────┘
+"""</span>
+
+
+<span class="k">class</span> <span class="f">ToolDescriptionOptimizer</span>:
+    <span class="s">"""工具描述优化器 —— 系统化提升工具调用准确率。"""</span>
+
+    BAD_EXAMPLES = [
+        {
+            <span class="s">"name"</span>: <span class="s">"do_stuff"</span>,
+            <span class="s">"description"</span>: <span class="s">"处理数据"</span>,
+            <span class="s">"parameters"</span>: {
+                <span class="s">"type"</span>: <span class="s">"object"</span>,
+                <span class="s">"properties"</span>: {<span class="s">"data"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>}},
+            },
+        },
+        {
+            <span class="s">"name"</span>: <span class="s">"search"</span>,
+            <span class="s">"description"</span>: <span class="s">"搜索"</span>,
+            <span class="s">"parameters"</span>: {
+                <span class="s">"type"</span>: <span class="s">"object"</span>,
+                <span class="s">"properties"</span>: {<span class="s">"q"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>}},
+            },
+        },
+    ]
+
+    GOOD_EXAMPLES = [
+        {
+            <span class="s">"name"</span>: <span class="s">"send_email"</span>,
+            <span class="s">"description"</span>: (
+                <span class="s">"向指定邮箱发送邮件。适用于发送通知、报告、提醒等场景。"</span>
+                <span class="s">"不支持发送带附件的邮件。收件人地址必须包含 @。"</span>
+                <span class="s">"示例：send_email(to='user@example.com', subject='日报', body='...')"</span>
+            ),
+            <span class="s">"parameters"</span>: {
+                <span class="s">"type"</span>: <span class="s">"object"</span>,
+                <span class="s">"properties"</span>: {
+                    <span class="s">"to"</span>: {
+                        <span class="s">"type"</span>: <span class="s">"string"</span>,
+                        <span class="s">"description"</span>: <span class="s">"收件人邮箱，如 user@example.com"</span>,
+                    },
+                    <span class="s">"subject"</span>: {
+                        <span class="s">"type"</span>: <span class="s">"string"</span>,
+                        <span class="s">"description"</span>: <span class="s">"邮件主题，不超过 100 字"</span>,
+                    },
+                    <span class="s">"body"</span>: {
+                        <span class="s">"type"</span>: <span class="s">"string"</span>,
+                        <span class="s">"description"</span>: <span class="s">"邮件正文，纯文本格式"</span>,
+                    },
+                },
+                <span class="s">"required"</span>: [<span class="s">"to"</span>, <span class="s">"subject"</span>, <span class="s">"body"</span>],
+            },
+        },
+        {
+            <span class="s">"name"</span>: <span class="s">"get_stock_price"</span>,
+            <span class="s">"description"</span>: (
+                <span class="s">"查询股票实时价格。适用于查询个股当前报价。"</span>
+                <span class="s">"不支持历史价格查询和批量查询。"</span>
+                <span class="s">"示例：get_stock_price(symbol='AAPL') 返回 '185.50 USD'"</span>
+            ),
+            <span class="s">"parameters"</span>: {
+                <span class="s">"type"</span>: <span class="s">"object"</span>,
+                <span class="s">"properties"</span>: {
+                    <span class="s">"symbol"</span>: {
+                        <span class="s">"type"</span>: <span class="s">"string"</span>,
+                        <span class="s">"description"</span>: <span class="s">"股票代码，如 AAPL、TSLA、BABA"</span>,
+                        <span class="s">"enum"</span>: [<span class="s">"AAPL"</span>, <span class="s">"TSLA"</span>, <span class="s">"GOOGL"</span>, <span class="s">"MSFT"</span>, <span class="s">"BABA"</span>],
+                    },
+                },
+                <span class="s">"required"</span>: [<span class="s">"symbol"</span>],
+            },
+        },
+    ]
+
+    <span <span class="k">class</span>="d">@classmethod</span>
+    <span class="k">def</span> <span class="f">score_tool_description</span>(cls, tool: <span class="b">dict</span>) -&gt; <span class="b">dict</span>:
+        <span class="s">"""评估工具描述的质量。
+
+        Returns:
+            评分详情。
+        """</span>
+        desc = tool.get(<span class="s">"description"</span>, <span class="s">""</span>)
+        params = tool.get(<span class="s">"parameters"</span>, {}).get(<span class="s">"properties"</span>, {})
+        scores = {
+            <span class="s">"has_description"</span>: <span class="b">len</span>(desc) &gt; <span class="n">10</span>,
+            <span class="s">"has_use_case"</span>: <span class="b">any</span>(w <span class="k">in</span> desc <span class="k">for</span> w <span class="k">in</span> [<span class="s">"适用于"</span>, <span class="s">"用于"</span>, <span class="s">"当你"</span>, <span class="s">"when"</span>]),
+            <span class="s">"has_boundary"</span>: <span class="b">any</span>(w <span class="k">in</span> desc <span class="k">for</span> w <span class="k">in</span> [<span class="s">"不支持"</span>, <span class="s">"不适用"</span>, <span class="s">"不适用于"</span>]),
+            <span class="s">"has_example"</span>: <span class="b">any</span>(w <span class="k">in</span> desc <span class="k">for</span> w <span class="k">in</span> [<span class="s">"示例"</span>, <span class="s">"example"</span>, <span class="s">"e.g."</span>]),
+            <span class="s">"has_enum"</span>: <span class="b">any</span>(<span class="s">"enum"</span> <span class="k">in</span> p <span class="k">for</span> p <span class="k">in</span> params.values()),
+            <span class="s">"has_param_desc"</span>: <span class="b">all</span>(
+                <span class="s">"description"</span> <span class="k">in</span> p <span class="k">for</span> p <span class="k">in</span> params.values()
+            ) <span class="k">if</span> params <span class="k">else</span> <span class="k">False</span>,
+        }
+
+        <span class="k">return</span> {
+            <span class="s">"tool_name"</span>: tool.get(<span class="s">"name"</span>, <span class="s">"unknown"</span>),
+            <span class="s">"scores"</span>: scores,
+            <span class="s">"total"</span>: <span class="b">sum</span>(scores.values()),
+            <span class="s">"max"</span>: <span class="b">len</span>(scores),
+            <span class="s">"grade"</span>: cls._grade(<span class="b">sum</span>(scores.values()), <span class="b">len</span>(scores)),
+        }
+
+    <span <span class="k">class</span>="d">@classmethod</span>
+    <span class="k">def</span> <span class="f">_grade</span>(cls, score: <span class="b">int</span>, total: <span class="b">int</span>) -&gt; <span class="b">str</span>:
+        pct = score / total
+        <span class="k">if</span> pct &gt;= <span class="n">0.8</span>:
+            <span class="k">return</span> <span class="s">"A (生产级)"</span>
+        <span class="k">if</span> pct &gt;= <span class="n">0.5</span>:
+            <span class="k">return</span> <span class="s">"B (可用)"</span>
+        <span class="k">if</span> pct &gt;= <span class="n">0.3</span>:
+            <span class="k">return</span> <span class="s">"C (需改进)"</span>
+        <span class="k">return</span> <span class="s">"D (不可用)"</span>
+
+
+<span class="s">"""
+27.4 对话模板优化 —— 平衡信息密度
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prompt 不是越长越好，需要权衡：
+
+  太短 → 信息不足，LLM 靠猜测
+  太长 → 信息过载，LLM 抓不住重点
+
+Golden Zone：
+  System Prompt: 200-800 tokens
+  工具描述: 每个工具 50-200 tokens
+  总上下文: 不超过窗口的 70%（留空间给对话历史和生成）
+
+面试金句：
+  "好 Prompt 的标准不是'全'，是'精'。
+   每条信息都要有明确的 token 价值 vs 成本评估。"
+
+
+27.5 本章总结
+━━━━━━━━━━━━
+
+核心要点回顾：
+
+1. Agent Prompt 需要结构化 6 个模块
+2. 工具描述是 Agent Prompt 工程的核心
+3. 好工具描述 = 做什么 + 什么时候用 + 什么时候不用 + 示例
+
+面试速记：
+  「Agent 的 System Prompt 怎么设计？」
+  → 6 模块模板：role/capabilities/tool_guidance/workflow/constraints/output
+  → 核心：工具描述 = Prompt 工程（告诉 LLM 何时用、何时不用）
+  → 用 enum 限制参数 → 减少幻觉
+"""</span>
+
+
+<span class="k">def</span> <span class="f">demo_prompt_engineering</span>():
+    <span class="s">"""演示 Agent Prompt 工程。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Agent Prompt 构建演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    <span class="h"># 构建一个完整的 Agent Prompt</span>
+    builder = AgentPromptBuilder(<span class="s">"专业的客服 Agent"</span>)
+
+    tools = [
+        {<span class="s">"name"</span>: <span class="s">"search_knowledge_base"</span>,
+         <span class="s">"description"</span>: <span class="s">"在知识库中搜索产品信息，适用于产品规格/使用说明查询"</span>},
+        {<span class="s">"name"</span>: <span class="s">"check_order_status"</span>,
+         <span class="s">"description"</span>: <span class="s">"查询订单状态，适用于用户询问发货/物流信息"</span>},
+        {<span class="s">"name"</span>: <span class="s">"create_ticket"</span>,
+         <span class="s">"description"</span>: <span class="s">"创建工单，适用于需要人工处理的复杂问题"</span>},
+    ]
+    builder.add_capabilities(tools)
+    builder.add_tool_guidance({
+        <span class="s">"search_knowledge_base"</span>: <span class="s">"用户问产品相关问题时使用。转换口语为关键词。"</span>,
+        <span class="s">"check_order_status"</span>: <span class="s">"用户提供订单号时使用。需要先验证订单号格式。"</span>,
+        <span class="s">"create_ticket"</span>: <span class="s">"知识库和订单查询都无法解决时使用。简要描述问题。"</span>,
+    })
+    builder.add_workflow([
+        <span class="s">"理解用户意图"</span>,
+        <span class="s">"判断是否需要工具 → search_knowledge_base 或 check_order_status"</span>,
+        <span class="s">"如果需要人工介入 → create_ticket"</span>,
+        <span class="s">"用友好语气给出最终回答"</span>,
+    ])
+    builder.add_constraints([
+        <span class="s">"不透露系统内部实现"</span>,
+        <span class="s">"不执行退款/删除等危险操作"</span>,
+        <span class="s">"对不确定的信息标注「据我所知」"</span>,
+    ])
+    builder.add_output_format(<span class="s">"Markdown 格式，含要点列表"</span>)
+
+    prompt = builder.build()
+    <span class="b">print</span>(prompt)
+    <span class="b">print</span>(f<span class="s">"\n  📏 估算 Token: {builder.estimate_tokens()}"</span>)
+
+    <span class="h"># 工具描述评分</span>
+    <span class="b">print</span>(f<span class="s">"\n{'='*60}"</span>)
+    <span class="b">print</span>(f<span class="s">"  工具描述质量评估"</span>)
+    <span class="b">print</span>(f<span class="s">"{'='*60}"</span>)
+    <span class="k">for</span> tool <span class="k">in</span> ToolDescriptionOptimizer.BAD_EXAMPLES:
+        result = ToolDescriptionOptimizer.score_tool_description(tool)
+        <span class="b">print</span>(f<span class="s">"  {result['tool_name']}: {result['total']}/{result['max']} = {result['grade']}"</span>)
+
+    <span class="k">for</span> tool <span class="k">in</span> ToolDescriptionOptimizer.GOOD_EXAMPLES:
+        result = ToolDescriptionOptimizer.score_tool_description(tool)
+        <span class="b">print</span>(f<span class="s">"  {result['tool_name']}: {result['total']}/{result['max']} = {result['grade']}"</span>)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第27章：Agent Prompt 工程                              ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  System Prompt 模板 · 工具描述 · Few-shot             ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+    demo_prompt_engineering()
+    <span class="b">print</span>(<span class="s">"\n▶ 工具描述 Checklist"</span>)
+    <span class="k">for</span> item <span class="k">in</span> [
+        <span class="s">"✅ 有功能描述"</span>,
+        <span class="s">"✅ 有使用场景（什么时候用）"</span>,
+        <span class="s">"✅ 有边界条件（什么时候不用）"</span>,
+        <span class="s">"✅ 有调用示例"</span>,
+        <span class="s">"✅ 参数有 enum 限制"</span>,
+        <span class="s">"✅ 参数有详细描述"</span>,
+    ]:
+        <span class="b">print</span>(f<span class="s">"  {item}"</span>)
+    <span class="b">print</span>(<span class="s">"\n✅ 第27章完成！"</span>)
+</pre></div></details></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_26_model_routing/26_model_routing.html" title="模型路由策略 — Threshold·Cascade·Semantic·Cost-Aware">← 第26章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_28_cache/28_cache.html" title="语义缓存与 Token 优化 — 三级缓存·预算管理">第28章 →</a>
+</div></div></div></div></body></html>

@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第13章：FastAPI + Agent 服务化部署 — AI Agent 全栈课程</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: #f8f9fa; color: #1a1a2e; line-height: 1.8;
+}
+.page-wrapper { display: flex; min-height: 100vh; }
+
+/* 侧边栏 TOC */
+.sidebar {
+  width: 240px; min-width: 240px; background: #0f172a; color: #e2e8f0;
+  padding: 24px 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; font-size: .85em; border-right: 1px solid #1e293b;
+}
+.sidebar-title {
+  font-weight: 700; font-size: 1.05em; padding: 0 18px 16px;
+  border-bottom: 1px solid #1e293b; margin-bottom: 12px; color: white;
+}
+.sidebar-title a { color: #8ab4f8; text-decoration: none; }
+.sidebar-title a:hover { text-decoration: underline; }
+.sidebar-layer {
+  padding: 6px 18px; margin-top: 8px; color: #64748b;
+  font-size: .78em; text-transform: uppercase; letter-spacing: .5px;
+}
+.sidebar-link {
+  display: block; padding: 5px 18px 5px 18px; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: all .15s; font-size: .88em;
+}
+.sidebar-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+.sidebar-link.active {
+  color: #60a5fa; background: rgba(96,165,250,.1);
+  border-left-color: #60a5fa; font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1; min-width: 0; padding: 40px 24px 80px;
+  max-width: calc(100vw - 240px);
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 48px 32px; border-radius: 12px; margin-bottom: 36px;
+}
+.hero h1 { font-size: 2em; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { opacity: 0.9; font-size: 1.05em; }
+
+/* 讲义标题层级 */
+.lecture { background: white; border-radius: 10px; padding: 36px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 32px; }
+.lecture h2 {
+  font-size: 1.25em; color: #667eea; margin: 28px 0 12px;
+  padding-bottom: 6px; border-bottom: 2px solid #e8e8ff;
+}
+.lecture h3 {
+  font-size: 1.08em; color: #555; margin: 22px 0 8px;
+  padding-left: 10px; border-left: 3px solid #667eea;
+}
+.lecture p { margin: 10px 0; }
+.lecture ul, .lecture ol { margin: 8px 0 8px 24px; }
+.lecture li { margin: 4px 0; }
+.lecture pre {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+  padding: 18px 22px; overflow-x: auto; font-size: .88em;
+  line-height: 1.55; margin: 14px 0;
+}
+.lecture code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; }
+.lecture p code, .lecture li code {
+  background: #eee8ff; padding: 1px 6px; border-radius: 4px;
+  font-size: .92em; color: #6c3cc0;
+}
+.lecture strong { color: #333; }
+.lecture em { color: #555; }
+.lecture blockquote {
+  border-left: 4px solid #667eea; padding: 8px 16px;
+  margin: 14px 0; background: #f4f4ff; border-radius: 0 8px 8px 0;
+  color: #555;
+}
+.lecture table {
+  border-collapse: collapse; width: 100%; margin: 16px 0;
+  font-size: .92em; background: white; border-radius: 6px; overflow: hidden;
+}
+.lecture table th {
+  background: #667eea; color: white; font-weight: 600;
+  padding: 10px 14px; text-align: left;
+}
+.lecture table td {
+  padding: 9px 14px; border-bottom: 1px solid #e8e8f0;
+}
+.lecture table tr:hover td { background: #f4f4ff; }
+.lecture hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+/* 架构图 / 流程图 — 与代码块相同的 pre 渲染方式 */
+.diagram-label {
+  font-size: .85em; font-weight: 600; color: #8ab4f8;
+  background: linear-gradient(135deg, #2d3a5c 0%, #1e2d4a 100%);
+  padding: 8px 18px; letter-spacing: .5px; margin: 18px 0 0 0;
+  border-radius: 10px 10px 0 0; border: 1px solid #3a4a6a; border-bottom: none;
+}
+.diagram-pre {
+  border-radius: 0 0 10px 10px; margin: 0 0 18px 0;
+  border-top: none; border: 1px solid #2a3045;
+}
+.ascii-art {
+  background: #1a1e2b; color: #c0caf5; border-radius: 0 0 10px 10px;
+  padding: 18px 22px; overflow-x: auto; font-size: .8em;
+  line-height: 1.3; margin: 0;
+  font-family: "JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace;
+  border: none; white-space: pre;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 目标/考点标签 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: .85em; font-weight: 500;
+}
+.tag-goal { background: #e8f5e9; color: #2e7d32; }
+.tag-interview { background: #fff3e0; color: #e65100; }
+
+/* 代码块区域 */
+.code-section { margin-top: 24px; }
+.code-section summary {
+  font-size: 1.1em; font-weight: 600; cursor: pointer;
+  padding: 10px 16px; background: #1e1e2e; color: #cdd6f4;
+  border-radius: 8px 8px 0 0; user-select: none;
+}
+.code-section pre {
+  margin: 0; border-radius: 0 0 8px 8px; max-height: 70vh;
+  overflow-y: auto;
+}
+.code-block {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 0 0 8px 8px;
+  padding: 20px 24px; overflow-x: auto; font-size: .85em;
+  line-height: 1.6; max-height: 70vh; overflow-y: auto;
+}
+
+/* IDE 风格语法高亮颜色 */
+.code-block .k { color: #c586c0; }     /* 关键字 def/class/import */
+.code-block .s { color: #ce9178; }     /* 字符串 */
+.code-block .h { color: #6a9955; }     /* 注释 */
+.code-block .d { color: #dcdcaa; }     /* 装饰器 */
+.code-block .n { color: #b5cea8; }     /* 数字 */
+.code-block .f { color: #4ec9b0; }     /* 函数名 */
+.code-block .b { color: #569cd6; }     /* 内置函数 */
+
+/* 讲义→代码 视觉过渡 */
+.code-bridge {
+  text-align: center; color: #667eea; font-size: .9em;
+  padding: 8px 0 4px; font-weight: 500;
+}
+.code-badges {
+  padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 6px;
+  background: #2a2a3e; border-bottom: 1px solid #444;
+}
+.code-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: .8em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.code-badge-func { background: #1e3a5f; color: #4ec9b0; }
+.code-badge-class { background: #1e3a5f; color: #dcdcaa; }
+.code-badge-const { background: #1e3a5f; color: #b5cea8; }
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main-content { max-width: calc(100vw - 200px); }
+}
+@media (max-width: 768px) {
+  .page-wrapper { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; height: auto; max-height: 45vh;
+    position: static; display: none; }
+  .sidebar.open { display: block; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .main-content { max-width: 100%; padding: 16px 10px 60px; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0; }
+  .hero { padding: 28px 18px; }
+  .hero h1 { font-size: 1.4em; }
+  .lecture { padding: 20px 16px; }
+}
+
+/* 打印 */
+@media print {
+  body { background: white; }
+  .lecture { box-shadow: none; }
+  .code-block { background: #f5f5f5; color: #222; }
+}
+
+/* 上/下章导航 */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 32px 0; gap: 16px;
+}
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 22px; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: .95em; transition: all .2s;
+}
+.nav-prev { background: #f0f0ff; color: #667eea; }
+.nav-prev:hover { background: #e0e0ff; }
+.nav-next { background: #667eea; color: white; }
+.nav-next:hover { background: #5560d8; }
+.nav-disabled { background: #eee; color: #999; cursor: not-allowed; pointer-events: none; }
+.nav-home { background: #f5f5f5; color: #555; }
+.nav-home:hover { background: #e0e0e0; }
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: .88em; color: #888; margin-bottom: 20px;
+}
+.breadcrumb a { color: #667eea; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* 移动端侧边栏开关 */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; background: #667eea;
+  color: white; border: none; font-size: 1.2em; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102,126,234,.4);
+}
+@media (max-width: 768px) { .sidebar-toggle { display: flex; align-items: center; justify-content: center; } }
+
+/* 浏览量统计徽章 */
+
+
+
+</style>
+
+</head>
+<body>
+<div class="page-wrapper">
+<!-- generated-from-sha256:c550d0b7db5b87d00716b84d62756f040af4a82da154e9f52f886acbee074f15 -->
+<div class="sidebar" id="sidebar">
+<div class="sidebar-title"><a href="../index.html">🤖 AI Agent 全栈课程</a></div>
+<div class="sidebar-layer">第1层 理论基础</div>
+<a class="sidebar-link" href="../chapter_00_overview/00_course_overview.html">Ch0 课程概览与环境搭建</a>
+<a class="sidebar-link" href="../chapter_01_fundamentals/01_hello_agent.html">Ch1 第一个 Agent</a>
+<a class="sidebar-link" href="../chapter_02_components/02_agent_components.html">Ch2 Agent 核心组件</a>
+<a class="sidebar-link" href="../chapter_03_types/03_agent_types.html">Ch3 Agent 类型分类</a>
+<div class="sidebar-layer">第2层 工程实践</div>
+<a class="sidebar-link" href="../chapter_04_frameworks/04_frameworks.html">Ch4 主流框架实战</a>
+<a class="sidebar-link" href="../chapter_05_multi_agent/05_multi_agent.html">Ch5 多智能体系统</a>
+<a class="sidebar-link" href="../chapter_06_evaluation/06_evaluation.html">Ch6 评估与测试</a>
+<a class="sidebar-link" href="../chapter_07_interview/07_interview_prep.html">Ch7 求职面试准备</a>
+<div class="sidebar-layer">第3层 深度技术</div>
+<a class="sidebar-link" href="../chapter_08_claude_code/08_claude_code_architecture.html">Ch8 Claude Code 架构</a>
+<a class="sidebar-link" href="../chapter_09_rag_deepdive/09_rag_deepdive.html">Ch9 RAG 深度解析</a>
+<a class="sidebar-link" href="../chapter_10_mcp/10_mcp_deepdive.html">Ch10 MCP 深度解析</a>
+<a class="sidebar-link" href="../chapter_11_tool_calling/11_tool_calling_deepdive.html">Ch11 Tool Calling 底层</a>
+<a class="sidebar-link" href="../chapter_12_infrastructure/12_infrastructure.html">Ch12 Agent 生产基础设施</a>
+<div class="sidebar-layer">第4层 工程化前沿</div>
+<a class="sidebar-link active" href="../chapter_13_fastapi/13_fastapi_agent_service.html">Ch13 FastAPI 服务化</a>
+<a class="sidebar-link" href="../chapter_14_sqlite/14_sqlite_agent_storage.html">Ch14 SQLite 持久化</a>
+<a class="sidebar-link" href="../chapter_15_a2a/15_a2a_protocol.html">Ch15 Google A2A 协议</a>
+<a class="sidebar-link" href="../chapter_16_memgpt/16_memgpt_letta.html">Ch16 MemGPT/Letta 记忆</a>
+<a class="sidebar-link" href="../chapter_17_computer_use/17_computer_use.html">Ch17 Computer Use</a>
+<a class="sidebar-link" href="../chapter_18_security/18_agent_security.html">Ch18 Agent 安全与护栏</a>
+<div class="sidebar-layer">第5层 高级架构</div>
+<a class="sidebar-link" href="../chapter_19_workflow_patterns/19_workflow_patterns.html">Ch19 Agentic Workflow 设</a>
+<a class="sidebar-link" href="../chapter_20_context_engineering/20_context_engineering.html">Ch20 Context Engineerin</a>
+<a class="sidebar-link" href="../chapter_21_streaming/21_streaming_architecture.html">Ch21 Streaming & 实时架构</a>
+<a class="sidebar-link" href="../chapter_22_dspy/22_dspy.html">Ch22 DSPy 自动优化</a>
+<a class="sidebar-link" href="../chapter_23_code_agents/23_code_agents.html">Ch23 代码 Agent 架构横评</a>
+<a class="sidebar-link" href="../chapter_24_observability/24_observability.html">Ch24 Agent 可观测性</a>
+<div class="sidebar-layer">第6层 基础补强</div>
+<a class="sidebar-link" href="../chapter_25_vectordb/25_vectordb.html">Ch25 向量数据库选型</a>
+<a class="sidebar-link" href="../chapter_26_model_routing/26_model_routing.html">Ch26 模型路由策略</a>
+<a class="sidebar-link" href="../chapter_27_prompt_eng/27_prompt_engineering.html">Ch27 Agent Prompt 工程</a>
+<a class="sidebar-link" href="../chapter_28_cache/28_cache.html">Ch28 语义缓存与 Token 优化</a>
+<div class="sidebar-layer">第7层 专家进阶</div>
+<a class="sidebar-link" href="../chapter_29_multimodal/29_multimodal.html">Ch29 Multi-Modal Agent</a>
+<a class="sidebar-link" href="../chapter_30_reliability/30_reliability.html">Ch30 Agent 可靠性工程</a>
+<a class="sidebar-link" href="../chapter_31_benchmarks/31_benchmarks.html">Ch31 Agent 评测体系深度</a>
+<a class="sidebar-link" href="../chapter_32_self_improving/32_self_improving.html">Ch32 Self-Improving Age</a>
+<a class="sidebar-link" href="../chapter_33_prompt_cache/33_prompt_cache.html">Ch33 Prompt Caching & 推</a>
+<a class="sidebar-link" href="../chapter_34_finetune/34_finetune.html">Ch34 模型微调 for Function </a>
+<a class="sidebar-link" href="../chapter_35_data_flywheel/35_data_flywheel.html">Ch35 数据飞轮</a>
+<a class="sidebar-link" href="../chapter_36_defense/36_defense.html">Ch36 Agent 纵深安全</a>
+</div>
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div class="main-content"><div class="container"><div class="breadcrumb"><a href="../index.html">📖 AI Agent 全栈课程</a> &raquo; <strong>第13章 FastAPI 服务化 — REST·SSE·WebSocket</strong></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_12_infrastructure/12_infrastructure.html" title="Agent 生产基础设施 — OpenClaw·Harness·Checklist">← 第12章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_14_sqlite/14_sqlite_agent_storage.html" title="SQLite 持久化 — 5 表 Schema·WAL·审计查询">第14章 →</a>
+</div><div class="hero"><h1>第13章 FastAPI + Agent 服务化部署</h1><p class="subtitle">📖 AI Agent 全栈学习课程 · 可运行讲义</p></div><div class="lecture"><div class="tag-row"><span class="tag tag-goal">1. 用 FastAPI 将 Agent 封装为 RESTful API 服务</span><span class="tag tag-goal">2. 实现 SSE (Server-Sent Events) 流式推送 Agent 执行过程</span><span class="tag tag-goal">3. 实现 WebSocket 双向实时通信</span><span class="tag tag-goal">4. 掌握 Agent Webhook 回调模式</span><span class="tag tag-goal">5. 理解 Agent 微服务的部署架构（Docker / 负载均衡）</span><span class="tag tag-goal">6. 创建一个可直接运行的完整 Agent 服务</span><span class="tag tag-interview">🎤 Agent 怎么做成 API 服务？有哪些关键设计决策？</span><span class="tag tag-interview">🎤 SSE 和 WebSocket 有什么区别？Agent 场景分别怎么用？</span><span class="tag tag-interview">🎤 流式 Agent 的状态管理怎么做？</span><span class="tag tag-interview">🎤 生产环境的 Agent 服务架构是怎样的？</span></div><p>&nbsp;</p>
+<p>内容核对：2026-08-01</p>
+<p>说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>本章需要安装：pip install fastapi uvicorn pydantic</p>
+<p>运行服务：python chapter_13_fastapi/13_fastapi_agent_service.py</p>
+<p>测试地址：http://localhost:8000/docs</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>13.1 为什么需要把 Agent 做成 API 服务？</h2>
+<p>&nbsp;</p>
+<p>裸写 Agent 脚本的问题：</p>
+<li>只能命令行交互，无法集成到 Web/App</li>
+<li>每个用户需要单独启动进程</li>
+<li>没有并发的请求处理能力</li>
+<li>无法做认证、限流、监控</li>
+<p>&nbsp;</p>
+<p>FastAPI 方案的优势：</p>
+<li>ASGI 异步框架（天然支持 Agent 的异步调用）</li>
+<li>自动生成 OpenAPI 文档（/docs）</li>
+<li>内置 SSE / WebSocket 支持</li>
+<li>类型安全（Pydantic v2）</li>
+<li>异步并发（async/await 原生支持）</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (20 行)</summary><div class="code-block"><pre><span class="k">import</span> os
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> sqlite3
+<span class="k">import</span> asyncio
+<span class="k">import</span> hashlib
+<span class="k">import</span> ast
+<span class="k">import</span> operator
+<span class="k">import</span> re
+<span class="k">from</span> datetime <span class="k">import</span> datetime
+<span class="k">from</span> typing <span class="k">import</span> Optional, AsyncGenerator
+<span class="k">from</span> contextlib <span class="k">import</span> asynccontextmanager
+
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, HTTPException, Request
+<span class="k">from</span> fastapi.responses <span class="k">import</span> StreamingResponse, HTMLResponse
+<span class="k">from</span> fastapi.middleware.cors <span class="k">import</span> CORSMiddleware
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel, Field
+
+load_dotenv()</pre></div></details></div><div class="lecture"><h2>13.2 数据模型定义（Pydantic v2）</h2>
+<p>&nbsp;</p>
+<p>用 Pydantic v2 来定义 Agent 服务的请求和响应结构体。</p>
+<p>选择 Pydantic 的理由：</p>
+<li>FastAPI 原生集成，自动生成 OpenAPI / Swagger 文档</li>
+<li>Field 描述直接变成 API 文档中的参数说明</li>
+<li>请求校验零代码——不合法的参数自动返回 422</li>
+<li>支持嵌套模型（Agent 的 tool_call 是嵌套结构）</li>
+<p>&nbsp;</p>
+<p>这里定义两个核心模型：</p>
+<li>AgentRequest：用户发来的任务请求</li>
+<li>AgentStep：Agent 执行过程中每步的状态</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (50 行)</summary><div class="code-badges"><span class="code-badge code-badge-class">AgentRequest</span><span class="code-badge code-badge-class">AgentResponse</span><span class="code-badge code-badge-class">SSEEvent</span></div><div class="code-block"><pre><span class="k">import</span> os
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> sqlite3
+<span class="k">import</span> asyncio
+<span class="k">import</span> hashlib
+<span class="k">import</span> ast
+<span class="k">import</span> operator
+<span class="k">import</span> re
+<span class="k">from</span> datetime <span class="k">import</span> datetime
+<span class="k">from</span> typing <span class="k">import</span> Optional, AsyncGenerator
+<span class="k">from</span> contextlib <span class="k">import</span> asynccontextmanager
+
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, HTTPException, Request
+<span class="k">from</span> fastapi.responses <span class="k">import</span> StreamingResponse, HTMLResponse
+<span class="k">from</span> fastapi.middleware.cors <span class="k">import</span> CORSMiddleware
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel, Field
+
+load_dotenv()
+
+<span class="k">class</span> <span class="f">AgentRequest</span>(BaseModel):
+    <span class="s">"""Agent API 请求体。
+
+    FastAPI + Pydantic 自动完成：
+      1. JSON 解析
+      2. 类型校验
+      3. 生成 OpenAPI 文档
+    """</span>
+    message: <span class="b">str</span> = Field(..., min_length=<span class="n">1</span>, max_length=<span class="n">10000</span>,
+                         description=<span class="s">"用户输入的消息"</span>)
+    session_id: Optional[<span class="b">str</span>] = Field(<span class="k">None</span>,
+                                       description=<span class="s">"会话ID，不传则自动创建"</span>)
+    stream: bool = Field(<span class="k">False</span>,
+                         description=<span class="s">"是否使用 SSE 流式返回"</span>)
+
+
+<span class="k">class</span> <span class="f">AgentResponse</span>(BaseModel):
+    <span class="s">"""Agent API 响应体。"""</span>
+    session_id: <span class="b">str</span>
+    answer: <span class="b">str</span>
+    tool_calls_made: <span class="b">int</span>
+    elapsed_seconds: <span class="b">float</span>
+    timestamp: <span class="b">str</span>
+
+
+<span class="k">class</span> <span class="f">SSEEvent</span>(BaseModel):
+    <span class="s">"""SSE 事件格式。"""</span>
+    event: <span class="b">str</span>                      <span class="h"># "thinking" | "tool_call" | "tool_result" | "done" | "error"</span>
+    data: <span class="b">str</span>                       <span class="h"># JSON 字符串</span></pre></div></details></div><div class="lecture"><h2>13.3 模拟 Agent 引擎（不依赖外部 API）</h2>
+<p>&nbsp;</p>
+<p>这里实现一个 MockAgentEngine：不依赖任何外部 LLM API，用模拟步骤</p>
+<p>来演示 Agent 的执行流程。为什么这样做？</p>
+<p>&nbsp;</p>
+<li>1. 可离线测试——不需要配置 API Key 也能跑通整个 HTTP 服务</li>
+<li>2. 展示架构分层——Agent 引擎和服务框架是解耦的</li>
+<li>3. 真实项目中的做法——先用 Mock 验证 API 设计，再接入真实 LLM</li>
+<p>&nbsp;</p>
+<p>MockAgentEngine 的核心：</p>
+<li>execute() 是异步的，返回 async generator（每步一个事件）</li>
+<li>模拟了「思考→计划→工具调用→总结」4 步流程</li>
+<li>用 asyncio.sleep() 模拟 LLM 调用的延迟，方便测试超时机制</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (123 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">safe_calculate</span><span class="code-badge code-badge-func">evaluate</span><span class="code-badge code-badge-class">SimulatedAgent</span><span class="code-badge code-badge-const">_ARITHMETIC_OPERATORS</span></div><div class="code-block"><pre><span class="k">import</span> os
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> sqlite3
+<span class="k">import</span> asyncio
+<span class="k">import</span> hashlib
+<span class="k">import</span> ast
+<span class="k">import</span> operator
+<span class="k">import</span> re
+<span class="k">from</span> datetime <span class="k">import</span> datetime
+<span class="k">from</span> typing <span class="k">import</span> Optional, AsyncGenerator
+<span class="k">from</span> contextlib <span class="k">import</span> asynccontextmanager
+
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, HTTPException, Request
+<span class="k">from</span> fastapi.responses <span class="k">import</span> StreamingResponse, HTMLResponse
+<span class="k">from</span> fastapi.middleware.cors <span class="k">import</span> CORSMiddleware
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel, Field
+
+load_dotenv()
+
+_ARITHMETIC_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+
+<span class="k">def</span> <span class="f">safe_calculate</span>(raw_expression: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="s">"""计算基础算术表达式；不使用 eval，也不允许名称、属性或函数调用。"""</span>
+    candidates = [part.strip() <span class="k">for</span> part <span class="k">in</span> re.findall(r<span class="s">"[0-9+\-*/().% ]+"</span>, raw_expression)]
+    expression = <span class="b">max</span>(candidates, key=<span class="b">len</span>, default=<span class="s">""</span>)
+    <span class="k">if</span> <span class="k">not</span> expression <span class="k">or</span> <span class="b">len</span>(expression) &gt; <span class="n">100</span>:
+        <span class="k">return</span> <span class="s">"表达式错误"</span>
+
+    <span class="k">def</span> <span class="f">evaluate</span>(node):
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.Expression):
+            <span class="k">return</span> evaluate(node.body)
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.Constant) <span class="k">and</span> <span class="b">type</span>(node.value) <span class="k">in</span> {<span class="b">int</span>, <span class="b">float</span>}:
+            <span class="k">return</span> node.value
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.BinOp) <span class="k">and</span> <span class="b">type</span>(node.op) <span class="k">in</span> _ARITHMETIC_OPERATORS:
+            <span class="k">return</span> _ARITHMETIC_OPERATORS[<span class="b">type</span>(node.op)](evaluate(node.left), evaluate(node.right))
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.UnaryOp) <span class="k">and</span> <span class="b">type</span>(node.op) <span class="k">in</span> _ARITHMETIC_OPERATORS:
+            <span class="k">return</span> _ARITHMETIC_OPERATORS[<span class="b">type</span>(node.op)](evaluate(node.operand))
+        <span class="k">raise</span> ValueError(<span class="s">"只允许基础算术"</span>)
+
+    <span class="k">try</span>:
+        <span class="k">return</span> <span class="b">str</span>(evaluate(ast.parse(expression, mode=<span class="s">"eval"</span>)))
+    <span class="k">except</span> (SyntaxError, ValueError, TypeError, ZeroDivisionError, OverflowError):
+        <span class="k">return</span> <span class="s">"表达式错误"</span>
+
+
+<span class="k">class</span> <span class="f">SimulatedAgent</span>:
+    <span class="s">"""模拟 Agent —— 演示 Agent 的逐步执行过程。
+
+    实际项目中替换为 LangChain Agent / LangGraph / 自定义 Agent。
+    这里模拟的思考-行动-观察循环，展示 SSE 推送的完整过程。
+    """</span>
+
+    MOCK_TOOLS = {
+        <span class="s">"search"</span>: <span class="k">lambda</span> q: f<span class="s">"搜索结果: 关于「{q}」的最新信息..."</span>,
+        <span class="s">"calculate"</span>: <span class="k">lambda</span> e: f<span class="s">"计算结果: {safe_calculate(e)}"</span>,
+        <span class="s">"get_time"</span>: <span class="k">lambda</span> _: f<span class="s">"当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"</span>,
+    }
+
+    <span class="k">async</span> <span class="k">def</span> <span class="f">run_streaming</span>(
+        <span class="k">self</span>, message: <span class="b">str</span>
+    ) -&gt; AsyncGenerator[<span class="b">dict</span>, <span class="k">None</span>]:
+        <span class="s">"""流式执行 Agent，每步通过 yield 推送状态。
+
+        这是 SSE 的核心：不是等所有步骤完成再返回，
+        而是每完成一步就推送一个事件。
+
+        Args:
+            message: 用户输入。
+
+        Yields:
+            每步的状态事件字典。
+        """</span>
+        steps = []
+
+        <span class="h"># 第1步：思考阶段</span>
+        <span class="k">yield</span> {<span class="s">"event"</span>: <span class="s">"thinking"</span>, <span class="s">"data"</span>: <span class="s">"正在分析用户意图..."</span>}
+        <span class="k">await</span> asyncio.sleep(<span class="n">0.3</span>)
+
+        <span class="h"># 判断需要哪些工具</span>
+        <span class="k">if</span> <span class="s">"搜索"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"查"</span> <span class="k">in</span> message:
+            keyword = message.replace(<span class="s">"搜索"</span>, <span class="s">""</span>).replace(<span class="s">"查"</span>, <span class="s">""</span>).strip() <span class="k">or</span> <span class="s">"AI Agent"</span>
+            steps.append((<span class="s">"search"</span>, keyword))
+        <span class="k">if</span> <span class="s">"算"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"计算"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"+"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"*"</span> <span class="k">in</span> message:
+            steps.append((<span class="s">"calculate"</span>, message))
+        <span class="k">if</span> <span class="s">"时间"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"几点"</span> <span class="k">in</span> message:
+            steps.append((<span class="s">"get_time"</span>, <span class="s">""</span>))
+
+        <span class="h"># 第2步：工具调用阶段</span>
+        <span class="k">for</span> i, (tool_name, arg) <span class="k">in</span> <span class="b">enumerate</span>(steps):
+            <span class="k">yield</span> {
+                <span class="s">"event"</span>: <span class="s">"tool_call"</span>,
+                <span class="s">"data"</span>: json.dumps({<span class="s">"step"</span>: i+<span class="n">1</span>, <span class="s">"tool"</span>: tool_name, <span class="s">"args"</span>: arg}, ensure_ascii=<span class="k">False</span>),
+            }
+            <span class="k">await</span> asyncio.sleep(<span class="n">0.2</span>)
+
+            result = <span class="k">self</span>.MOCK_TOOLS[tool_name](arg)
+            <span class="k">yield</span> {
+                <span class="s">"event"</span>: <span class="s">"tool_result"</span>,
+                <span class="s">"data"</span>: json.dumps({<span class="s">"step"</span>: i+<span class="n">1</span>, <span class="s">"tool"</span>: tool_name, <span class="s">"result"</span>: result}, ensure_ascii=<span class="k">False</span>),
+            }
+            <span class="k">await</span> asyncio.sleep(<span class="n">0.2</span>)
+
+        <span class="h"># 第3步：生成最终回答</span>
+        <span class="k">yield</span> {<span class="s">"event"</span>: <span class="s">"thinking"</span>, <span class="s">"data"</span>: <span class="s">"正在组织最终回答..."</span>}
+        <span class="k">await</span> asyncio.sleep(<span class="n">0.3</span>)
+
+        <span class="k">if</span> steps:
+            answer = f<span class="s">"已完成 {len(steps)} 个工具调用来回答您的问题。"</span>
+        <span class="k">else</span>:
+            answer = f<span class="s">"您好！您的问题「{message}」已收到。这是一个模拟 Agent 回复。"</span>
+
+        <span class="k">yield</span> {<span class="s">"event"</span>: <span class="s">"done"</span>, <span class="s">"data"</span>: answer, <span class="s">"tool_calls_made"</span>: <span class="b">len</span>(steps)}</pre></div></details></div><div class="lecture"><h2>13.4 FastAPI 应用主体</h2>
+<p>&nbsp;</p>
+<p>这是整个 Agent 服务的入口。FastAPI app 提供 5 个端点：</p>
+<p>&nbsp;</p>
+<p>POST /agent/chat —— 提交 Agent 任务并等待完整结果</p>
+<p>POST /agent/chat/stream —— SSE 流式获取状态、工具事件和回答</p>
+<p>WS   /agent/ws —— WebSocket 双向通信</p>
+<p>GET  /health —— 健康检查</p>
+<p>GET  / —— 可直接使用的浏览器 Streaming Console</p>
+<p>&nbsp;</p>
+<p>加上显式来源的 CORS 中间件和应用生命周期管理。本地演示未实现认证；</p>
+<p>生产环境必须在路由前加入 OAuth/OIDC 或网关身份验证与租户授权。</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (280 行)</summary><div class="code-badges"><span class="code-badge code-badge-const">AGENT_CONSOLE_HTML</span></div><div class="code-block"><pre><span class="k">import</span> os
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> sqlite3
+<span class="k">import</span> asyncio
+<span class="k">import</span> hashlib
+<span class="k">import</span> ast
+<span class="k">import</span> operator
+<span class="k">import</span> re
+<span class="k">from</span> datetime <span class="k">import</span> datetime
+<span class="k">from</span> typing <span class="k">import</span> Optional, AsyncGenerator
+<span class="k">from</span> contextlib <span class="k">import</span> asynccontextmanager
+
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, HTTPException, Request
+<span class="k">from</span> fastapi.responses <span class="k">import</span> StreamingResponse, HTMLResponse
+<span class="k">from</span> fastapi.middleware.cors <span class="k">import</span> CORSMiddleware
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel, Field
+
+load_dotenv()
+
+<span class="h"># 应用生命周期管理</span>
+<span <span class="k">class</span>="d">@asynccontextmanager</span>
+<span class="k">async</span> <span class="k">def</span> <span class="f">lifespan</span>(app: FastAPI):
+    <span class="s">"""应用启动和关闭时的操作。"""</span>
+    <span class="b">print</span>(<span class="s">"[startup] Agent 服务启动中..."</span>)
+    <span class="h"># 启动时：初始化数据库连接池、加载配置等</span>
+    <span class="k">yield</span>
+    <span class="b">print</span>(<span class="s">"[shutdown] Agent 服务关闭中..."</span>)
+    <span class="h"># 关闭时：清理资源、关闭连接等</span>
+
+app = FastAPI(
+    title=<span class="s">"AI Agent API Service"</span>,
+    description=<span class="s">"一个完整的 Agent 服务化部署示例"</span>,
+    version=<span class="s">"1.0.0"</span>,
+    lifespan=lifespan,
+)
+
+<span class="h"># CORS 不能与认证授权混为一谈；只允许配置中的前端来源。</span>
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        <span class="k">for</span> origin <span class="k">in</span> os.getenv(<span class="s">"CORS_ORIGINS"</span>, <span class="s">"http://localhost:3000"</span>).split(<span class="s">","</span>)
+        <span class="k">if</span> origin.strip()
+    ],
+    allow_methods=[<span class="s">"GET"</span>, <span class="s">"POST"</span>],
+    allow_headers=[<span class="s">"Authorization"</span>, <span class="s">"Content-Type"</span>, <span class="s">"X-Request-ID"</span>],
+)
+
+agent = SimulatedAgent()
+
+
+<span class="h"># 一个真实可用的最小前端：使用 fetch 读取 POST SSE，按事件类型渲染状态。</span>
+<span class="h"># 生产项目通常把它替换为独立前端或 ChatKit，并增加认证、会话恢复和审批 UI。</span>
+AGENT_CONSOLE_HTML = r<span class="s">"""&lt;!doctype html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width,initial-scale=1"&gt;
+  &lt;title&gt;Agent Console&lt;/title&gt;
+  &lt;style&gt;
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #e2e8f0; }
+    main { max-width: 760px; margin: 48px auto; padding: 0 20px; }
+    form { display: flex; gap: 10px; }
+    input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #475569;
+            background: #111827; color: inherit; }
+    button { padding: 10px 16px; border: 0; border-radius: 8px; cursor: pointer; }
+    #stop { background: #7f1d1d; color: white; }
+    #run { background: #2563eb; color: white; }
+    #events { margin-top: 20px; display: grid; gap: 8px; }
+    .event { padding: 10px 12px; border: 1px solid #334155; border-radius: 8px;
+             background: #111827; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .event b { color: #7dd3fc; margin-right: 8px; }
+    .done { border-color: #15803d; }
+    .error { border-color: #b91c1c; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;&lt;main&gt;
+  &lt;h1&gt;Agent Streaming Console&lt;/h1&gt;
+  &lt;p&gt;实时显示状态、工具调用与最终答案；“thinking”只是进度事件，不是隐藏思维链。&lt;/p&gt;
+  &lt;form id="form"&gt;
+    &lt;input id="message" value="计算 12 * (7 + 3)" maxlength="10000" required&gt;
+    &lt;button id="run"&gt;运行&lt;/button&gt;&lt;button id="stop" type="button"&gt;停止&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;section id="events" aria-live="polite"&gt;&lt;/section&gt;
+  &lt;p&gt;&lt;a href="/docs"&gt;OpenAPI 文档&lt;/a&gt;&lt;/p&gt;
+&lt;/main&gt;
+&lt;script&gt;
+let controller;
+const events = document.querySelector('#events');
+function render(type, data) {
+  const row = document.createElement('div');
+  row.className = `event ${type}`;
+  const label = document.createElement('b');
+  label.textContent = type;
+  const value = document.createElement('span');
+  value.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  row.append(label, value); events.append(row); row.scrollIntoView({block: 'nearest'});
+}
+document.querySelector('#stop').onclick = () =&gt; controller?.abort();
+document.querySelector('#form').onsubmit = async (event) =&gt; {
+  event.preventDefault(); events.replaceChildren(); controller = new AbortController();
+  try {
+    const response = await fetch('/agent/chat/stream', {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({message: document.querySelector('#message').value, stream: true}),
+      signal: controller.signal,
+    });
+    if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    while (true) {
+      const {value, done} = await reader.read(); if (done) break; buffer += value;
+      const frames = buffer.split('\n\n'); buffer = frames.pop();
+      for (const frame of frames) {
+        let type = 'message', raw = '';
+        for (const line of frame.split('\n')) {
+          if (line.startsWith('event:')) type = line.slice(6).trim();
+          if (line.startsWith('data:')) raw += line.slice(5).trim();
+        }
+        if (raw) { try { render(type, JSON.parse(raw)); } catch { render(type, raw); } }
+      }
+    }
+  } catch (error) { render(error.name === 'AbortError' ? 'cancelled' : 'error', error.message); }
+};
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;"""</span>
+
+
+<span class="h"># ==================== REST API 端点 ====================</span>
+
+<span <span class="k">class</span>="d">@app</span>.post(<span class="s">"/agent/chat"</span>, response_model=AgentResponse)
+<span class="k">async</span> <span class="k">def</span> <span class="f">agent_chat</span>(request: AgentRequest):
+    <span class="s">"""标准 REST API：一次请求，一次完整响应。
+
+    适用场景：
+      - 简单问答（用户不关心中间过程）
+      - 批量任务处理
+      - 与其他微服务集成
+
+    测试：
+      curl -X POST http://localhost:8000/agent/chat \
+        -H "Content-Type: application/json" \
+        -d '{"message": "搜索AI Agent并计算3+5"}'
+    """</span>
+    start = time.time()
+    session_id = request.session_id <span class="k">or</span> _generate_session_id()
+    tool_calls_made = <span class="n">0</span>
+    answer = <span class="s">""</span>
+
+    <span class="k">async</span> <span class="k">for</span> event <span class="k">in</span> agent.run_streaming(request.message):
+        <span class="k">if</span> event[<span class="s">"event"</span>] == <span class="s">"done"</span>:
+            answer = event[<span class="s">"data"</span>]
+            tool_calls_made = event.get(<span class="s">"tool_calls_made"</span>, <span class="n">0</span>)
+
+    <span class="k">return</span> AgentResponse(
+        session_id=session_id,
+        answer=answer,
+        tool_calls_made=tool_calls_made,
+        elapsed_seconds=<span class="b">round</span>(time.time() - start, <span class="n">2</span>),
+        timestamp=datetime.now().isoformat(),
+    )
+
+
+<span <span class="k">class</span>="d">@app</span>.post(<span class="s">"/agent/chat/stream"</span>)
+<span class="k">async</span> <span class="k">def</span> <span class="f">agent_chat_stream</span>(request: AgentRequest):
+    <span class="s">"""SSE 流式 API：逐步推送 Agent 的思考过程。
+
+    适用场景：
+      - 用户需要看到 Agent 的实时状态（「正在搜索...」）
+      - 长任务（避免用户干等）
+      - 前端需要展示工具调用动画
+
+    测试：
+      curl -N -X POST http://localhost:8000/agent/chat/stream \
+        -H "Content-Type: application/json" \
+        -d '{"message": "搜索AI Agent并算3+5"}'
+    """</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="f">event_generator</span>():
+        <span class="s">"""SSE 事件生成器。
+
+        SSE 协议格式：
+          event: &lt;事件类型&gt;
+          data: &lt;JSON 数据&gt;
+          \n
+        """</span>
+        <span class="k">async</span> <span class="k">for</span> event <span class="k">in</span> agent.run_streaming(request.message):
+            event_type = event[<span class="s">"event"</span>]
+            data = event[<span class="s">"data"</span>]
+            <span class="h"># SSE 标准格式</span>
+            <span class="k">yield</span> f<span class="s">"event: {event_type}\ndata: {data}\n\n"</span>
+
+            <span class="k">if</span> event_type == <span class="s">"done"</span>:
+                <span class="k">yield</span> f<span class="s">"event: close\ndata: stream_end\n\n"</span>
+
+    <span class="k">return</span> StreamingResponse(
+        event_generator(),
+        media_type=<span class="s">"text/event-stream"</span>,
+        headers={
+            <span class="s">"Cache-Control"</span>: <span class="s">"no-cache"</span>,
+            <span class="s">"Connection"</span>: <span class="s">"keep-alive"</span>,
+            <span class="s">"X-Accel-Buffering"</span>: <span class="s">"no"</span>,  <span class="h"># Nginx 禁用缓冲</span>
+        },
+    )
+
+
+<span class="h"># ==================== WebSocket 端点 ====================</span>
+
+<span <span class="k">class</span>="d">@app</span>.websocket(<span class="s">"/agent/ws"</span>)
+<span class="k">async</span> <span class="k">def</span> <span class="f">agent_websocket</span>(websocket):
+    <span class="s">"""WebSocket 双向通信端点。
+
+    与 SSE 的区别：
+      - SSE：服务器 → 客户端（单向推送）
+      - WebSocket：服务器 ↔ 客户端（双向通信）
+
+    适用场景：
+      - 用户可以在 Agent 执行中途发送消息（类似 Claude Code h2A）
+      - 需要多次交互的对话
+      - 实时协作场景
+
+    测试：
+      websocat ws://localhost:8000/agent/ws
+    """</span>
+    <span class="k">await</span> websocket.accept()
+    <span class="k">await</span> websocket.send_json({
+        <span class="s">"event"</span>: <span class="s">"connected"</span>,
+        <span class="s">"data"</span>: <span class="s">"WebSocket 连接已建立"</span>,
+    })
+
+    <span class="k">try</span>:
+        <span class="k">while</span> <span class="k">True</span>:
+            <span class="h"># 接收用户消息</span>
+            raw = <span class="k">await</span> websocket.receive_text()
+            data = json.loads(raw)
+            message = data.get(<span class="s">"message"</span>, <span class="s">""</span>)
+
+            <span class="k">if</span> <span class="k">not</span> message:
+                <span class="k">continue</span>
+
+            <span class="k">await</span> websocket.send_json({
+                <span class="s">"event"</span>: <span class="s">"received"</span>,
+                <span class="s">"data"</span>: f<span class="s">"收到: {message}"</span>,
+            })
+
+            <span class="h"># 流式执行 Agent</span>
+            <span class="k">async</span> <span class="k">for</span> event <span class="k">in</span> agent.run_streaming(message):
+                <span class="k">await</span> websocket.send_json(event)
+
+            <span class="k">await</span> websocket.send_json({
+                <span class="s">"event"</span>: <span class="s">"ready"</span>,
+                <span class="s">"data"</span>: <span class="s">"等待下一条消息..."</span>,
+            })
+    <span class="k">except</span> Exception <span class="k">as</span> e:
+        <span class="b">print</span>(f<span class="s">"WebSocket 断开: {e}"</span>)
+
+
+<span class="h"># ==================== 管理端点 ====================</span>
+
+<span <span class="k">class</span>="d">@app</span>.get(<span class="s">"/health"</span>)
+<span class="k">async</span> <span class="k">def</span> <span class="f">health_check</span>():
+    <span class="s">"""健康检查端点（Kubernetes / 负载均衡器）。"""</span>
+    <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"healthy"</span>, <span class="s">"timestamp"</span>: datetime.now().isoformat()}
+
+
+<span <span class="k">class</span>="d">@app</span>.get(<span class="s">"/"</span>)
+<span class="k">async</span> <span class="k">def</span> <span class="f">root</span>():
+    <span class="s">"""根路径返回最小可用 Agent 前端。"""</span>
+    <span class="k">return</span> HTMLResponse(AGENT_CONSOLE_HTML)
+
+
+<span class="h"># ==================== 辅助函数 ====================</span>
+
+<span class="k">def</span> <span class="f">_generate_session_id</span>() -&gt; <span class="b">str</span>:
+    <span class="s">"""生成唯一会话 ID。"""</span>
+    <span class="k">return</span> hashlib.md5(
+        f<span class="s">"{time.time()}-{os.urandom(8).hex()}"</span>.encode()
+    ).hexdigest()[:<span class="n">16</span>]</pre></div></details></div><div class="lecture"><h2>13.5 生产部署架构</h2>
+<p>&nbsp;</p>
+<p>│           │           │</p>
+<p>┌────────▼──┐ ┌──────▼───┐ ┌───▼────────┐</p>
+<p>│  Agent    │ │  Agent   │ │  Agent     │</p>
+<p>│  Worker 1 │ │  Worker 2│ │  Worker 3  │</p>
+<p>│ (FastAPI) │ │ (FastAPI)│ │  (FastAPI) │</p>
+<p>└───────────┘ └──────────┘ └────────────┘</p>
+<p>│           │           │</p>
+<p>└───────────┼───────────┘</p>
+<p>│</p>
+<p>┌──────────▼──────────┐</p>
+<p>│   Redis / RabbitMQ  │  ← 消息队列（异步任务）</p>
+<p>└─────────────────────┘</p>
+<p>│</p>
+<p>┌──────────▼──────────┐</p>
+<p>│  SQLite / PostgreSQL│  ← 持久化存储（第14章详讲）</p>
+<p>└─────────────────────┘</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌──────────────────────────────────────────────────────┐
+  │                     Nginx (反向代理)                   │
+  │  • SSL 终止                                           │
+  │  • 负载均衡 (round-robin / least-connections)         │
+  │  • Rate Limiting                                      │
+  │  • WebSocket 升级 (Connection: Upgrade)               │
+  └──────────┬───────────┬───────────┬───────────────────┘</pre>
+<p>&nbsp;</p>
+<p>Docker 部署示例：</p>
+<p>FROM python:3.12-slim</p>
+<p>WORKDIR /app</p>
+<p>COPY requirements.txt .</p>
+<p>RUN pip install -r requirements.txt</p>
+<p>COPY . .</p>
+<p>EXPOSE 8000</p>
+<p>CMD ["uvicorn", "13_fastapi_agent_service:app", "--host", "0.0.0.0", "--port", "8000"]</p>
+<p>&nbsp;</p>
+<p>Kubernetes 部署要点：</p>
+<li>Readiness Probe: GET /health</li>
+<li>Liveness Probe: GET /health</li>
+<li>Horizontal Pod Autoscaler: CPU > 70% → 扩容</li>
+<li>使用 ConfigMap 管理 Agent 配置</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>13.6 SSE vs WebSocket vs 普通 HTTP —— 该怎么选？</h2>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">┌──────────────┬───────────────┬───────────────┬────────────────┐
+│     特性      │  普通 HTTP     │     SSE        │   WebSocket    │
+├──────────────┼───────────────┼───────────────┼────────────────┤
+│ 通信方向      │ 请求→响应      │ 服务器→客户端   │ 双向           │
+│ 协议          │ HTTP          │ HTTP           │ WS (升级HTTP)  │
+│ 浏览器支持    │ ✅            │ ✅ (EventSource)│ ✅             │
+│ 自动重连      │ 无            │ ✅ (内置)       │ 需手动实现      │
+│ 二进制数据    │ ✅            │ ❌ (仅文本)     │ ✅             │
+│ 穿透防火墙    │ ✅            │ ✅             │ 可能被拦截      │
+│ Agent 场景    │ 简单问答       │ 流式输出        │ 实时双向对话    │
+│ 实现复杂度    │ ⭐            │ ⭐⭐           │ ⭐⭐⭐          │
+└──────────────┴───────────────┴───────────────┴────────────────┘</pre>
+<p>&nbsp;</p>
+<p>Agent 场景推荐：</p>
+<li>简单问答 → POST /agent/chat（普通 HTTP）</li>
+<li>流式输出（展示状态、工具调用和回答）→ POST /agent/chat/stream（SSE）</li>
+<li>实时对话（用户可中途介入）→ WebSocket /agent/ws</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>13.6.1 SSE 生产陷阱 —— 面试官想听你踩过的坑</h3>
+<p>&nbsp;</p>
+<p>▍ Nginx 反向代理下的 SSE —— 最容易被忽视的配置</p>
+<p>&nbsp;</p>
+<p>SSE 依赖 HTTP 长连接持续推送数据。但 Nginx 默认会「缓冲」响应：</p>
+<p>等后端把整个 Response 生成完，一次性发给客户端。</p>
+<p>&nbsp;</p>
+<p>这对 SSE 是致命的：用户等 30 秒才能看到第一步的思考过程。</p>
+<p>&nbsp;</p>
+<p>必须在 Nginx 中显式禁用缓冲：</p>
+<p>proxy_buffering off;</p>
+<p>proxy_cache off;</p>
+<p>chunked_transfer_encoding on;</p>
+<p>proxy_read_timeout 300s;  # 足够长，否则 SSE 会被超时断开</p>
+<p>&nbsp;</p>
+<p>面试可以提：「Agent 的 SSE 输出必须过 Nginx 的 proxy_buffering off，</p>
+<p>否则用户看不到逐步的思考过程——这是我们线上踩过的坑。」</p>
+<p>&nbsp;</p>
+<p>▍ 连接断开与恢复 —— EventSource 的秘密武器</p>
+<p>&nbsp;</p>
+<p>SSE 比 WebSocket 好的一点：浏览器 EventSource API 内置自动重连。</p>
+<p>EventSource 在连接断开后会每隔几秒自动重试，发一个新的 GET 请求。</p>
+<p>&nbsp;</p>
+<p>但这对 Agent 场景有一个问题：Agent 的流式过程是「有状态的」——</p>
+<p>重连后无法从原来的断点继续。</p>
+<p>&nbsp;</p>
+<p>解决方案：</p>
+<p>a) 客户端带 last_event_id 参数重连 → 服务端从断点重放</p>
+<p>b) 更实用的做法：SSE 只推送「进度指示」，最终结果走单独 API 拉取</p>
+<p>c) 在 event data 中嵌入 checkpoint_id，断连后可续传</p>
+<p>&nbsp;</p>
+<p>▍ 背压控制 —— Agent 推太快，客户端来不及消费</p>
+<p>&nbsp;</p>
+<p>当 Agent 产出速度高于客户端消费速度，而</p>
+<p>客户端网络慢时，会出现「背压」——数据在缓冲区堆叠，内存暴涨。</p>
+<p>&nbsp;</p>
+<p>应对：</p>
+<p>a) 限制 Agent 的 generate 速度（用 asyncio.sleep 间歇等待）</p>
+<p>b) 检查 write buffer 大小，超过阈值暂停 SSE 推送</p>
+<p>c) 合并小事件（多个 thinking 事件合成一个）</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>13.6.2 WebSocket 的生产实践经验</h3>
+<p>&nbsp;</p>
+<p>WebSocket 的诱惑：真正的双向通信，用户可以随时插话。</p>
+<p>&nbsp;</p>
+<p>但 WebSocket 在 Agent 场景下的 3 个工程挑战：</p>
+<p>&nbsp;</p>
+<li>1. 连接管理复杂性 —— HTTP 请求用完即弃，WebSocket 需要维护连接状态</li>
+<p>→ 容量取决于 worker、内存、消息频率和代理配置，必须做压测</p>
+<p>→ 需要连接注册表 + 心跳检测（ping/pong）</p>
+<p>&nbsp;</p>
+<li>2. 重连逻辑需手写 —— 手机切网络、电脑休眠唤醒 → 连接都会断</li>
+<p>→ 需要手动实现 exponential backoff 重连</p>
+<p>→ 需要处理重连期间的消息丢失</p>
+<p>&nbsp;</p>
+<li>3. 中间件穿透 —— 某些企业代理不支持 WebSocket Upgrade</li>
+<p>→ 需要有降级到 SSE 长轮询的备选方案</p>
+<p>&nbsp;</p>
+<p>什么时候值得用 WebSocket？</p>
+<p>→ 用户需要中途介入（「等一下，我改一下之前的条件」）</p>
+<p>→ 实时协作场景（两个用户 + 一个 Agent 同时交互）</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>13.6.3 长任务：Background Mode + Webhooks</h3>
+<p>&nbsp;</p>
+<p>OpenAI 官方文档：</p>
+<p>https://developers.openai.com/api/docs/guides/background</p>
+<p>https://developers.openai.com/api/docs/guides/webhooks</p>
+<p>&nbsp;</p>
+<p>不要让分钟级任务占住一个浏览器连接。应用层常见两种实现：</p>
+<p>&nbsp;</p>
+<p>自建队列：FastAPI 创建 task_id → 队列 worker 执行 → 数据库保存状态 →</p>
+<p>SSE/WebSocket 只订阅进度；适合多供应商、复杂重试和业务工作流</p>
+<p>&nbsp;</p>
+<p>Provider background：Responses API 创建响应时设置 background=true，保存</p>
+<p>response.id，通过 retrieve 轮询，或订阅 response.completed 等 webhook</p>
+<p>&nbsp;</p>
+<p>Webhook 生产要求：</p>
+<li>先用 SDK/签名密钥验证原始请求体，再解析事件</li>
+<li>用 event.id 做幂等去重；处理重复、乱序和延迟到达</li>
+<li>回调只入队，快速返回 2xx；耗时业务放到 worker</li>
+<li>收到完成通知后再按 response.id 拉取权威对象，不盲信未验证 payload</li>
+<li>记录租户、任务、response.id、trace_id 的映射，避免跨租户读取</li>
+<p>&nbsp;</p>
+<p>Background 解决 API 执行与连接寿命问题，不等于业务工作流已经拥有重试、</p>
+<p>补偿、审批和持久化；这些仍由你的服务层负责。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>13.7 本章总结</h2>
+<p>&nbsp;</p>
+<p>核心要点回顾：</p>
+<p>&nbsp;</p>
+<li>1. FastAPI 是最适合 Agent 的 Python Web 框架</li>
+<li>原生异步支持（Agent 的 LLM 调用就是异步的）</li>
+<li>自动文档生成</li>
+<li>SSE / WebSocket 开箱即用</li>
+<p>&nbsp;</p>
+<li>2. SSE 生产三要素</li>
+<li>Nginx 必须 proxy_buffering off</li>
+<li>利用 EventSource 自动重连（带 last_event_id）</li>
+<li>需要背压控制机制</li>
+<p>&nbsp;</p>
+<li>3. WebSocket 使用场景</li>
+<li>用户需要中途介入的实时双向对话</li>
+<li>权衡：状态、重连和容量管理更复杂，只在确实需要双向通信时用</li>
+<p>&nbsp;</p>
+<li>4. 三种通信模式各有适用场景</li>
+<li>REST API: 简单问答 → 一次请求一次响应</li>
+<li>SSE: 流式输出 → 展示状态、工具调用和回答</li>
+<li>WebSocket: 实时双向 → 用户可中途介入</li>
+<p>&nbsp;</p>
+<li>5. 长任务与产品界面</li>
+<li>Background/队列把任务寿命与浏览器连接解耦</li>
+<li>Webhook 必须验签、幂等并快速入队</li>
+<li>本章根路径提供可运行 Streaming Console，前端只渲染结构化事件</li>
+<p>&nbsp;</p>
+<li>3. 生产部署核心组件</li>
+<li>Nginx: SSL + 负载均衡 + WebSocket 升级</li>
+<li>多 Worker: 水平扩展</li>
+<li>消息队列: 异步任务解耦</li>
+<li>健康检查: 自动故障恢复</li>
+<p>&nbsp;</p>
+<p>面试速记：</p>
+<p>"Agent 怎么做成 API 服务？"</p>
+<p>→ FastAPI + uvicorn 异步框架</p>
+<p>→ SSE 做流式推送，WebSocket 做双向通信</p>
+<p>→ Nginx 反代 + 多 Worker + 健康检查</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (41 行)</summary><div class="code-block"><pre><span class="k">import</span> os
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> sqlite3
+<span class="k">import</span> asyncio
+<span class="k">import</span> hashlib
+<span class="k">import</span> ast
+<span class="k">import</span> operator
+<span class="k">import</span> re
+<span class="k">from</span> datetime <span class="k">import</span> datetime
+<span class="k">from</span> typing <span class="k">import</span> Optional, AsyncGenerator
+<span class="k">from</span> contextlib <span class="k">import</span> asynccontextmanager
+
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, HTTPException, Request
+<span class="k">from</span> fastapi.responses <span class="k">import</span> StreamingResponse, HTMLResponse
+<span class="k">from</span> fastapi.middleware.cors <span class="k">import</span> CORSMiddleware
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel, Field
+
+load_dotenv()
+
+<span class="h"># ==================== 启动入口 ====================</span>
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="k">import</span> uvicorn
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"第13章：FastAPI + Agent 服务化部署"</span>)
+    <span class="b">print</span>(<span class="s">"REST API / SSE / WebSocket / 生产架构"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>()
+    <span class="b">print</span>(<span class="s">"启动后访问以下地址："</span>)
+    <span class="b">print</span>(<span class="s">"  API 文档:        http://localhost:8000/docs"</span>)
+    <span class="b">print</span>(<span class="s">"  服务主页:        http://localhost:8000/"</span>)
+    <span class="b">print</span>(<span class="s">"  健康检查:        http://localhost:8000/health"</span>)
+    <span class="b">print</span>(<span class="s">"  REST 聊天:       POST http://localhost:8000/agent/chat"</span>)
+    <span class="b">print</span>(<span class="s">"  SSE 流式:        POST http://localhost:8000/agent/chat/stream"</span>)
+    <span class="b">print</span>(<span class="s">"  WebSocket:       ws://localhost:8000/agent/ws"</span>)
+    <span class="b">print</span>()
+
+    <span class="h"># 非阻塞启动（不调用外部 API，可独立运行）</span>
+    uvicorn.run(app, host=<span class="s">"0.0.0.0"</span>, port=<span class="n">8000</span>, log_level=<span class="s">"info"</span>)</pre></div></details></div><hr style="margin:36px 0"><div class="code-section"><details><summary>📦 完整源代码 (739 行)</summary><div class="code-block"><pre><span class="s">"""
+第13章：FastAPI + Agent 服务化部署
+===================================
+
+内容核对：2026-08-01
+说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。
+
+📌 本章目标：
+  1. 用 FastAPI 将 Agent 封装为 RESTful API 服务
+  2. 实现 SSE (Server-Sent Events) 流式推送 Agent 执行过程
+  3. 实现 WebSocket 双向实时通信
+  4. 掌握 Agent Webhook 回调模式
+  5. 理解 Agent 微服务的部署架构（Docker / 负载均衡）
+  6. 创建一个可直接运行的完整 Agent 服务
+
+📌 面试高频点：
+  - Agent 怎么做成 API 服务？有哪些关键设计决策？
+  - SSE 和 WebSocket 有什么区别？Agent 场景分别怎么用？
+  - 流式 Agent 的状态管理怎么做？
+  - 生产环境的 Agent 服务架构是怎样的？
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+本章需要安装：pip install fastapi uvicorn pydantic
+运行服务：python chapter_13_fastapi/13_fastapi_agent_service.py
+测试地址：http://localhost:8000/docs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+13.1 为什么需要把 Agent 做成 API 服务？
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+裸写 Agent 脚本的问题：
+  - 只能命令行交互，无法集成到 Web/App
+  - 每个用户需要单独启动进程
+  - 没有并发的请求处理能力
+  - 无法做认证、限流、监控
+
+FastAPI 方案的优势：
+  - ASGI 异步框架（天然支持 Agent 的异步调用）
+  - 自动生成 OpenAPI 文档（/docs）
+  - 内置 SSE / WebSocket 支持
+  - 类型安全（Pydantic v2）
+  - 异步并发（async/await 原生支持）
+"""</span>
+
+<span class="k">import</span> os
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> sqlite3
+<span class="k">import</span> asyncio
+<span class="k">import</span> hashlib
+<span class="k">import</span> ast
+<span class="k">import</span> operator
+<span class="k">import</span> re
+<span class="k">from</span> datetime <span class="k">import</span> datetime
+<span class="k">from</span> typing <span class="k">import</span> Optional, AsyncGenerator
+<span class="k">from</span> contextlib <span class="k">import</span> asynccontextmanager
+
+<span class="k">from</span> dotenv <span class="k">import</span> load_dotenv
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, HTTPException, Request
+<span class="k">from</span> fastapi.responses <span class="k">import</span> StreamingResponse, HTMLResponse
+<span class="k">from</span> fastapi.middleware.cors <span class="k">import</span> CORSMiddleware
+<span class="k">from</span> pydantic <span class="k">import</span> BaseModel, Field
+
+load_dotenv()
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13.2 数据模型定义（Pydantic v2）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+用 Pydantic v2 来定义 Agent 服务的请求和响应结构体。
+选择 Pydantic 的理由：
+  - FastAPI 原生集成，自动生成 OpenAPI / Swagger 文档
+  - Field 描述直接变成 API 文档中的参数说明
+  - 请求校验零代码——不合法的参数自动返回 422
+  - 支持嵌套模型（Agent 的 tool_call 是嵌套结构）
+
+这里定义两个核心模型：
+  - AgentRequest：用户发来的任务请求
+  - AgentStep：Agent 执行过程中每步的状态
+"""</span>
+
+
+<span class="k">class</span> <span class="f">AgentRequest</span>(BaseModel):
+    <span class="s">"""Agent API 请求体。
+
+    FastAPI + Pydantic 自动完成：
+      1. JSON 解析
+      2. 类型校验
+      3. 生成 OpenAPI 文档
+    """</span>
+    message: <span class="b">str</span> = Field(..., min_length=<span class="n">1</span>, max_length=<span class="n">10000</span>,
+                         description=<span class="s">"用户输入的消息"</span>)
+    session_id: Optional[<span class="b">str</span>] = Field(<span class="k">None</span>,
+                                       description=<span class="s">"会话ID，不传则自动创建"</span>)
+    stream: bool = Field(<span class="k">False</span>,
+                         description=<span class="s">"是否使用 SSE 流式返回"</span>)
+
+
+<span class="k">class</span> <span class="f">AgentResponse</span>(BaseModel):
+    <span class="s">"""Agent API 响应体。"""</span>
+    session_id: <span class="b">str</span>
+    answer: <span class="b">str</span>
+    tool_calls_made: <span class="b">int</span>
+    elapsed_seconds: <span class="b">float</span>
+    timestamp: <span class="b">str</span>
+
+
+<span class="k">class</span> <span class="f">SSEEvent</span>(BaseModel):
+    <span class="s">"""SSE 事件格式。"""</span>
+    event: <span class="b">str</span>                      <span class="h"># "thinking" | "tool_call" | "tool_result" | "done" | "error"</span>
+    data: <span class="b">str</span>                       <span class="h"># JSON 字符串</span>
+
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13.3 模拟 Agent 引擎（不依赖外部 API）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+这里实现一个 MockAgentEngine：不依赖任何外部 LLM API，用模拟步骤
+来演示 Agent 的执行流程。为什么这样做？
+
+  1. 可离线测试——不需要配置 API Key 也能跑通整个 HTTP 服务
+  2. 展示架构分层——Agent 引擎和服务框架是解耦的
+  3. 真实项目中的做法——先用 Mock 验证 API 设计，再接入真实 LLM
+
+MockAgentEngine 的核心：
+  - execute() 是异步的，返回 async generator（每步一个事件）
+  - 模拟了「思考→计划→工具调用→总结」4 步流程
+  - 用 asyncio.sleep() 模拟 LLM 调用的延迟，方便测试超时机制
+"""</span>
+
+
+_ARITHMETIC_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+
+<span class="k">def</span> <span class="f">safe_calculate</span>(raw_expression: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="s">"""计算基础算术表达式；不使用 eval，也不允许名称、属性或函数调用。"""</span>
+    candidates = [part.strip() <span class="k">for</span> part <span class="k">in</span> re.findall(r<span class="s">"[0-9+\-*/().% ]+"</span>, raw_expression)]
+    expression = <span class="b">max</span>(candidates, key=<span class="b">len</span>, default=<span class="s">""</span>)
+    <span class="k">if</span> <span class="k">not</span> expression <span class="k">or</span> <span class="b">len</span>(expression) &gt; <span class="n">100</span>:
+        <span class="k">return</span> <span class="s">"表达式错误"</span>
+
+    <span class="k">def</span> <span class="f">evaluate</span>(node):
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.Expression):
+            <span class="k">return</span> evaluate(node.body)
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.Constant) <span class="k">and</span> <span class="b">type</span>(node.value) <span class="k">in</span> {<span class="b">int</span>, <span class="b">float</span>}:
+            <span class="k">return</span> node.value
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.BinOp) <span class="k">and</span> <span class="b">type</span>(node.op) <span class="k">in</span> _ARITHMETIC_OPERATORS:
+            <span class="k">return</span> _ARITHMETIC_OPERATORS[<span class="b">type</span>(node.op)](evaluate(node.left), evaluate(node.right))
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.UnaryOp) <span class="k">and</span> <span class="b">type</span>(node.op) <span class="k">in</span> _ARITHMETIC_OPERATORS:
+            <span class="k">return</span> _ARITHMETIC_OPERATORS[<span class="b">type</span>(node.op)](evaluate(node.operand))
+        <span class="k">raise</span> ValueError(<span class="s">"只允许基础算术"</span>)
+
+    <span class="k">try</span>:
+        <span class="k">return</span> <span class="b">str</span>(evaluate(ast.parse(expression, mode=<span class="s">"eval"</span>)))
+    <span class="k">except</span> (SyntaxError, ValueError, TypeError, ZeroDivisionError, OverflowError):
+        <span class="k">return</span> <span class="s">"表达式错误"</span>
+
+
+<span class="k">class</span> <span class="f">SimulatedAgent</span>:
+    <span class="s">"""模拟 Agent —— 演示 Agent 的逐步执行过程。
+
+    实际项目中替换为 LangChain Agent / LangGraph / 自定义 Agent。
+    这里模拟的思考-行动-观察循环，展示 SSE 推送的完整过程。
+    """</span>
+
+    MOCK_TOOLS = {
+        <span class="s">"search"</span>: <span class="k">lambda</span> q: f<span class="s">"搜索结果: 关于「{q}」的最新信息..."</span>,
+        <span class="s">"calculate"</span>: <span class="k">lambda</span> e: f<span class="s">"计算结果: {safe_calculate(e)}"</span>,
+        <span class="s">"get_time"</span>: <span class="k">lambda</span> _: f<span class="s">"当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"</span>,
+    }
+
+    <span class="k">async</span> <span class="k">def</span> <span class="f">run_streaming</span>(
+        <span class="k">self</span>, message: <span class="b">str</span>
+    ) -&gt; AsyncGenerator[<span class="b">dict</span>, <span class="k">None</span>]:
+        <span class="s">"""流式执行 Agent，每步通过 yield 推送状态。
+
+        这是 SSE 的核心：不是等所有步骤完成再返回，
+        而是每完成一步就推送一个事件。
+
+        Args:
+            message: 用户输入。
+
+        Yields:
+            每步的状态事件字典。
+        """</span>
+        steps = []
+
+        <span class="h"># 第1步：思考阶段</span>
+        <span class="k">yield</span> {<span class="s">"event"</span>: <span class="s">"thinking"</span>, <span class="s">"data"</span>: <span class="s">"正在分析用户意图..."</span>}
+        <span class="k">await</span> asyncio.sleep(<span class="n">0.3</span>)
+
+        <span class="h"># 判断需要哪些工具</span>
+        <span class="k">if</span> <span class="s">"搜索"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"查"</span> <span class="k">in</span> message:
+            keyword = message.replace(<span class="s">"搜索"</span>, <span class="s">""</span>).replace(<span class="s">"查"</span>, <span class="s">""</span>).strip() <span class="k">or</span> <span class="s">"AI Agent"</span>
+            steps.append((<span class="s">"search"</span>, keyword))
+        <span class="k">if</span> <span class="s">"算"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"计算"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"+"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"*"</span> <span class="k">in</span> message:
+            steps.append((<span class="s">"calculate"</span>, message))
+        <span class="k">if</span> <span class="s">"时间"</span> <span class="k">in</span> message <span class="k">or</span> <span class="s">"几点"</span> <span class="k">in</span> message:
+            steps.append((<span class="s">"get_time"</span>, <span class="s">""</span>))
+
+        <span class="h"># 第2步：工具调用阶段</span>
+        <span class="k">for</span> i, (tool_name, arg) <span class="k">in</span> <span class="b">enumerate</span>(steps):
+            <span class="k">yield</span> {
+                <span class="s">"event"</span>: <span class="s">"tool_call"</span>,
+                <span class="s">"data"</span>: json.dumps({<span class="s">"step"</span>: i+<span class="n">1</span>, <span class="s">"tool"</span>: tool_name, <span class="s">"args"</span>: arg}, ensure_ascii=<span class="k">False</span>),
+            }
+            <span class="k">await</span> asyncio.sleep(<span class="n">0.2</span>)
+
+            result = <span class="k">self</span>.MOCK_TOOLS[tool_name](arg)
+            <span class="k">yield</span> {
+                <span class="s">"event"</span>: <span class="s">"tool_result"</span>,
+                <span class="s">"data"</span>: json.dumps({<span class="s">"step"</span>: i+<span class="n">1</span>, <span class="s">"tool"</span>: tool_name, <span class="s">"result"</span>: result}, ensure_ascii=<span class="k">False</span>),
+            }
+            <span class="k">await</span> asyncio.sleep(<span class="n">0.2</span>)
+
+        <span class="h"># 第3步：生成最终回答</span>
+        <span class="k">yield</span> {<span class="s">"event"</span>: <span class="s">"thinking"</span>, <span class="s">"data"</span>: <span class="s">"正在组织最终回答..."</span>}
+        <span class="k">await</span> asyncio.sleep(<span class="n">0.3</span>)
+
+        <span class="k">if</span> steps:
+            answer = f<span class="s">"已完成 {len(steps)} 个工具调用来回答您的问题。"</span>
+        <span class="k">else</span>:
+            answer = f<span class="s">"您好！您的问题「{message}」已收到。这是一个模拟 Agent 回复。"</span>
+
+        <span class="k">yield</span> {<span class="s">"event"</span>: <span class="s">"done"</span>, <span class="s">"data"</span>: answer, <span class="s">"tool_calls_made"</span>: <span class="b">len</span>(steps)}
+
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13.4 FastAPI 应用主体
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+这是整个 Agent 服务的入口。FastAPI app 提供 5 个端点：
+
+  POST /agent/chat —— 提交 Agent 任务并等待完整结果
+  POST /agent/chat/stream —— SSE 流式获取状态、工具事件和回答
+  WS   /agent/ws —— WebSocket 双向通信
+  GET  /health —— 健康检查
+  GET  / —— 可直接使用的浏览器 Streaming Console
+
+加上显式来源的 CORS 中间件和应用生命周期管理。本地演示未实现认证；
+生产环境必须在路由前加入 OAuth/OIDC 或网关身份验证与租户授权。
+"""</span>
+
+<span class="h"># 应用生命周期管理</span>
+<span <span class="k">class</span>="d">@asynccontextmanager</span>
+<span class="k">async</span> <span class="k">def</span> <span class="f">lifespan</span>(app: FastAPI):
+    <span class="s">"""应用启动和关闭时的操作。"""</span>
+    <span class="b">print</span>(<span class="s">"[startup] Agent 服务启动中..."</span>)
+    <span class="h"># 启动时：初始化数据库连接池、加载配置等</span>
+    <span class="k">yield</span>
+    <span class="b">print</span>(<span class="s">"[shutdown] Agent 服务关闭中..."</span>)
+    <span class="h"># 关闭时：清理资源、关闭连接等</span>
+
+app = FastAPI(
+    title=<span class="s">"AI Agent API Service"</span>,
+    description=<span class="s">"一个完整的 Agent 服务化部署示例"</span>,
+    version=<span class="s">"1.0.0"</span>,
+    lifespan=lifespan,
+)
+
+<span class="h"># CORS 不能与认证授权混为一谈；只允许配置中的前端来源。</span>
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        <span class="k">for</span> origin <span class="k">in</span> os.getenv(<span class="s">"CORS_ORIGINS"</span>, <span class="s">"http://localhost:3000"</span>).split(<span class="s">","</span>)
+        <span class="k">if</span> origin.strip()
+    ],
+    allow_methods=[<span class="s">"GET"</span>, <span class="s">"POST"</span>],
+    allow_headers=[<span class="s">"Authorization"</span>, <span class="s">"Content-Type"</span>, <span class="s">"X-Request-ID"</span>],
+)
+
+agent = SimulatedAgent()
+
+
+<span class="h"># 一个真实可用的最小前端：使用 fetch 读取 POST SSE，按事件类型渲染状态。</span>
+<span class="h"># 生产项目通常把它替换为独立前端或 ChatKit，并增加认证、会话恢复和审批 UI。</span>
+AGENT_CONSOLE_HTML = r<span class="s">"""&lt;!doctype html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;meta name="viewport" content="width=device-width,initial-scale=1"&gt;
+  &lt;title&gt;Agent Console&lt;/title&gt;
+  &lt;style&gt;
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #e2e8f0; }
+    main { max-width: 760px; margin: 48px auto; padding: 0 20px; }
+    form { display: flex; gap: 10px; }
+    input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #475569;
+            background: #111827; color: inherit; }
+    button { padding: 10px 16px; border: 0; border-radius: 8px; cursor: pointer; }
+    #stop { background: #7f1d1d; color: white; }
+    #run { background: #2563eb; color: white; }
+    #events { margin-top: 20px; display: grid; gap: 8px; }
+    .event { padding: 10px 12px; border: 1px solid #334155; border-radius: 8px;
+             background: #111827; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .event b { color: #7dd3fc; margin-right: 8px; }
+    .done { border-color: #15803d; }
+    .error { border-color: #b91c1c; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;&lt;main&gt;
+  &lt;h1&gt;Agent Streaming Console&lt;/h1&gt;
+  &lt;p&gt;实时显示状态、工具调用与最终答案；“thinking”只是进度事件，不是隐藏思维链。&lt;/p&gt;
+  &lt;form id="form"&gt;
+    &lt;input id="message" value="计算 12 * (7 + 3)" maxlength="10000" required&gt;
+    &lt;button id="run"&gt;运行&lt;/button&gt;&lt;button id="stop" type="button"&gt;停止&lt;/button&gt;
+  &lt;/form&gt;
+  &lt;section id="events" aria-live="polite"&gt;&lt;/section&gt;
+  &lt;p&gt;&lt;a href="/docs"&gt;OpenAPI 文档&lt;/a&gt;&lt;/p&gt;
+&lt;/main&gt;
+&lt;script&gt;
+let controller;
+const events = document.querySelector('#events');
+function render(type, data) {
+  const row = document.createElement('div');
+  row.className = `event ${type}`;
+  const label = document.createElement('b');
+  label.textContent = type;
+  const value = document.createElement('span');
+  value.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  row.append(label, value); events.append(row); row.scrollIntoView({block: 'nearest'});
+}
+document.querySelector('#stop').onclick = () =&gt; controller?.abort();
+document.querySelector('#form').onsubmit = async (event) =&gt; {
+  event.preventDefault(); events.replaceChildren(); controller = new AbortController();
+  try {
+    const response = await fetch('/agent/chat/stream', {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({message: document.querySelector('#message').value, stream: true}),
+      signal: controller.signal,
+    });
+    if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    while (true) {
+      const {value, done} = await reader.read(); if (done) break; buffer += value;
+      const frames = buffer.split('\n\n'); buffer = frames.pop();
+      for (const frame of frames) {
+        let type = 'message', raw = '';
+        for (const line of frame.split('\n')) {
+          if (line.startsWith('event:')) type = line.slice(6).trim();
+          if (line.startsWith('data:')) raw += line.slice(5).trim();
+        }
+        if (raw) { try { render(type, JSON.parse(raw)); } catch { render(type, raw); } }
+      }
+    }
+  } catch (error) { render(error.name === 'AbortError' ? 'cancelled' : 'error', error.message); }
+};
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;"""</span>
+
+
+<span class="h"># ==================== REST API 端点 ====================</span>
+
+<span <span class="k">class</span>="d">@app</span>.post(<span class="s">"/agent/chat"</span>, response_model=AgentResponse)
+<span class="k">async</span> <span class="k">def</span> <span class="f">agent_chat</span>(request: AgentRequest):
+    <span class="s">"""标准 REST API：一次请求，一次完整响应。
+
+    适用场景：
+      - 简单问答（用户不关心中间过程）
+      - 批量任务处理
+      - 与其他微服务集成
+
+    测试：
+      curl -X POST http://localhost:8000/agent/chat \
+        -H "Content-Type: application/json" \
+        -d '{"message": "搜索AI Agent并计算3+5"}'
+    """</span>
+    start = time.time()
+    session_id = request.session_id <span class="k">or</span> _generate_session_id()
+    tool_calls_made = <span class="n">0</span>
+    answer = <span class="s">""</span>
+
+    <span class="k">async</span> <span class="k">for</span> event <span class="k">in</span> agent.run_streaming(request.message):
+        <span class="k">if</span> event[<span class="s">"event"</span>] == <span class="s">"done"</span>:
+            answer = event[<span class="s">"data"</span>]
+            tool_calls_made = event.get(<span class="s">"tool_calls_made"</span>, <span class="n">0</span>)
+
+    <span class="k">return</span> AgentResponse(
+        session_id=session_id,
+        answer=answer,
+        tool_calls_made=tool_calls_made,
+        elapsed_seconds=<span class="b">round</span>(time.time() - start, <span class="n">2</span>),
+        timestamp=datetime.now().isoformat(),
+    )
+
+
+<span <span class="k">class</span>="d">@app</span>.post(<span class="s">"/agent/chat/stream"</span>)
+<span class="k">async</span> <span class="k">def</span> <span class="f">agent_chat_stream</span>(request: AgentRequest):
+    <span class="s">"""SSE 流式 API：逐步推送 Agent 的思考过程。
+
+    适用场景：
+      - 用户需要看到 Agent 的实时状态（「正在搜索...」）
+      - 长任务（避免用户干等）
+      - 前端需要展示工具调用动画
+
+    测试：
+      curl -N -X POST http://localhost:8000/agent/chat/stream \
+        -H "Content-Type: application/json" \
+        -d '{"message": "搜索AI Agent并算3+5"}'
+    """</span>
+
+    <span class="k">async</span> <span class="k">def</span> <span class="f">event_generator</span>():
+        <span class="s">"""SSE 事件生成器。
+
+        SSE 协议格式：
+          event: &lt;事件类型&gt;
+          data: &lt;JSON 数据&gt;
+          \n
+        """</span>
+        <span class="k">async</span> <span class="k">for</span> event <span class="k">in</span> agent.run_streaming(request.message):
+            event_type = event[<span class="s">"event"</span>]
+            data = event[<span class="s">"data"</span>]
+            <span class="h"># SSE 标准格式</span>
+            <span class="k">yield</span> f<span class="s">"event: {event_type}\ndata: {data}\n\n"</span>
+
+            <span class="k">if</span> event_type == <span class="s">"done"</span>:
+                <span class="k">yield</span> f<span class="s">"event: close\ndata: stream_end\n\n"</span>
+
+    <span class="k">return</span> StreamingResponse(
+        event_generator(),
+        media_type=<span class="s">"text/event-stream"</span>,
+        headers={
+            <span class="s">"Cache-Control"</span>: <span class="s">"no-cache"</span>,
+            <span class="s">"Connection"</span>: <span class="s">"keep-alive"</span>,
+            <span class="s">"X-Accel-Buffering"</span>: <span class="s">"no"</span>,  <span class="h"># Nginx 禁用缓冲</span>
+        },
+    )
+
+
+<span class="h"># ==================== WebSocket 端点 ====================</span>
+
+<span <span class="k">class</span>="d">@app</span>.websocket(<span class="s">"/agent/ws"</span>)
+<span class="k">async</span> <span class="k">def</span> <span class="f">agent_websocket</span>(websocket):
+    <span class="s">"""WebSocket 双向通信端点。
+
+    与 SSE 的区别：
+      - SSE：服务器 → 客户端（单向推送）
+      - WebSocket：服务器 ↔ 客户端（双向通信）
+
+    适用场景：
+      - 用户可以在 Agent 执行中途发送消息（类似 Claude Code h2A）
+      - 需要多次交互的对话
+      - 实时协作场景
+
+    测试：
+      websocat ws://localhost:8000/agent/ws
+    """</span>
+    <span class="k">await</span> websocket.accept()
+    <span class="k">await</span> websocket.send_json({
+        <span class="s">"event"</span>: <span class="s">"connected"</span>,
+        <span class="s">"data"</span>: <span class="s">"WebSocket 连接已建立"</span>,
+    })
+
+    <span class="k">try</span>:
+        <span class="k">while</span> <span class="k">True</span>:
+            <span class="h"># 接收用户消息</span>
+            raw = <span class="k">await</span> websocket.receive_text()
+            data = json.loads(raw)
+            message = data.get(<span class="s">"message"</span>, <span class="s">""</span>)
+
+            <span class="k">if</span> <span class="k">not</span> message:
+                <span class="k">continue</span>
+
+            <span class="k">await</span> websocket.send_json({
+                <span class="s">"event"</span>: <span class="s">"received"</span>,
+                <span class="s">"data"</span>: f<span class="s">"收到: {message}"</span>,
+            })
+
+            <span class="h"># 流式执行 Agent</span>
+            <span class="k">async</span> <span class="k">for</span> event <span class="k">in</span> agent.run_streaming(message):
+                <span class="k">await</span> websocket.send_json(event)
+
+            <span class="k">await</span> websocket.send_json({
+                <span class="s">"event"</span>: <span class="s">"ready"</span>,
+                <span class="s">"data"</span>: <span class="s">"等待下一条消息..."</span>,
+            })
+    <span class="k">except</span> Exception <span class="k">as</span> e:
+        <span class="b">print</span>(f<span class="s">"WebSocket 断开: {e}"</span>)
+
+
+<span class="h"># ==================== 管理端点 ====================</span>
+
+<span <span class="k">class</span>="d">@app</span>.get(<span class="s">"/health"</span>)
+<span class="k">async</span> <span class="k">def</span> <span class="f">health_check</span>():
+    <span class="s">"""健康检查端点（Kubernetes / 负载均衡器）。"""</span>
+    <span class="k">return</span> {<span class="s">"status"</span>: <span class="s">"healthy"</span>, <span class="s">"timestamp"</span>: datetime.now().isoformat()}
+
+
+<span <span class="k">class</span>="d">@app</span>.get(<span class="s">"/"</span>)
+<span class="k">async</span> <span class="k">def</span> <span class="f">root</span>():
+    <span class="s">"""根路径返回最小可用 Agent 前端。"""</span>
+    <span class="k">return</span> HTMLResponse(AGENT_CONSOLE_HTML)
+
+
+<span class="h"># ==================== 辅助函数 ====================</span>
+
+<span class="k">def</span> <span class="f">_generate_session_id</span>() -&gt; <span class="b">str</span>:
+    <span class="s">"""生成唯一会话 ID。"""</span>
+    <span class="k">return</span> hashlib.md5(
+        f<span class="s">"{time.time()}-{os.urandom(8).hex()}"</span>.encode()
+    ).hexdigest()[:<span class="n">16</span>]
+
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13.5 生产部署架构
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ┌──────────────────────────────────────────────────────┐
+  │                     Nginx (反向代理)                   │
+  │  • SSL 终止                                           │
+  │  • 负载均衡 (round-robin / least-connections)         │
+  │  • Rate Limiting                                      │
+  │  • WebSocket 升级 (Connection: Upgrade)               │
+  └──────────┬───────────┬───────────┬───────────────────┘
+             │           │           │
+    ┌────────▼──┐ ┌──────▼───┐ ┌───▼────────┐
+    │  Agent    │ │  Agent   │ │  Agent     │
+    │  Worker 1 │ │  Worker 2│ │  Worker 3  │
+    │ (FastAPI) │ │ (FastAPI)│ │  (FastAPI) │
+    └───────────┘ └──────────┘ └────────────┘
+             │           │           │
+             └───────────┼───────────┘
+                         │
+              ┌──────────▼──────────┐
+              │   Redis / RabbitMQ  │  ← 消息队列（异步任务）
+              └─────────────────────┘
+                         │
+              ┌──────────▼──────────┐
+              │  SQLite / PostgreSQL│  ← 持久化存储（第14章详讲）
+              └─────────────────────┘
+
+Docker 部署示例：
+  FROM python:3.12-slim
+  WORKDIR /app
+  COPY requirements.txt .
+  RUN pip install -r requirements.txt
+  COPY . .
+  EXPOSE 8000
+  CMD ["uvicorn", "13_fastapi_agent_service:app", "--host", "0.0.0.0", "--port", "8000"]
+
+Kubernetes 部署要点：
+  - Readiness Probe: GET /health
+  - Liveness Probe: GET /health
+  - Horizontal Pod Autoscaler: CPU &gt; 70% → 扩容
+  - 使用 ConfigMap 管理 Agent 配置
+
+
+13.6 SSE vs WebSocket vs 普通 HTTP —— 该怎么选？
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌──────────────┬───────────────┬───────────────┬────────────────┐
+│     特性      │  普通 HTTP     │     SSE        │   WebSocket    │
+├──────────────┼───────────────┼───────────────┼────────────────┤
+│ 通信方向      │ 请求→响应      │ 服务器→客户端   │ 双向           │
+│ 协议          │ HTTP          │ HTTP           │ WS (升级HTTP)  │
+│ 浏览器支持    │ ✅            │ ✅ (EventSource)│ ✅             │
+│ 自动重连      │ 无            │ ✅ (内置)       │ 需手动实现      │
+│ 二进制数据    │ ✅            │ ❌ (仅文本)     │ ✅             │
+│ 穿透防火墙    │ ✅            │ ✅             │ 可能被拦截      │
+│ Agent 场景    │ 简单问答       │ 流式输出        │ 实时双向对话    │
+│ 实现复杂度    │ ⭐            │ ⭐⭐           │ ⭐⭐⭐          │
+└──────────────┴───────────────┴───────────────┴────────────────┘
+
+Agent 场景推荐：
+  - 简单问答 → POST /agent/chat（普通 HTTP）
+  - 流式输出（展示状态、工具调用和回答）→ POST /agent/chat/stream（SSE）
+  - 实时对话（用户可中途介入）→ WebSocket /agent/ws
+
+
+13.6.1 SSE 生产陷阱 —— 面试官想听你踩过的坑
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+▍ Nginx 反向代理下的 SSE —— 最容易被忽视的配置
+
+  SSE 依赖 HTTP 长连接持续推送数据。但 Nginx 默认会「缓冲」响应：
+  等后端把整个 Response 生成完，一次性发给客户端。
+
+  这对 SSE 是致命的：用户等 30 秒才能看到第一步的思考过程。
+
+  必须在 Nginx 中显式禁用缓冲：
+    proxy_buffering off;
+    proxy_cache off;
+    chunked_transfer_encoding on;
+    proxy_read_timeout 300s;  # 足够长，否则 SSE 会被超时断开
+
+  面试可以提：「Agent 的 SSE 输出必须过 Nginx 的 proxy_buffering off，
+  否则用户看不到逐步的思考过程——这是我们线上踩过的坑。」
+
+▍ 连接断开与恢复 —— EventSource 的秘密武器
+
+  SSE 比 WebSocket 好的一点：浏览器 EventSource API 内置自动重连。
+  EventSource 在连接断开后会每隔几秒自动重试，发一个新的 GET 请求。
+
+  但这对 Agent 场景有一个问题：Agent 的流式过程是「有状态的」——
+  重连后无法从原来的断点继续。
+
+  解决方案：
+    a) 客户端带 last_event_id 参数重连 → 服务端从断点重放
+    b) 更实用的做法：SSE 只推送「进度指示」，最终结果走单独 API 拉取
+    c) 在 event data 中嵌入 checkpoint_id，断连后可续传
+
+▍ 背压控制 —— Agent 推太快，客户端来不及消费
+
+  当 Agent 产出速度高于客户端消费速度，而
+  客户端网络慢时，会出现「背压」——数据在缓冲区堆叠，内存暴涨。
+
+  应对：
+    a) 限制 Agent 的 generate 速度（用 asyncio.sleep 间歇等待）
+    b) 检查 write buffer 大小，超过阈值暂停 SSE 推送
+    c) 合并小事件（多个 thinking 事件合成一个）
+
+
+13.6.2 WebSocket 的生产实践经验
+
+  WebSocket 的诱惑：真正的双向通信，用户可以随时插话。
+
+  但 WebSocket 在 Agent 场景下的 3 个工程挑战：
+
+  1. 连接管理复杂性 —— HTTP 请求用完即弃，WebSocket 需要维护连接状态
+     → 容量取决于 worker、内存、消息频率和代理配置，必须做压测
+     → 需要连接注册表 + 心跳检测（ping/pong）
+
+  2. 重连逻辑需手写 —— 手机切网络、电脑休眠唤醒 → 连接都会断
+     → 需要手动实现 exponential backoff 重连
+     → 需要处理重连期间的消息丢失
+
+  3. 中间件穿透 —— 某些企业代理不支持 WebSocket Upgrade
+     → 需要有降级到 SSE 长轮询的备选方案
+
+  什么时候值得用 WebSocket？
+    → 用户需要中途介入（「等一下，我改一下之前的条件」）
+    → 实时协作场景（两个用户 + 一个 Agent 同时交互）
+
+
+13.6.3 长任务：Background Mode + Webhooks
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OpenAI 官方文档：
+  https://developers.openai.com/api/docs/guides/background
+  https://developers.openai.com/api/docs/guides/webhooks
+
+不要让分钟级任务占住一个浏览器连接。应用层常见两种实现：
+
+  自建队列：FastAPI 创建 task_id → 队列 worker 执行 → 数据库保存状态 →
+           SSE/WebSocket 只订阅进度；适合多供应商、复杂重试和业务工作流
+
+  Provider background：Responses API 创建响应时设置 background=true，保存
+           response.id，通过 retrieve 轮询，或订阅 response.completed 等 webhook
+
+Webhook 生产要求：
+  - 先用 SDK/签名密钥验证原始请求体，再解析事件
+  - 用 event.id 做幂等去重；处理重复、乱序和延迟到达
+  - 回调只入队，快速返回 2xx；耗时业务放到 worker
+  - 收到完成通知后再按 response.id 拉取权威对象，不盲信未验证 payload
+  - 记录租户、任务、response.id、trace_id 的映射，避免跨租户读取
+
+Background 解决 API 执行与连接寿命问题，不等于业务工作流已经拥有重试、
+补偿、审批和持久化；这些仍由你的服务层负责。
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13.7 本章总结
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+核心要点回顾：
+
+1. FastAPI 是最适合 Agent 的 Python Web 框架
+   - 原生异步支持（Agent 的 LLM 调用就是异步的）
+   - 自动文档生成
+   - SSE / WebSocket 开箱即用
+
+2. SSE 生产三要素
+   - Nginx 必须 proxy_buffering off
+   - 利用 EventSource 自动重连（带 last_event_id）
+   - 需要背压控制机制
+
+3. WebSocket 使用场景
+   - 用户需要中途介入的实时双向对话
+   - 权衡：状态、重连和容量管理更复杂，只在确实需要双向通信时用
+
+4. 三种通信模式各有适用场景
+   - REST API: 简单问答 → 一次请求一次响应
+   - SSE: 流式输出 → 展示状态、工具调用和回答
+   - WebSocket: 实时双向 → 用户可中途介入
+
+5. 长任务与产品界面
+   - Background/队列把任务寿命与浏览器连接解耦
+   - Webhook 必须验签、幂等并快速入队
+   - 本章根路径提供可运行 Streaming Console，前端只渲染结构化事件
+
+3. 生产部署核心组件
+   - Nginx: SSL + 负载均衡 + WebSocket 升级
+   - 多 Worker: 水平扩展
+   - 消息队列: 异步任务解耦
+   - 健康检查: 自动故障恢复
+
+面试速记：
+  "Agent 怎么做成 API 服务？"
+  → FastAPI + uvicorn 异步框架
+  → SSE 做流式推送，WebSocket 做双向通信
+  → Nginx 反代 + 多 Worker + 健康检查
+"""</span>
+
+
+<span class="h"># ==================== 启动入口 ====================</span>
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="k">import</span> uvicorn
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"第13章：FastAPI + Agent 服务化部署"</span>)
+    <span class="b">print</span>(<span class="s">"REST API / SSE / WebSocket / 生产架构"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>()
+    <span class="b">print</span>(<span class="s">"启动后访问以下地址："</span>)
+    <span class="b">print</span>(<span class="s">"  API 文档:        http://localhost:8000/docs"</span>)
+    <span class="b">print</span>(<span class="s">"  服务主页:        http://localhost:8000/"</span>)
+    <span class="b">print</span>(<span class="s">"  健康检查:        http://localhost:8000/health"</span>)
+    <span class="b">print</span>(<span class="s">"  REST 聊天:       POST http://localhost:8000/agent/chat"</span>)
+    <span class="b">print</span>(<span class="s">"  SSE 流式:        POST http://localhost:8000/agent/chat/stream"</span>)
+    <span class="b">print</span>(<span class="s">"  WebSocket:       ws://localhost:8000/agent/ws"</span>)
+    <span class="b">print</span>()
+
+    <span class="h"># 非阻塞启动（不调用外部 API，可独立运行）</span>
+    uvicorn.run(app, host=<span class="s">"0.0.0.0"</span>, port=<span class="n">8000</span>, log_level=<span class="s">"info"</span>)
+</pre></div></details></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_12_infrastructure/12_infrastructure.html" title="Agent 生产基础设施 — OpenClaw·Harness·Checklist">← 第12章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_14_sqlite/14_sqlite_agent_storage.html" title="SQLite 持久化 — 5 表 Schema·WAL·审计查询">第14章 →</a>
+</div></div></div></div></body></html>

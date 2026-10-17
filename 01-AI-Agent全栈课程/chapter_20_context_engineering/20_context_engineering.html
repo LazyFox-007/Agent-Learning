@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第20章：Context Engineering（上下文工程）—— Agent 时代的新工程学科 — AI Agent 全栈课程</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: #f8f9fa; color: #1a1a2e; line-height: 1.8;
+}
+.page-wrapper { display: flex; min-height: 100vh; }
+
+/* 侧边栏 TOC */
+.sidebar {
+  width: 240px; min-width: 240px; background: #0f172a; color: #e2e8f0;
+  padding: 24px 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; font-size: .85em; border-right: 1px solid #1e293b;
+}
+.sidebar-title {
+  font-weight: 700; font-size: 1.05em; padding: 0 18px 16px;
+  border-bottom: 1px solid #1e293b; margin-bottom: 12px; color: white;
+}
+.sidebar-title a { color: #8ab4f8; text-decoration: none; }
+.sidebar-title a:hover { text-decoration: underline; }
+.sidebar-layer {
+  padding: 6px 18px; margin-top: 8px; color: #64748b;
+  font-size: .78em; text-transform: uppercase; letter-spacing: .5px;
+}
+.sidebar-link {
+  display: block; padding: 5px 18px 5px 18px; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: all .15s; font-size: .88em;
+}
+.sidebar-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+.sidebar-link.active {
+  color: #60a5fa; background: rgba(96,165,250,.1);
+  border-left-color: #60a5fa; font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1; min-width: 0; padding: 40px 24px 80px;
+  max-width: calc(100vw - 240px);
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 48px 32px; border-radius: 12px; margin-bottom: 36px;
+}
+.hero h1 { font-size: 2em; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { opacity: 0.9; font-size: 1.05em; }
+
+/* 讲义标题层级 */
+.lecture { background: white; border-radius: 10px; padding: 36px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 32px; }
+.lecture h2 {
+  font-size: 1.25em; color: #667eea; margin: 28px 0 12px;
+  padding-bottom: 6px; border-bottom: 2px solid #e8e8ff;
+}
+.lecture h3 {
+  font-size: 1.08em; color: #555; margin: 22px 0 8px;
+  padding-left: 10px; border-left: 3px solid #667eea;
+}
+.lecture p { margin: 10px 0; }
+.lecture ul, .lecture ol { margin: 8px 0 8px 24px; }
+.lecture li { margin: 4px 0; }
+.lecture pre {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+  padding: 18px 22px; overflow-x: auto; font-size: .88em;
+  line-height: 1.55; margin: 14px 0;
+}
+.lecture code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; }
+.lecture p code, .lecture li code {
+  background: #eee8ff; padding: 1px 6px; border-radius: 4px;
+  font-size: .92em; color: #6c3cc0;
+}
+.lecture strong { color: #333; }
+.lecture em { color: #555; }
+.lecture blockquote {
+  border-left: 4px solid #667eea; padding: 8px 16px;
+  margin: 14px 0; background: #f4f4ff; border-radius: 0 8px 8px 0;
+  color: #555;
+}
+.lecture table {
+  border-collapse: collapse; width: 100%; margin: 16px 0;
+  font-size: .92em; background: white; border-radius: 6px; overflow: hidden;
+}
+.lecture table th {
+  background: #667eea; color: white; font-weight: 600;
+  padding: 10px 14px; text-align: left;
+}
+.lecture table td {
+  padding: 9px 14px; border-bottom: 1px solid #e8e8f0;
+}
+.lecture table tr:hover td { background: #f4f4ff; }
+.lecture hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+/* 架构图 / 流程图 — 与代码块相同的 pre 渲染方式 */
+.diagram-label {
+  font-size: .85em; font-weight: 600; color: #8ab4f8;
+  background: linear-gradient(135deg, #2d3a5c 0%, #1e2d4a 100%);
+  padding: 8px 18px; letter-spacing: .5px; margin: 18px 0 0 0;
+  border-radius: 10px 10px 0 0; border: 1px solid #3a4a6a; border-bottom: none;
+}
+.diagram-pre {
+  border-radius: 0 0 10px 10px; margin: 0 0 18px 0;
+  border-top: none; border: 1px solid #2a3045;
+}
+.ascii-art {
+  background: #1a1e2b; color: #c0caf5; border-radius: 0 0 10px 10px;
+  padding: 18px 22px; overflow-x: auto; font-size: .8em;
+  line-height: 1.3; margin: 0;
+  font-family: "JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace;
+  border: none; white-space: pre;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 目标/考点标签 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: .85em; font-weight: 500;
+}
+.tag-goal { background: #e8f5e9; color: #2e7d32; }
+.tag-interview { background: #fff3e0; color: #e65100; }
+
+/* 代码块区域 */
+.code-section { margin-top: 24px; }
+.code-section summary {
+  font-size: 1.1em; font-weight: 600; cursor: pointer;
+  padding: 10px 16px; background: #1e1e2e; color: #cdd6f4;
+  border-radius: 8px 8px 0 0; user-select: none;
+}
+.code-section pre {
+  margin: 0; border-radius: 0 0 8px 8px; max-height: 70vh;
+  overflow-y: auto;
+}
+.code-block {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 0 0 8px 8px;
+  padding: 20px 24px; overflow-x: auto; font-size: .85em;
+  line-height: 1.6; max-height: 70vh; overflow-y: auto;
+}
+
+/* IDE 风格语法高亮颜色 */
+.code-block .k { color: #c586c0; }     /* 关键字 def/class/import */
+.code-block .s { color: #ce9178; }     /* 字符串 */
+.code-block .h { color: #6a9955; }     /* 注释 */
+.code-block .d { color: #dcdcaa; }     /* 装饰器 */
+.code-block .n { color: #b5cea8; }     /* 数字 */
+.code-block .f { color: #4ec9b0; }     /* 函数名 */
+.code-block .b { color: #569cd6; }     /* 内置函数 */
+
+/* 讲义→代码 视觉过渡 */
+.code-bridge {
+  text-align: center; color: #667eea; font-size: .9em;
+  padding: 8px 0 4px; font-weight: 500;
+}
+.code-badges {
+  padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 6px;
+  background: #2a2a3e; border-bottom: 1px solid #444;
+}
+.code-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: .8em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.code-badge-func { background: #1e3a5f; color: #4ec9b0; }
+.code-badge-class { background: #1e3a5f; color: #dcdcaa; }
+.code-badge-const { background: #1e3a5f; color: #b5cea8; }
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main-content { max-width: calc(100vw - 200px); }
+}
+@media (max-width: 768px) {
+  .page-wrapper { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; height: auto; max-height: 45vh;
+    position: static; display: none; }
+  .sidebar.open { display: block; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .main-content { max-width: 100%; padding: 16px 10px 60px; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0; }
+  .hero { padding: 28px 18px; }
+  .hero h1 { font-size: 1.4em; }
+  .lecture { padding: 20px 16px; }
+}
+
+/* 打印 */
+@media print {
+  body { background: white; }
+  .lecture { box-shadow: none; }
+  .code-block { background: #f5f5f5; color: #222; }
+}
+
+/* 上/下章导航 */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 32px 0; gap: 16px;
+}
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 22px; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: .95em; transition: all .2s;
+}
+.nav-prev { background: #f0f0ff; color: #667eea; }
+.nav-prev:hover { background: #e0e0ff; }
+.nav-next { background: #667eea; color: white; }
+.nav-next:hover { background: #5560d8; }
+.nav-disabled { background: #eee; color: #999; cursor: not-allowed; pointer-events: none; }
+.nav-home { background: #f5f5f5; color: #555; }
+.nav-home:hover { background: #e0e0e0; }
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: .88em; color: #888; margin-bottom: 20px;
+}
+.breadcrumb a { color: #667eea; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* 移动端侧边栏开关 */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; background: #667eea;
+  color: white; border: none; font-size: 1.2em; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102,126,234,.4);
+}
+@media (max-width: 768px) { .sidebar-toggle { display: flex; align-items: center; justify-content: center; } }
+
+/* 浏览量统计徽章 */
+
+
+
+</style>
+
+</head>
+<body>
+<div class="page-wrapper">
+<!-- generated-from-sha256:7e5ffaab21d24661f7d0b8d0531770b4dbe6d937c712e26bdda73a2d390d3f9b -->
+<div class="sidebar" id="sidebar">
+<div class="sidebar-title"><a href="../index.html">🤖 AI Agent 全栈课程</a></div>
+<div class="sidebar-layer">第1层 理论基础</div>
+<a class="sidebar-link" href="../chapter_00_overview/00_course_overview.html">Ch0 课程概览与环境搭建</a>
+<a class="sidebar-link" href="../chapter_01_fundamentals/01_hello_agent.html">Ch1 第一个 Agent</a>
+<a class="sidebar-link" href="../chapter_02_components/02_agent_components.html">Ch2 Agent 核心组件</a>
+<a class="sidebar-link" href="../chapter_03_types/03_agent_types.html">Ch3 Agent 类型分类</a>
+<div class="sidebar-layer">第2层 工程实践</div>
+<a class="sidebar-link" href="../chapter_04_frameworks/04_frameworks.html">Ch4 主流框架实战</a>
+<a class="sidebar-link" href="../chapter_05_multi_agent/05_multi_agent.html">Ch5 多智能体系统</a>
+<a class="sidebar-link" href="../chapter_06_evaluation/06_evaluation.html">Ch6 评估与测试</a>
+<a class="sidebar-link" href="../chapter_07_interview/07_interview_prep.html">Ch7 求职面试准备</a>
+<div class="sidebar-layer">第3层 深度技术</div>
+<a class="sidebar-link" href="../chapter_08_claude_code/08_claude_code_architecture.html">Ch8 Claude Code 架构</a>
+<a class="sidebar-link" href="../chapter_09_rag_deepdive/09_rag_deepdive.html">Ch9 RAG 深度解析</a>
+<a class="sidebar-link" href="../chapter_10_mcp/10_mcp_deepdive.html">Ch10 MCP 深度解析</a>
+<a class="sidebar-link" href="../chapter_11_tool_calling/11_tool_calling_deepdive.html">Ch11 Tool Calling 底层</a>
+<a class="sidebar-link" href="../chapter_12_infrastructure/12_infrastructure.html">Ch12 Agent 生产基础设施</a>
+<div class="sidebar-layer">第4层 工程化前沿</div>
+<a class="sidebar-link" href="../chapter_13_fastapi/13_fastapi_agent_service.html">Ch13 FastAPI 服务化</a>
+<a class="sidebar-link" href="../chapter_14_sqlite/14_sqlite_agent_storage.html">Ch14 SQLite 持久化</a>
+<a class="sidebar-link" href="../chapter_15_a2a/15_a2a_protocol.html">Ch15 Google A2A 协议</a>
+<a class="sidebar-link" href="../chapter_16_memgpt/16_memgpt_letta.html">Ch16 MemGPT/Letta 记忆</a>
+<a class="sidebar-link" href="../chapter_17_computer_use/17_computer_use.html">Ch17 Computer Use</a>
+<a class="sidebar-link" href="../chapter_18_security/18_agent_security.html">Ch18 Agent 安全与护栏</a>
+<div class="sidebar-layer">第5层 高级架构</div>
+<a class="sidebar-link" href="../chapter_19_workflow_patterns/19_workflow_patterns.html">Ch19 Agentic Workflow 设</a>
+<a class="sidebar-link active" href="../chapter_20_context_engineering/20_context_engineering.html">Ch20 Context Engineerin</a>
+<a class="sidebar-link" href="../chapter_21_streaming/21_streaming_architecture.html">Ch21 Streaming & 实时架构</a>
+<a class="sidebar-link" href="../chapter_22_dspy/22_dspy.html">Ch22 DSPy 自动优化</a>
+<a class="sidebar-link" href="../chapter_23_code_agents/23_code_agents.html">Ch23 代码 Agent 架构横评</a>
+<a class="sidebar-link" href="../chapter_24_observability/24_observability.html">Ch24 Agent 可观测性</a>
+<div class="sidebar-layer">第6层 基础补强</div>
+<a class="sidebar-link" href="../chapter_25_vectordb/25_vectordb.html">Ch25 向量数据库选型</a>
+<a class="sidebar-link" href="../chapter_26_model_routing/26_model_routing.html">Ch26 模型路由策略</a>
+<a class="sidebar-link" href="../chapter_27_prompt_eng/27_prompt_engineering.html">Ch27 Agent Prompt 工程</a>
+<a class="sidebar-link" href="../chapter_28_cache/28_cache.html">Ch28 语义缓存与 Token 优化</a>
+<div class="sidebar-layer">第7层 专家进阶</div>
+<a class="sidebar-link" href="../chapter_29_multimodal/29_multimodal.html">Ch29 Multi-Modal Agent</a>
+<a class="sidebar-link" href="../chapter_30_reliability/30_reliability.html">Ch30 Agent 可靠性工程</a>
+<a class="sidebar-link" href="../chapter_31_benchmarks/31_benchmarks.html">Ch31 Agent 评测体系深度</a>
+<a class="sidebar-link" href="../chapter_32_self_improving/32_self_improving.html">Ch32 Self-Improving Age</a>
+<a class="sidebar-link" href="../chapter_33_prompt_cache/33_prompt_cache.html">Ch33 Prompt Caching & 推</a>
+<a class="sidebar-link" href="../chapter_34_finetune/34_finetune.html">Ch34 模型微调 for Function </a>
+<a class="sidebar-link" href="../chapter_35_data_flywheel/35_data_flywheel.html">Ch35 数据飞轮</a>
+<a class="sidebar-link" href="../chapter_36_defense/36_defense.html">Ch36 Agent 纵深安全</a>
+</div>
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div class="main-content"><div class="container"><div class="breadcrumb"><a href="../index.html">📖 AI Agent 全栈课程</a> &raquo; <strong>第20章 Context Engineering — Context Rot·预算管理·XML Prompt</strong></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_19_workflow_patterns/19_workflow_patterns.html" title="Agentic Workflow 设计模式 — Reflection·Routing·Orchestrator">← 第19章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_21_streaming/21_streaming_architecture.html" title="Streaming & 实时架构 — EventBus·动态中断·背压">第21章 →</a>
+</div><div class="hero"><h1>第20章 Context Engineering（上下文工程）—— Agent 时代的新工程学科</h1><p class="subtitle">📖 AI Agent 全栈学习课程 · 可运行讲义</p></div><div class="lecture"><div class="tag-row"><span class="tag tag-goal">1. 理解 Context Engineering 和 Prompt Engineering 的本质区别</span><span class="tag tag-goal">2. 理解长上下文退化是任务、模型与位置相关的经验现象</span><span class="tag tag-goal">3. 学会系统化的上下文预算管理</span><span class="tag tag-goal">4. 掌握 XML 标签结构化 Prompt 的方法</span><span class="tag tag-goal">5. 理解 Anthropic 的 「Skill.md」 模式</span><span class="tag tag-interview">🎤 「Context Engineering 和 Prompt Engineering 有什么区别？」</span><span class="tag tag-interview">🎤 「为什么上下文越长，LLM 表现越差？」</span><span class="tag tag-interview">🎤 「如何管理 Agent 的上下文预算？」</span><span class="tag tag-interview">🎤 「System Prompt 怎么结构化设计？」</span></div><p>&nbsp;</p>
+<p>内容核对：2026-08-01</p>
+<p>说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>核心来源：Anthropic Engineering Blog (2025.09)</p>
+<p>"Effective context engineering for AI agents"</p>
+<p>Anthropic 官方 Prompt Engineering 文档</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>20.1 Prompt Engineering → Context Engineering</h2>
+<p>&nbsp;</p>
+<p>Prompt Engineering（过去）：</p>
+<p>关注点：写一个好的系统提示词</p>
+<p>范围：单次推理的指令文本</p>
+<p>&nbsp;</p>
+<p>Context Engineering（现在）：</p>
+<p>关注点：管理进入 LLM 上下文窗口的所有 token</p>
+<p>范围：System Prompt + Tools + MCP + 对话历史 + 外部数据 + ...</p>
+<p>&nbsp;</p>
+<p>类比：</p>
+<p>Prompt Engineering = 写好一封邮件</p>
+<p>Context Engineering = 管理一个人的整个信息流</p>
+<p>（收件箱、日历、笔记、任务列表、知识库...）</p>
+<p>&nbsp;</p>
+<p>为什么需要这个转变？</p>
+<p>&nbsp;</p>
+<p>Agent 不是「单次回答问题」，而是「多轮推理循环」</p>
+<p>每一轮都产生新的信息（工具返回、中间结果）</p>
+<p>如果不管理，上下文会快速膨胀 + 质量下降</p>
+<p>&nbsp;</p>
+<p>Andrej Karpathy (2025.06)：</p>
+<p>"The hottest new programming language is English...</p>
+<p>and the hottest new engineering discipline is context engineering."</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>20.2 Context Rot（上下文衰减）—— 核心概念</h2>
+<p>&nbsp;</p>
+<p>问题本质：</p>
+<p>随着上下文 token 数增加，LLM 提取信息的能力逐渐衰减。</p>
+<p>&nbsp;</p>
+<p>为什么会出现长上下文退化？</p>
+<p>&nbsp;</p>
+<li>1. 计算与选择难度</li>
+<p>标准全注意力计算随长度呈二次增长，但这解释计算成本，不等同于证明</p>
+<p>“注意力被稀释”。工程上还存在稀疏/分块注意力和服务端优化。</p>
+<p>&nbsp;</p>
+<li>2. 训练数据分布</li>
+<p>LLM 训练数据中，短文本远多于长文本</p>
+<p>模型对长距离依赖的经验不足</p>
+<p>&nbsp;</p>
+<li>3. 位置编码限制</li>
+<p>RoPE 等位置编码在长上下文时需要插值扩展</p>
+<p>扩展后的位置信息不如原本精确</p>
+<p>&nbsp;</p>
+<p>评测方法：</p>
+<li>分别把同一关键信息放在开头、中间和结尾，测试位置敏感性</li>
+<li>逐步增加无关内容、相似干扰项和工具输出，而不只测“针在草堆”</li>
+<li>同时记录答案正确率、引用命中率、延迟与 token</li>
+<li>结果必须绑定模型快照；不存在跨模型通用的固定衰减曲线</li>
+<p>&nbsp;</p>
+<p>关键启示：</p>
+<p>「上下文是一种边际收益递减的稀缺资源」</p>
+<p>→ 每个 token 都在消耗 LLM 的「注意力预算」</p>
+<p>→ 必须精打细算地使用</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>20.3 上下文预算管理 —— 系统化方法</h2>
+<p>&nbsp;</p>
+<p>把上下文当作「预算」来管理：</p>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌──────────────────────────────────────────┐
+  │              上下文预算 = 200K tokens      │
+  │                                            │
+  │  ┌──────────────────┐  15% = 30K tokens   │
+  │  │  System Prompt   │                      │
+  │  ├──────────────────┤  5% = 10K tokens    │
+  │  │  Tool Definitions│                      │
+  │  ├──────────────────┤  10% = 20K tokens   │
+  │  │  External Context │  (MCP/RAG 检索结果)  │
+  │  ├──────────────────┤  50% = 100K tokens  │
+  │  │  对话历史         │                      │
+  │  ├──────────────────┤  15% = 30K tokens   │
+  │  │  预留 (生成缓冲)  │                      │
+  │  └──────────────────┘  5% = 10K tokens    │
+  │  │  安全余量         │                      │
+  │  └──────────────────┘                      │
+  └──────────────────────────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>Context Compaction 策略（面试重点！）：</p>
+<p>&nbsp;</p>
+<p>策略 1: 滑动窗口</p>
+<p>只保留最近 N 条消息</p>
+<p>优点：简单  | 缺点：丢失早期关键信息</p>
+<p>&nbsp;</p>
+<p>策略 2: 摘要压缩</p>
+<p>对早期对话用 LLM 生成摘要，替换原消息</p>
+<p>优点：保留关键信息  | 缺点：多一次 LLM 调用</p>
+<p>&nbsp;</p>
+<p>策略 3: 分层记忆</p>
+<p>最新 → 完整保留</p>
+<p>中期 → 摘要压缩</p>
+<p>远期 → 向量检索</p>
+<p>优点：平衡  | 缺点：实现复杂</p>
+<p>&nbsp;</p>
+<p>策略 4: 预算触发压缩</p>
+<p>优点：自动化  | 缺点：阈值需为响应和工具结果预留空间并通过回归评测</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (79 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">allocate</span><span class="code-badge code-badge-func">used</span><span class="code-badge code-badge-func">available</span><span class="code-badge code-badge-func">usage_report</span><span class="code-badge code-badge-class">ContextBudget</span></div><div class="code-block"><pre><span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> re
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+<span class="k">from</span> collections <span class="k">import</span> OrderedDict
+
+
+<span class="k">class</span> <span class="f">ContextBudget</span>:
+    <span class="s">"""上下文预算管理器。
+
+    帮助开发者系统化管理 LLM 的上下文窗口分配。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, total_tokens: <span class="b">int</span> = <span class="n">200000</span>):
+        <span class="s">"""
+        Args:
+            total_tokens: 模型的上下文窗口大小。
+        """</span>
+        <span class="k">self</span>.total = total_tokens
+        <span class="k">self</span>.allocations = OrderedDict()  <span class="h"># {section: (tokens, data)}</span>
+        <span class="k">self</span>.reserve_pct = <span class="n">0.20</span>  <span class="h"># 20% 预留（生成 + 安全余量）</span>
+
+    <span class="k">def</span> <span class="f">allocate</span>(<span class="k">self</span>, section: <span class="b">str</span>, data: <span class="b">str</span>,
+                 max_pct: <span class="b">float</span> = <span class="k">None</span>) -&gt; <span class="b">int</span>:
+        <span class="s">"""分配一段上下文给指定部分。
+
+        Args:
+            section: 部分名（如 'system_prompt'）。
+            data: 内容。
+            max_pct: 最大占比。
+
+        Returns:
+            实际使用的 token 估算值。
+        """</span>
+        tokens = _estimate_tokens(data)
+        available = <span class="k">self</span>.available()
+
+        <span class="k">if</span> max_pct <span class="k">is</span> <span class="k">not</span> <span class="k">None</span>:
+            cap = <span class="b">int</span>(<span class="k">self</span>.total * max_pct)
+            <span class="k">if</span> tokens &gt; cap:
+                tokens = cap
+                data = data[:cap * <span class="n">3</span>]  <span class="h"># 粗略截断</span>
+
+        <span class="k">if</span> tokens &gt; available:
+            tokens = available
+            data = data[:tokens * <span class="n">3</span>]
+
+        <span class="k">self</span>.allocations[section] = (tokens, data)
+        <span class="k">return</span> tokens
+
+    <span class="k">def</span> <span class="f">used</span>(<span class="k">self</span>) -&gt; <span class="b">int</span>:
+        <span class="s">"""已使用的 token 数。"""</span>
+        <span class="k">return</span> <span class="b">sum</span>(alloc[<span class="n">0</span>] <span class="k">for</span> alloc <span class="k">in</span> <span class="k">self</span>.allocations.values())
+
+    <span class="k">def</span> <span class="f">available</span>(<span class="k">self</span>) -&gt; <span class="b">int</span>:
+        <span class="s">"""可用的 token 数（扣除预留）。"""</span>
+        usable = <span class="b">int</span>(<span class="k">self</span>.total * (<span class="n">1</span> - <span class="k">self</span>.reserve_pct))
+        <span class="k">return</span> usable - <span class="k">self</span>.used()
+
+    <span class="k">def</span> <span class="f">usage_report</span>(<span class="k">self</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""生成上下文使用报告。"""</span>
+        lines = [
+            f<span class="s">"上下文预算: {self.total:,} tokens"</span>,
+            f<span class="s">"预留 (生成+安全): {int(self.total * self.reserve_pct):,} tokens"</span>,
+            f<span class="s">"已使用: {self.used():,} tokens ({self.used() / self.total:.1%})"</span>,
+            f<span class="s">"可用: {self.available():,} tokens"</span>,
+            <span class="s">"-"</span> * <span class="n">40</span>,
+        ]
+        <span class="k">for</span> section, (tokens, _) <span class="k">in</span> <span class="k">self</span>.allocations.items():
+            pct = tokens / <span class="k">self</span>.total
+            bar = <span class="s">"█"</span> * <span class="b">int</span>(pct * <span class="n">50</span>) + <span class="s">"░"</span> * (<span class="n">50</span> - <span class="b">int</span>(pct * <span class="n">50</span>))
+            lines.append(f<span class="s">"  {section:20s} {tokens:&gt;8,} tokens  {bar}"</span>)
+        <span class="k">return</span> <span class="s">"\n"</span>.join(lines)
+
+
+<span class="k">def</span> <span class="f">_estimate_tokens</span>(text: <span class="b">str</span>) -&gt; <span class="b">int</span>:
+    <span class="s">"""粗略估算 token 数（约 4 字符 = 1 token）。"""</span>
+    <span class="k">return</span> <span class="b">len</span>(text) // <span class="n">4</span></pre></div></details></div><div class="lecture"><h2>20.4 结构化 Prompt —— XML 是一种选择</h2>
+<p>&nbsp;</p>
+<p>什么时候用 XML 标签？</p>
+<li>1. LLM 训练数据中大量存在 XML/HTML</li>
+<li>2. 标签天然提供语义边界</li>
+<li>3. 可以嵌套（层次化组织信息）</li>
+<p>&nbsp;</p>
+<p>一种可读的 Prompt 结构：</p>
+<p>&nbsp;</p>
+<p><system></p>
+<p><background_information></p>
+<p>当前的上下文背景...</p>
+<p></background_information></p>
+<p><instructions></p>
+<p>你需要完成的任务...</p>
+<p></instructions></p>
+<p><tool_guidance></p>
+<p>工具使用说明...</p>
+<p></tool_guidance></p>
+<p><output_description></p>
+<p>输出格式要求...</p>
+<p></output_description></p>
+<p></system></p>
+<p>&nbsp;</p>
+<p>结构化的好处（面试重点！）：</p>
+<li>1. 减少「语义混杂」：LLM 不会混淆指令和数据</li>
+<li>2. 防御 Prompt Injection：用户内容在 <user_input> 中，</li>
+<p>不会混入指令区</p>
+<li>3. 便于动态拼接上下文：可以程序化增删 sections</li>
+<li>4. 便于调试：按 tag 搜索对应的上下文块</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (94 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">add_section</span><span class="code-badge code-badge-func">build</span><span class="code-badge code-badge-func">extract_section</span><span class="code-badge code-badge-func">demo_structured_prompt</span><span class="code-badge code-badge-class">StructuredPrompt</span></div><div class="code-block"><pre><span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> re
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+<span class="k">from</span> collections <span class="k">import</span> OrderedDict
+
+<span class="k">class</span> <span class="f">StructuredPrompt</span>:
+    <span class="s">"""XML 结构化 Prompt 构建器。
+
+    展示一种 Prompt 组织方式；JSON、Markdown 标题或 provider 原生字段也可用。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.sections = OrderedDict()
+
+    <span class="k">def</span> <span class="f">add_section</span>(<span class="k">self</span>, tag: <span class="b">str</span>, content: <span class="b">str</span>):
+        <span class="s">"""添加一个结构化 section。
+
+        Args:
+            tag: XML 标签名。
+            content: section 内容。
+        """</span>
+        <span class="k">self</span>.sections[tag] = content
+
+    <span class="k">def</span> <span class="f">build</span>(<span class="k">self</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""构建完整的结构化 Prompt。
+
+        Returns:
+            完整的 XML 标记文本。
+        """</span>
+        parts = [<span class="s">"&lt;system&gt;"</span>]
+        <span class="k">for</span> tag, content <span class="k">in</span> <span class="k">self</span>.sections.items():
+            parts.append(f<span class="s">"  &lt;{tag}&gt;"</span>)
+            parts.append(f<span class="s">"    {content}"</span>)
+            parts.append(f<span class="s">"  &lt;/{tag}&gt;"</span>)
+        parts.append(<span class="s">"&lt;/system&gt;"</span>)
+        <span class="k">return</span> <span class="s">"\n"</span>.join(parts)
+
+    <span <span class="k">class</span>="d">@staticmethod</span>
+    <span class="k">def</span> <span class="f">extract_section</span>(prompt: <span class="b">str</span>, tag: <span class="b">str</span>) -&gt; Optional[<span class="b">str</span>]:
+        <span class="s">"""从结构化 Prompt 中提取指定 section。
+
+        Args:
+            prompt: 完整的 Prompt 文本。
+            tag: 要提取的标签名。
+
+        Returns:
+            section 内容，未找到返回 None。
+        """</span>
+        pattern = rf<span class="s">"&lt;{tag}&gt;\s*(.*?)\s*&lt;/{tag}&gt;"</span>
+        match = re.search(pattern, prompt, re.DOTALL)
+        <span class="k">return</span> match.group(<span class="n">1</span>).strip() <span class="k">if</span> match <span class="k">else</span> <span class="k">None</span>
+
+
+<span class="k">def</span> <span class="f">demo_structured_prompt</span>():
+    <span class="s">"""演示结构化 Prompt 的构建与使用。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  XML 结构化 Prompt 演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    builder = StructuredPrompt()
+    builder.add_section(
+        <span class="s">"background"</span>,
+        <span class="s">"用户是一名 Python 开发者，正在学习 AI Agent 技术。"</span>
+    )
+    builder.add_section(
+        <span class="s">"instructions"</span>,
+        <span class="s">"请用简洁的语言解释上下文工程的核心概念。"</span>
+        <span class="s">"不要超过 200 字。使用中文回答。"</span>
+    )
+    builder.add_section(
+        <span class="s">"tool_guidance"</span>,
+        <span class="s">"如果用户问代码相关的问题，使用 code_exec 工具。"</span>
+        <span class="s">"如果用户问事实性问题，使用 search 工具。"</span>
+    )
+    builder.add_section(
+        <span class="s">"output_format"</span>,
+        <span class="s">"用 Markdown 格式输出，包含标题和要点列表。"</span>
+    )
+    builder.add_section(
+        <span class="s">"user_input"</span>,
+        <span class="s">"什么是 Context Rot？为什么它很重要？"</span>
+    )
+
+    full_prompt = builder.build()
+    <span class="b">print</span>(full_prompt)
+
+    <span class="h"># 演示动态修改</span>
+    <span class="b">print</span>(<span class="s">"\n  📝 提取 user_input section:"</span>)
+    user_input = StructuredPrompt.extract_section(
+        full_prompt, <span class="s">"user_input"</span>
+    )
+    <span class="b">print</span>(f<span class="s">"  → {user_input}"</span>)</pre></div></details></div><div class="lecture"><h2>20.5 Prompt 的「上下文衰减曲线」与 Golden Zone</h2>
+<p>&nbsp;</p>
+<p>通用实践经验：</p>
+<p>&nbsp;</p>
+<p>Prompt 太简单（硬编码 if-else 级别）：</p>
+<p>→ 过于脆弱，不能处理变体</p>
+<p>&nbsp;</p>
+<p>Prompt 太复杂/笼统（万言书级别）：</p>
+<p>→ LLM 抓不住重点</p>
+<p>→ 容易出现「上下文衰减」</p>
+<p>&nbsp;</p>
+<p>Golden Zone：</p>
+<p>→ 信息密度最高、恰好覆盖所需、不冗余</p>
+<p>→ 每段内容要有明确的「信息价值 vs token 成本」</p>
+<p>&nbsp;</p>
+<h2>20.6 Anthropic Skill.md 模式</h2>
+<p>&nbsp;</p>
+<p>Skill 文件是一种按需加载过程知识的上下文工程实践：</p>
+<p>&nbsp;</p>
+<p>每个 Skill 是一个 Markdown 文件（skill.md）：</p>
+<pre>  # Skill: 代码审查
+  ## 目的
+  审查代码的 Bug、安全漏洞和风格问题
+
+  ## 触发条件
+  - 用户说 "review" / "审查" / "check"
+  - 用户提供了代码片段或文件路径
+
+  ## 执行步骤
+  1. 读取代码
+  2. 检查常见问题（空指针、注入、性能瓶颈）
+  3. 生成审查报告
+
+  ## 输出格式
+  - Bug (危险等级: 高/中/低)
+  - 建议的修复方案
+  - 代码风格建议</pre>
+<p>&nbsp;</p>
+<p>优势：</p>
+<li>1. Markdown 对 LLM 友好（训练数据中大量存在）</li>
+<li>2. 人类可维护（非技术人员也能写）</li>
+<li>3. 结构清晰（LLM 容易遵循）</li>
+<li>4. 可与工具、MCP Server 或本地运行时组合</li>
+<p>&nbsp;</p>
+<p>文件名、发现规则和可执行能力取决于具体运行时，不是跨产品统一协议。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>20.7 上下文工程的实践 Checklist</h2>
+<p>&nbsp;</p>
+<p>✅ 结构层面</p>
+<p>☐ 使用 XML 标签明确分隔不同部分</p>
+<p>☐ 用户输入与可信指令分区；标签提升可读性，但不能防止提示注入</p>
+<p>☐ 工具定义用独立的 tool_guidance section</p>
+<p>&nbsp;</p>
+<p>✅ 内容层面</p>
+<p>☐ 每条信息都有明确的「为何需要它」</p>
+<p>☐ 删除冗余的、无信息量的内容</p>
+<p>☐ 优先保留高频使用的信息</p>
+<p>&nbsp;</p>
+<p>✅ 动态层面</p>
+<p>☐ 设置上下文预算上限</p>
+<p>☐ 实现自动压缩策略（摘要/滑动窗口）</p>
+<p>☐ 监控上下文使用率（类似内存监控）</p>
+<p>&nbsp;</p>
+<p>✅ 编码 Agent 经验（来自 Ch8）</p>
+<p>☐ 压缩阈值按上下文预算和回归评测确定</p>
+<p>☐ 外部记忆可审计、可删除、可做权限控制</p>
+<p>☐ TODO 列表管理短期任务状态</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (33 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">demo_context_budget</span></div><div class="code-block"><pre><span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> re
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+<span class="k">from</span> collections <span class="k">import</span> OrderedDict
+
+<span class="k">def</span> <span class="f">demo_context_budget</span>():
+    <span class="s">"""演示上下文预算管理。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  上下文预算管理演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    budget = ContextBudget(<span class="n">200000</span>)
+
+    <span class="h"># 分配各部分</span>
+    system_prompt = <span class="s">"你是一个 AI 助手..."</span> * <span class="n">100</span>
+    budget.allocate(<span class="s">"system_prompt"</span>, system_prompt, max_pct=<span class="n">0.15</span>)
+    <span class="b">print</span>(f<span class="s">"  system_prompt: {budget.allocations['system_prompt'][0]:,} tokens"</span>)
+
+    tool_defs = <span class="s">"工具定义: search, calculator, ..."</span> * <span class="n">50</span>
+    budget.allocate(<span class="s">"tool_definitions"</span>, tool_defs, max_pct=<span class="n">0.05</span>)
+    <span class="b">print</span>(f<span class="s">"  tool_definitions: {budget.allocations['tool_definitions'][0]:,} tokens"</span>)
+
+    external = <span class="s">"检索结果: ..."</span> * <span class="n">200</span>
+    budget.allocate(<span class="s">"external_context"</span>, external, max_pct=<span class="n">0.15</span>)
+    <span class="b">print</span>(f<span class="s">"  external_context: {budget.allocations['external_context'][0]:,} tokens"</span>)
+
+    history = <span class="s">"对话历史..."</span> * <span class="n">500</span>
+    budget.allocate(<span class="s">"conversation_history"</span>, history)
+    <span class="b">print</span>(f<span class="s">"  conversation_history: {budget.allocations['conversation_history'][0]:,} tokens"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n"</span> + budget.usage_report())</pre></div></details></div><div class="lecture"><h2>20.8 本章总结</h2>
+<p>&nbsp;</p>
+<p>核心要点回顾：</p>
+<p>&nbsp;</p>
+<li>1. Context Engineering = 管理进入 LLM 的所有 token</li>
+<li>从「写 prompt」升级到「管理信息流」</li>
+<li>上下文 = 稀缺资源（边际收益递减）</li>
+<p>&nbsp;</p>
+<li>2. Context Rot</li>
+<li>长上下文导致注意力稀释（n² 关系）</li>
+<li>训练数据分布偏向短文本</li>
+<li>位置编码扩展损失精度</li>
+<p>&nbsp;</p>
+<li>3. 上下文预算管理</li>
+<li>类似内存管理：分配 → 监控 → 压缩</li>
+<li>策略：滑动窗口 / 摘要压缩 / 分层记忆 / 预算触发</li>
+<p>&nbsp;</p>
+<li>4. 结构化 Prompt（XML）</li>
+<li>明确边界：用户输入隔离有助于理解，但不是安全边界</li>
+<li>便于拼接：程序化增删</li>
+<li>提高可读性：LLM 和人类都受益</li>
+<p>&nbsp;</p>
+<p>面试速记：</p>
+<p>"什么是 Context Engineering？"</p>
+<p>→ 从写 Prompt 升级到管理所有进 LLM 的 token</p>
+<p>→ 核心挑战：Context Rot（注意力随长度衰减）</p>
+<p>→ 解决方案：预算管理 + 结构化 + 压缩策略</p>
+<p>→ 结构格式应与模型、SDK 和评测匹配；XML 不是唯一最佳格式</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (35 行)</summary><div class="code-block"><pre><span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> re
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+<span class="k">from</span> collections <span class="k">import</span> OrderedDict
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第20章：Context Engineering（上下文工程）              ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  Context Rot · 预算管理 · XML Prompt · Skill.md      ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 20.2 Context Rot 评测方法"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    <span class="b">print</span>(<span class="s">"  改变信息位置、上下文长度和干扰项，分别测量"</span>)
+    <span class="b">print</span>(<span class="s">"  记录正确率、引用命中率、延迟与 token，并绑定模型版本"</span>)
+
+    demo_context_budget()
+    demo_structured_prompt()
+
+    <span class="b">print</span>(<span class="s">"\n▶ Context Engineering Checklist"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    items = [
+        <span class="s">"使用 XML 标签分隔 Prompt 各部分"</span>,
+        <span class="s">"用户输入放在独立标签中（防注入）"</span>,
+        <span class="s">"设置上下文预算上限，监控使用率"</span>,
+        <span class="s">"实现自动压缩（摘要/滑动窗口/分层记忆）"</span>,
+        <span class="s">"每条信息都要有「信息价值 vs token 成本」的权衡"</span>,
+        <span class="s">"Markdown 文件做长期记忆（Claude Code 经验）"</span>,
+    ]
+    <span class="k">for</span> item <span class="k">in</span> items:
+        <span class="b">print</span>(f<span class="s">"  ✅ {item}"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n✅ 第20章完成！"</span>)</pre></div></details></div><hr style="margin:36px 0"><div class="code-section"><details><summary>📦 完整源代码 (500 行)</summary><div class="code-block"><pre><span class="s">"""
+第20章：Context Engineering（上下文工程）—— Agent 时代的新工程学科
+====================================================================
+
+内容核对：2026-08-01
+说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。
+
+📌 本章目标：
+  1. 理解 Context Engineering 和 Prompt Engineering 的本质区别
+  2. 理解长上下文退化是任务、模型与位置相关的经验现象
+  3. 学会系统化的上下文预算管理
+  4. 掌握 XML 标签结构化 Prompt 的方法
+  5. 理解 Anthropic 的 「Skill.md」 模式
+
+📌 面试高频点：
+  - 「Context Engineering 和 Prompt Engineering 有什么区别？」
+  - 「为什么上下文越长，LLM 表现越差？」
+  - 「如何管理 Agent 的上下文预算？」
+  - 「System Prompt 怎么结构化设计？」
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+核心来源：Anthropic Engineering Blog (2025.09)
+  "Effective context engineering for AI agents"
+  Anthropic 官方 Prompt Engineering 文档
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+20.1 Prompt Engineering → Context Engineering
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prompt Engineering（过去）：
+  关注点：写一个好的系统提示词
+  范围：单次推理的指令文本
+
+Context Engineering（现在）：
+  关注点：管理进入 LLM 上下文窗口的所有 token
+  范围：System Prompt + Tools + MCP + 对话历史 + 外部数据 + ...
+
+类比：
+  Prompt Engineering = 写好一封邮件
+  Context Engineering = 管理一个人的整个信息流
+    （收件箱、日历、笔记、任务列表、知识库...）
+
+为什么需要这个转变？
+
+  Agent 不是「单次回答问题」，而是「多轮推理循环」
+  每一轮都产生新的信息（工具返回、中间结果）
+  如果不管理，上下文会快速膨胀 + 质量下降
+
+  Andrej Karpathy (2025.06)：
+  "The hottest new programming language is English...
+   and the hottest new engineering discipline is context engineering."
+
+
+20.2 Context Rot（上下文衰减）—— 核心概念
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+问题本质：
+  随着上下文 token 数增加，LLM 提取信息的能力逐渐衰减。
+
+为什么会出现长上下文退化？
+
+  1. 计算与选择难度
+     标准全注意力计算随长度呈二次增长，但这解释计算成本，不等同于证明
+     “注意力被稀释”。工程上还存在稀疏/分块注意力和服务端优化。
+
+  2. 训练数据分布
+     LLM 训练数据中，短文本远多于长文本
+     模型对长距离依赖的经验不足
+
+  3. 位置编码限制
+     RoPE 等位置编码在长上下文时需要插值扩展
+     扩展后的位置信息不如原本精确
+
+评测方法：
+  - 分别把同一关键信息放在开头、中间和结尾，测试位置敏感性
+  - 逐步增加无关内容、相似干扰项和工具输出，而不只测“针在草堆”
+  - 同时记录答案正确率、引用命中率、延迟与 token
+  - 结果必须绑定模型快照；不存在跨模型通用的固定衰减曲线
+
+关键启示：
+  「上下文是一种边际收益递减的稀缺资源」
+  → 每个 token 都在消耗 LLM 的「注意力预算」
+  → 必须精打细算地使用
+
+
+20.3 上下文预算管理 —— 系统化方法
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+把上下文当作「预算」来管理：
+
+  ┌──────────────────────────────────────────┐
+  │              上下文预算 = 200K tokens      │
+  │                                            │
+  │  ┌──────────────────┐  15% = 30K tokens   │
+  │  │  System Prompt   │                      │
+  │  ├──────────────────┤  5% = 10K tokens    │
+  │  │  Tool Definitions│                      │
+  │  ├──────────────────┤  10% = 20K tokens   │
+  │  │  External Context │  (MCP/RAG 检索结果)  │
+  │  ├──────────────────┤  50% = 100K tokens  │
+  │  │  对话历史         │                      │
+  │  ├──────────────────┤  15% = 30K tokens   │
+  │  │  预留 (生成缓冲)  │                      │
+  │  └──────────────────┘  5% = 10K tokens    │
+  │  │  安全余量         │                      │
+  │  └──────────────────┘                      │
+  └──────────────────────────────────────────┘
+
+Context Compaction 策略（面试重点！）：
+
+  策略 1: 滑动窗口
+    只保留最近 N 条消息
+    优点：简单  | 缺点：丢失早期关键信息
+
+  策略 2: 摘要压缩
+    对早期对话用 LLM 生成摘要，替换原消息
+    优点：保留关键信息  | 缺点：多一次 LLM 调用
+
+  策略 3: 分层记忆
+    最新 → 完整保留
+    中期 → 摘要压缩
+    远期 → 向量检索
+    优点：平衡  | 缺点：实现复杂
+
+  策略 4: 预算触发压缩
+    优点：自动化  | 缺点：阈值需为响应和工具结果预留空间并通过回归评测
+"""</span>
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> re
+<span class="k">from</span> typing <span class="k">import</span> Optional
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass
+<span class="k">from</span> collections <span class="k">import</span> OrderedDict
+
+
+<span class="k">class</span> <span class="f">ContextBudget</span>:
+    <span class="s">"""上下文预算管理器。
+
+    帮助开发者系统化管理 LLM 的上下文窗口分配。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, total_tokens: <span class="b">int</span> = <span class="n">200000</span>):
+        <span class="s">"""
+        Args:
+            total_tokens: 模型的上下文窗口大小。
+        """</span>
+        <span class="k">self</span>.total = total_tokens
+        <span class="k">self</span>.allocations = OrderedDict()  <span class="h"># {section: (tokens, data)}</span>
+        <span class="k">self</span>.reserve_pct = <span class="n">0.20</span>  <span class="h"># 20% 预留（生成 + 安全余量）</span>
+
+    <span class="k">def</span> <span class="f">allocate</span>(<span class="k">self</span>, section: <span class="b">str</span>, data: <span class="b">str</span>,
+                 max_pct: <span class="b">float</span> = <span class="k">None</span>) -&gt; <span class="b">int</span>:
+        <span class="s">"""分配一段上下文给指定部分。
+
+        Args:
+            section: 部分名（如 'system_prompt'）。
+            data: 内容。
+            max_pct: 最大占比。
+
+        Returns:
+            实际使用的 token 估算值。
+        """</span>
+        tokens = _estimate_tokens(data)
+        available = <span class="k">self</span>.available()
+
+        <span class="k">if</span> max_pct <span class="k">is</span> <span class="k">not</span> <span class="k">None</span>:
+            cap = <span class="b">int</span>(<span class="k">self</span>.total * max_pct)
+            <span class="k">if</span> tokens &gt; cap:
+                tokens = cap
+                data = data[:cap * <span class="n">3</span>]  <span class="h"># 粗略截断</span>
+
+        <span class="k">if</span> tokens &gt; available:
+            tokens = available
+            data = data[:tokens * <span class="n">3</span>]
+
+        <span class="k">self</span>.allocations[section] = (tokens, data)
+        <span class="k">return</span> tokens
+
+    <span class="k">def</span> <span class="f">used</span>(<span class="k">self</span>) -&gt; <span class="b">int</span>:
+        <span class="s">"""已使用的 token 数。"""</span>
+        <span class="k">return</span> <span class="b">sum</span>(alloc[<span class="n">0</span>] <span class="k">for</span> alloc <span class="k">in</span> <span class="k">self</span>.allocations.values())
+
+    <span class="k">def</span> <span class="f">available</span>(<span class="k">self</span>) -&gt; <span class="b">int</span>:
+        <span class="s">"""可用的 token 数（扣除预留）。"""</span>
+        usable = <span class="b">int</span>(<span class="k">self</span>.total * (<span class="n">1</span> - <span class="k">self</span>.reserve_pct))
+        <span class="k">return</span> usable - <span class="k">self</span>.used()
+
+    <span class="k">def</span> <span class="f">usage_report</span>(<span class="k">self</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""生成上下文使用报告。"""</span>
+        lines = [
+            f<span class="s">"上下文预算: {self.total:,} tokens"</span>,
+            f<span class="s">"预留 (生成+安全): {int(self.total * self.reserve_pct):,} tokens"</span>,
+            f<span class="s">"已使用: {self.used():,} tokens ({self.used() / self.total:.1%})"</span>,
+            f<span class="s">"可用: {self.available():,} tokens"</span>,
+            <span class="s">"-"</span> * <span class="n">40</span>,
+        ]
+        <span class="k">for</span> section, (tokens, _) <span class="k">in</span> <span class="k">self</span>.allocations.items():
+            pct = tokens / <span class="k">self</span>.total
+            bar = <span class="s">"█"</span> * <span class="b">int</span>(pct * <span class="n">50</span>) + <span class="s">"░"</span> * (<span class="n">50</span> - <span class="b">int</span>(pct * <span class="n">50</span>))
+            lines.append(f<span class="s">"  {section:20s} {tokens:&gt;8,} tokens  {bar}"</span>)
+        <span class="k">return</span> <span class="s">"\n"</span>.join(lines)
+
+
+<span class="k">def</span> <span class="f">_estimate_tokens</span>(text: <span class="b">str</span>) -&gt; <span class="b">int</span>:
+    <span class="s">"""粗略估算 token 数（约 4 字符 = 1 token）。"""</span>
+    <span class="k">return</span> <span class="b">len</span>(text) // <span class="n">4</span>
+
+
+<span class="s">"""
+20.4 结构化 Prompt —— XML 是一种选择
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+什么时候用 XML 标签？
+  1. LLM 训练数据中大量存在 XML/HTML
+  2. 标签天然提供语义边界
+  3. 可以嵌套（层次化组织信息）
+
+一种可读的 Prompt 结构：
+
+  &lt;system&gt;
+    &lt;background_information&gt;
+      当前的上下文背景...
+    &lt;/background_information&gt;
+    &lt;instructions&gt;
+      你需要完成的任务...
+    &lt;/instructions&gt;
+    &lt;tool_guidance&gt;
+      工具使用说明...
+    &lt;/tool_guidance&gt;
+    &lt;output_description&gt;
+      输出格式要求...
+    &lt;/output_description&gt;
+  &lt;/system&gt;
+
+结构化的好处（面试重点！）：
+  1. 减少「语义混杂」：LLM 不会混淆指令和数据
+  2. 防御 Prompt Injection：用户内容在 &lt;user_input&gt; 中，
+     不会混入指令区
+  3. 便于动态拼接上下文：可以程序化增删 sections
+  4. 便于调试：按 tag 搜索对应的上下文块
+"""</span>
+
+
+<span class="k">class</span> <span class="f">StructuredPrompt</span>:
+    <span class="s">"""XML 结构化 Prompt 构建器。
+
+    展示一种 Prompt 组织方式；JSON、Markdown 标题或 provider 原生字段也可用。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.sections = OrderedDict()
+
+    <span class="k">def</span> <span class="f">add_section</span>(<span class="k">self</span>, tag: <span class="b">str</span>, content: <span class="b">str</span>):
+        <span class="s">"""添加一个结构化 section。
+
+        Args:
+            tag: XML 标签名。
+            content: section 内容。
+        """</span>
+        <span class="k">self</span>.sections[tag] = content
+
+    <span class="k">def</span> <span class="f">build</span>(<span class="k">self</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""构建完整的结构化 Prompt。
+
+        Returns:
+            完整的 XML 标记文本。
+        """</span>
+        parts = [<span class="s">"&lt;system&gt;"</span>]
+        <span class="k">for</span> tag, content <span class="k">in</span> <span class="k">self</span>.sections.items():
+            parts.append(f<span class="s">"  &lt;{tag}&gt;"</span>)
+            parts.append(f<span class="s">"    {content}"</span>)
+            parts.append(f<span class="s">"  &lt;/{tag}&gt;"</span>)
+        parts.append(<span class="s">"&lt;/system&gt;"</span>)
+        <span class="k">return</span> <span class="s">"\n"</span>.join(parts)
+
+    <span <span class="k">class</span>="d">@staticmethod</span>
+    <span class="k">def</span> <span class="f">extract_section</span>(prompt: <span class="b">str</span>, tag: <span class="b">str</span>) -&gt; Optional[<span class="b">str</span>]:
+        <span class="s">"""从结构化 Prompt 中提取指定 section。
+
+        Args:
+            prompt: 完整的 Prompt 文本。
+            tag: 要提取的标签名。
+
+        Returns:
+            section 内容，未找到返回 None。
+        """</span>
+        pattern = rf<span class="s">"&lt;{tag}&gt;\s*(.*?)\s*&lt;/{tag}&gt;"</span>
+        match = re.search(pattern, prompt, re.DOTALL)
+        <span class="k">return</span> match.group(<span class="n">1</span>).strip() <span class="k">if</span> match <span class="k">else</span> <span class="k">None</span>
+
+
+<span class="k">def</span> <span class="f">demo_structured_prompt</span>():
+    <span class="s">"""演示结构化 Prompt 的构建与使用。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  XML 结构化 Prompt 演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    builder = StructuredPrompt()
+    builder.add_section(
+        <span class="s">"background"</span>,
+        <span class="s">"用户是一名 Python 开发者，正在学习 AI Agent 技术。"</span>
+    )
+    builder.add_section(
+        <span class="s">"instructions"</span>,
+        <span class="s">"请用简洁的语言解释上下文工程的核心概念。"</span>
+        <span class="s">"不要超过 200 字。使用中文回答。"</span>
+    )
+    builder.add_section(
+        <span class="s">"tool_guidance"</span>,
+        <span class="s">"如果用户问代码相关的问题，使用 code_exec 工具。"</span>
+        <span class="s">"如果用户问事实性问题，使用 search 工具。"</span>
+    )
+    builder.add_section(
+        <span class="s">"output_format"</span>,
+        <span class="s">"用 Markdown 格式输出，包含标题和要点列表。"</span>
+    )
+    builder.add_section(
+        <span class="s">"user_input"</span>,
+        <span class="s">"什么是 Context Rot？为什么它很重要？"</span>
+    )
+
+    full_prompt = builder.build()
+    <span class="b">print</span>(full_prompt)
+
+    <span class="h"># 演示动态修改</span>
+    <span class="b">print</span>(<span class="s">"\n  📝 提取 user_input section:"</span>)
+    user_input = StructuredPrompt.extract_section(
+        full_prompt, <span class="s">"user_input"</span>
+    )
+    <span class="b">print</span>(f<span class="s">"  → {user_input}"</span>)
+
+
+<span class="s">"""
+20.5 Prompt 的「上下文衰减曲线」与 Golden Zone
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+通用实践经验：
+
+  Prompt 太简单（硬编码 if-else 级别）：
+    → 过于脆弱，不能处理变体
+
+  Prompt 太复杂/笼统（万言书级别）：
+    → LLM 抓不住重点
+    → 容易出现「上下文衰减」
+
+  Golden Zone：
+    → 信息密度最高、恰好覆盖所需、不冗余
+    → 每段内容要有明确的「信息价值 vs token 成本」
+
+20.6 Anthropic Skill.md 模式
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Skill 文件是一种按需加载过程知识的上下文工程实践：
+
+  每个 Skill 是一个 Markdown 文件（skill.md）：
+  ```
+  # Skill: 代码审查
+  ## 目的
+  审查代码的 Bug、安全漏洞和风格问题
+
+  ## 触发条件
+  - 用户说 "review" / "审查" / "check"
+  - 用户提供了代码片段或文件路径
+
+  ## 执行步骤
+  1. 读取代码
+  2. 检查常见问题（空指针、注入、性能瓶颈）
+  3. 生成审查报告
+
+  ## 输出格式
+  - Bug (危险等级: 高/中/低)
+  - 建议的修复方案
+  - 代码风格建议
+  ```
+
+  优势：
+    1. Markdown 对 LLM 友好（训练数据中大量存在）
+    2. 人类可维护（非技术人员也能写）
+    3. 结构清晰（LLM 容易遵循）
+    4. 可与工具、MCP Server 或本地运行时组合
+
+  文件名、发现规则和可执行能力取决于具体运行时，不是跨产品统一协议。
+
+
+20.7 上下文工程的实践 Checklist
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 结构层面
+  ☐ 使用 XML 标签明确分隔不同部分
+  ☐ 用户输入与可信指令分区；标签提升可读性，但不能防止提示注入
+  ☐ 工具定义用独立的 tool_guidance section
+
+✅ 内容层面
+  ☐ 每条信息都有明确的「为何需要它」
+  ☐ 删除冗余的、无信息量的内容
+  ☐ 优先保留高频使用的信息
+
+✅ 动态层面
+  ☐ 设置上下文预算上限
+  ☐ 实现自动压缩策略（摘要/滑动窗口）
+  ☐ 监控上下文使用率（类似内存监控）
+
+✅ 编码 Agent 经验（来自 Ch8）
+  ☐ 压缩阈值按上下文预算和回归评测确定
+  ☐ 外部记忆可审计、可删除、可做权限控制
+  ☐ TODO 列表管理短期任务状态
+"""</span>
+
+
+<span class="k">def</span> <span class="f">demo_context_budget</span>():
+    <span class="s">"""演示上下文预算管理。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  上下文预算管理演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    budget = ContextBudget(<span class="n">200000</span>)
+
+    <span class="h"># 分配各部分</span>
+    system_prompt = <span class="s">"你是一个 AI 助手..."</span> * <span class="n">100</span>
+    budget.allocate(<span class="s">"system_prompt"</span>, system_prompt, max_pct=<span class="n">0.15</span>)
+    <span class="b">print</span>(f<span class="s">"  system_prompt: {budget.allocations['system_prompt'][0]:,} tokens"</span>)
+
+    tool_defs = <span class="s">"工具定义: search, calculator, ..."</span> * <span class="n">50</span>
+    budget.allocate(<span class="s">"tool_definitions"</span>, tool_defs, max_pct=<span class="n">0.05</span>)
+    <span class="b">print</span>(f<span class="s">"  tool_definitions: {budget.allocations['tool_definitions'][0]:,} tokens"</span>)
+
+    external = <span class="s">"检索结果: ..."</span> * <span class="n">200</span>
+    budget.allocate(<span class="s">"external_context"</span>, external, max_pct=<span class="n">0.15</span>)
+    <span class="b">print</span>(f<span class="s">"  external_context: {budget.allocations['external_context'][0]:,} tokens"</span>)
+
+    history = <span class="s">"对话历史..."</span> * <span class="n">500</span>
+    budget.allocate(<span class="s">"conversation_history"</span>, history)
+    <span class="b">print</span>(f<span class="s">"  conversation_history: {budget.allocations['conversation_history'][0]:,} tokens"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n"</span> + budget.usage_report())
+
+
+<span class="s">"""
+20.8 本章总结
+━━━━━━━━━━━━
+
+核心要点回顾：
+
+1. Context Engineering = 管理进入 LLM 的所有 token
+   - 从「写 prompt」升级到「管理信息流」
+   - 上下文 = 稀缺资源（边际收益递减）
+
+2. Context Rot
+   - 长上下文导致注意力稀释（n² 关系）
+   - 训练数据分布偏向短文本
+   - 位置编码扩展损失精度
+
+3. 上下文预算管理
+   - 类似内存管理：分配 → 监控 → 压缩
+   - 策略：滑动窗口 / 摘要压缩 / 分层记忆 / 预算触发
+
+4. 结构化 Prompt（XML）
+   - 明确边界：用户输入隔离有助于理解，但不是安全边界
+   - 便于拼接：程序化增删
+   - 提高可读性：LLM 和人类都受益
+
+面试速记：
+  "什么是 Context Engineering？"
+  → 从写 Prompt 升级到管理所有进 LLM 的 token
+  → 核心挑战：Context Rot（注意力随长度衰减）
+  → 解决方案：预算管理 + 结构化 + 压缩策略
+  → 结构格式应与模型、SDK 和评测匹配；XML 不是唯一最佳格式
+"""</span>
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第20章：Context Engineering（上下文工程）              ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  Context Rot · 预算管理 · XML Prompt · Skill.md      ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 20.2 Context Rot 评测方法"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    <span class="b">print</span>(<span class="s">"  改变信息位置、上下文长度和干扰项，分别测量"</span>)
+    <span class="b">print</span>(<span class="s">"  记录正确率、引用命中率、延迟与 token，并绑定模型版本"</span>)
+
+    demo_context_budget()
+    demo_structured_prompt()
+
+    <span class="b">print</span>(<span class="s">"\n▶ Context Engineering Checklist"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    items = [
+        <span class="s">"使用 XML 标签分隔 Prompt 各部分"</span>,
+        <span class="s">"用户输入放在独立标签中（防注入）"</span>,
+        <span class="s">"设置上下文预算上限，监控使用率"</span>,
+        <span class="s">"实现自动压缩（摘要/滑动窗口/分层记忆）"</span>,
+        <span class="s">"每条信息都要有「信息价值 vs token 成本」的权衡"</span>,
+        <span class="s">"Markdown 文件做长期记忆（Claude Code 经验）"</span>,
+    ]
+    <span class="k">for</span> item <span class="k">in</span> items:
+        <span class="b">print</span>(f<span class="s">"  ✅ {item}"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n✅ 第20章完成！"</span>)
+</pre></div></details></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_19_workflow_patterns/19_workflow_patterns.html" title="Agentic Workflow 设计模式 — Reflection·Routing·Orchestrator">← 第19章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_21_streaming/21_streaming_architecture.html" title="Streaming & 实时架构 — EventBus·动态中断·背压">第21章 →</a>
+</div></div></div></div></body></html>

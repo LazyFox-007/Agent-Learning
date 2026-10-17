@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第11章：Tool Calling 底层机制深度剖析 — AI Agent 全栈课程</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: #f8f9fa; color: #1a1a2e; line-height: 1.8;
+}
+.page-wrapper { display: flex; min-height: 100vh; }
+
+/* 侧边栏 TOC */
+.sidebar {
+  width: 240px; min-width: 240px; background: #0f172a; color: #e2e8f0;
+  padding: 24px 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; font-size: .85em; border-right: 1px solid #1e293b;
+}
+.sidebar-title {
+  font-weight: 700; font-size: 1.05em; padding: 0 18px 16px;
+  border-bottom: 1px solid #1e293b; margin-bottom: 12px; color: white;
+}
+.sidebar-title a { color: #8ab4f8; text-decoration: none; }
+.sidebar-title a:hover { text-decoration: underline; }
+.sidebar-layer {
+  padding: 6px 18px; margin-top: 8px; color: #64748b;
+  font-size: .78em; text-transform: uppercase; letter-spacing: .5px;
+}
+.sidebar-link {
+  display: block; padding: 5px 18px 5px 18px; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: all .15s; font-size: .88em;
+}
+.sidebar-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+.sidebar-link.active {
+  color: #60a5fa; background: rgba(96,165,250,.1);
+  border-left-color: #60a5fa; font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1; min-width: 0; padding: 40px 24px 80px;
+  max-width: calc(100vw - 240px);
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 48px 32px; border-radius: 12px; margin-bottom: 36px;
+}
+.hero h1 { font-size: 2em; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { opacity: 0.9; font-size: 1.05em; }
+
+/* 讲义标题层级 */
+.lecture { background: white; border-radius: 10px; padding: 36px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 32px; }
+.lecture h2 {
+  font-size: 1.25em; color: #667eea; margin: 28px 0 12px;
+  padding-bottom: 6px; border-bottom: 2px solid #e8e8ff;
+}
+.lecture h3 {
+  font-size: 1.08em; color: #555; margin: 22px 0 8px;
+  padding-left: 10px; border-left: 3px solid #667eea;
+}
+.lecture p { margin: 10px 0; }
+.lecture ul, .lecture ol { margin: 8px 0 8px 24px; }
+.lecture li { margin: 4px 0; }
+.lecture pre {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+  padding: 18px 22px; overflow-x: auto; font-size: .88em;
+  line-height: 1.55; margin: 14px 0;
+}
+.lecture code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; }
+.lecture p code, .lecture li code {
+  background: #eee8ff; padding: 1px 6px; border-radius: 4px;
+  font-size: .92em; color: #6c3cc0;
+}
+.lecture strong { color: #333; }
+.lecture em { color: #555; }
+.lecture blockquote {
+  border-left: 4px solid #667eea; padding: 8px 16px;
+  margin: 14px 0; background: #f4f4ff; border-radius: 0 8px 8px 0;
+  color: #555;
+}
+.lecture table {
+  border-collapse: collapse; width: 100%; margin: 16px 0;
+  font-size: .92em; background: white; border-radius: 6px; overflow: hidden;
+}
+.lecture table th {
+  background: #667eea; color: white; font-weight: 600;
+  padding: 10px 14px; text-align: left;
+}
+.lecture table td {
+  padding: 9px 14px; border-bottom: 1px solid #e8e8f0;
+}
+.lecture table tr:hover td { background: #f4f4ff; }
+.lecture hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+/* 架构图 / 流程图 — 与代码块相同的 pre 渲染方式 */
+.diagram-label {
+  font-size: .85em; font-weight: 600; color: #8ab4f8;
+  background: linear-gradient(135deg, #2d3a5c 0%, #1e2d4a 100%);
+  padding: 8px 18px; letter-spacing: .5px; margin: 18px 0 0 0;
+  border-radius: 10px 10px 0 0; border: 1px solid #3a4a6a; border-bottom: none;
+}
+.diagram-pre {
+  border-radius: 0 0 10px 10px; margin: 0 0 18px 0;
+  border-top: none; border: 1px solid #2a3045;
+}
+.ascii-art {
+  background: #1a1e2b; color: #c0caf5; border-radius: 0 0 10px 10px;
+  padding: 18px 22px; overflow-x: auto; font-size: .8em;
+  line-height: 1.3; margin: 0;
+  font-family: "JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace;
+  border: none; white-space: pre;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 目标/考点标签 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: .85em; font-weight: 500;
+}
+.tag-goal { background: #e8f5e9; color: #2e7d32; }
+.tag-interview { background: #fff3e0; color: #e65100; }
+
+/* 代码块区域 */
+.code-section { margin-top: 24px; }
+.code-section summary {
+  font-size: 1.1em; font-weight: 600; cursor: pointer;
+  padding: 10px 16px; background: #1e1e2e; color: #cdd6f4;
+  border-radius: 8px 8px 0 0; user-select: none;
+}
+.code-section pre {
+  margin: 0; border-radius: 0 0 8px 8px; max-height: 70vh;
+  overflow-y: auto;
+}
+.code-block {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 0 0 8px 8px;
+  padding: 20px 24px; overflow-x: auto; font-size: .85em;
+  line-height: 1.6; max-height: 70vh; overflow-y: auto;
+}
+
+/* IDE 风格语法高亮颜色 */
+.code-block .k { color: #c586c0; }     /* 关键字 def/class/import */
+.code-block .s { color: #ce9178; }     /* 字符串 */
+.code-block .h { color: #6a9955; }     /* 注释 */
+.code-block .d { color: #dcdcaa; }     /* 装饰器 */
+.code-block .n { color: #b5cea8; }     /* 数字 */
+.code-block .f { color: #4ec9b0; }     /* 函数名 */
+.code-block .b { color: #569cd6; }     /* 内置函数 */
+
+/* 讲义→代码 视觉过渡 */
+.code-bridge {
+  text-align: center; color: #667eea; font-size: .9em;
+  padding: 8px 0 4px; font-weight: 500;
+}
+.code-badges {
+  padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 6px;
+  background: #2a2a3e; border-bottom: 1px solid #444;
+}
+.code-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: .8em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.code-badge-func { background: #1e3a5f; color: #4ec9b0; }
+.code-badge-class { background: #1e3a5f; color: #dcdcaa; }
+.code-badge-const { background: #1e3a5f; color: #b5cea8; }
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main-content { max-width: calc(100vw - 200px); }
+}
+@media (max-width: 768px) {
+  .page-wrapper { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; height: auto; max-height: 45vh;
+    position: static; display: none; }
+  .sidebar.open { display: block; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .main-content { max-width: 100%; padding: 16px 10px 60px; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0; }
+  .hero { padding: 28px 18px; }
+  .hero h1 { font-size: 1.4em; }
+  .lecture { padding: 20px 16px; }
+}
+
+/* 打印 */
+@media print {
+  body { background: white; }
+  .lecture { box-shadow: none; }
+  .code-block { background: #f5f5f5; color: #222; }
+}
+
+/* 上/下章导航 */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 32px 0; gap: 16px;
+}
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 22px; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: .95em; transition: all .2s;
+}
+.nav-prev { background: #f0f0ff; color: #667eea; }
+.nav-prev:hover { background: #e0e0ff; }
+.nav-next { background: #667eea; color: white; }
+.nav-next:hover { background: #5560d8; }
+.nav-disabled { background: #eee; color: #999; cursor: not-allowed; pointer-events: none; }
+.nav-home { background: #f5f5f5; color: #555; }
+.nav-home:hover { background: #e0e0e0; }
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: .88em; color: #888; margin-bottom: 20px;
+}
+.breadcrumb a { color: #667eea; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* 移动端侧边栏开关 */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; background: #667eea;
+  color: white; border: none; font-size: 1.2em; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102,126,234,.4);
+}
+@media (max-width: 768px) { .sidebar-toggle { display: flex; align-items: center; justify-content: center; } }
+
+/* 浏览量统计徽章 */
+
+
+
+</style>
+
+</head>
+<body>
+<div class="page-wrapper">
+<!-- generated-from-sha256:9ee464250c477ab02998438f564698f960f94f2c70675a2b4b0fad7401a38bf9 -->
+<div class="sidebar" id="sidebar">
+<div class="sidebar-title"><a href="../index.html">🤖 AI Agent 全栈课程</a></div>
+<div class="sidebar-layer">第1层 理论基础</div>
+<a class="sidebar-link" href="../chapter_00_overview/00_course_overview.html">Ch0 课程概览与环境搭建</a>
+<a class="sidebar-link" href="../chapter_01_fundamentals/01_hello_agent.html">Ch1 第一个 Agent</a>
+<a class="sidebar-link" href="../chapter_02_components/02_agent_components.html">Ch2 Agent 核心组件</a>
+<a class="sidebar-link" href="../chapter_03_types/03_agent_types.html">Ch3 Agent 类型分类</a>
+<div class="sidebar-layer">第2层 工程实践</div>
+<a class="sidebar-link" href="../chapter_04_frameworks/04_frameworks.html">Ch4 主流框架实战</a>
+<a class="sidebar-link" href="../chapter_05_multi_agent/05_multi_agent.html">Ch5 多智能体系统</a>
+<a class="sidebar-link" href="../chapter_06_evaluation/06_evaluation.html">Ch6 评估与测试</a>
+<a class="sidebar-link" href="../chapter_07_interview/07_interview_prep.html">Ch7 求职面试准备</a>
+<div class="sidebar-layer">第3层 深度技术</div>
+<a class="sidebar-link" href="../chapter_08_claude_code/08_claude_code_architecture.html">Ch8 Claude Code 架构</a>
+<a class="sidebar-link" href="../chapter_09_rag_deepdive/09_rag_deepdive.html">Ch9 RAG 深度解析</a>
+<a class="sidebar-link" href="../chapter_10_mcp/10_mcp_deepdive.html">Ch10 MCP 深度解析</a>
+<a class="sidebar-link active" href="../chapter_11_tool_calling/11_tool_calling_deepdive.html">Ch11 Tool Calling 底层</a>
+<a class="sidebar-link" href="../chapter_12_infrastructure/12_infrastructure.html">Ch12 Agent 生产基础设施</a>
+<div class="sidebar-layer">第4层 工程化前沿</div>
+<a class="sidebar-link" href="../chapter_13_fastapi/13_fastapi_agent_service.html">Ch13 FastAPI 服务化</a>
+<a class="sidebar-link" href="../chapter_14_sqlite/14_sqlite_agent_storage.html">Ch14 SQLite 持久化</a>
+<a class="sidebar-link" href="../chapter_15_a2a/15_a2a_protocol.html">Ch15 Google A2A 协议</a>
+<a class="sidebar-link" href="../chapter_16_memgpt/16_memgpt_letta.html">Ch16 MemGPT/Letta 记忆</a>
+<a class="sidebar-link" href="../chapter_17_computer_use/17_computer_use.html">Ch17 Computer Use</a>
+<a class="sidebar-link" href="../chapter_18_security/18_agent_security.html">Ch18 Agent 安全与护栏</a>
+<div class="sidebar-layer">第5层 高级架构</div>
+<a class="sidebar-link" href="../chapter_19_workflow_patterns/19_workflow_patterns.html">Ch19 Agentic Workflow 设</a>
+<a class="sidebar-link" href="../chapter_20_context_engineering/20_context_engineering.html">Ch20 Context Engineerin</a>
+<a class="sidebar-link" href="../chapter_21_streaming/21_streaming_architecture.html">Ch21 Streaming & 实时架构</a>
+<a class="sidebar-link" href="../chapter_22_dspy/22_dspy.html">Ch22 DSPy 自动优化</a>
+<a class="sidebar-link" href="../chapter_23_code_agents/23_code_agents.html">Ch23 代码 Agent 架构横评</a>
+<a class="sidebar-link" href="../chapter_24_observability/24_observability.html">Ch24 Agent 可观测性</a>
+<div class="sidebar-layer">第6层 基础补强</div>
+<a class="sidebar-link" href="../chapter_25_vectordb/25_vectordb.html">Ch25 向量数据库选型</a>
+<a class="sidebar-link" href="../chapter_26_model_routing/26_model_routing.html">Ch26 模型路由策略</a>
+<a class="sidebar-link" href="../chapter_27_prompt_eng/27_prompt_engineering.html">Ch27 Agent Prompt 工程</a>
+<a class="sidebar-link" href="../chapter_28_cache/28_cache.html">Ch28 语义缓存与 Token 优化</a>
+<div class="sidebar-layer">第7层 专家进阶</div>
+<a class="sidebar-link" href="../chapter_29_multimodal/29_multimodal.html">Ch29 Multi-Modal Agent</a>
+<a class="sidebar-link" href="../chapter_30_reliability/30_reliability.html">Ch30 Agent 可靠性工程</a>
+<a class="sidebar-link" href="../chapter_31_benchmarks/31_benchmarks.html">Ch31 Agent 评测体系深度</a>
+<a class="sidebar-link" href="../chapter_32_self_improving/32_self_improving.html">Ch32 Self-Improving Age</a>
+<a class="sidebar-link" href="../chapter_33_prompt_cache/33_prompt_cache.html">Ch33 Prompt Caching & 推</a>
+<a class="sidebar-link" href="../chapter_34_finetune/34_finetune.html">Ch34 模型微调 for Function </a>
+<a class="sidebar-link" href="../chapter_35_data_flywheel/35_data_flywheel.html">Ch35 数据飞轮</a>
+<a class="sidebar-link" href="../chapter_36_defense/36_defense.html">Ch36 Agent 纵深安全</a>
+</div>
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div class="main-content"><div class="container"><div class="breadcrumb"><a href="../index.html">📖 AI Agent 全栈课程</a> &raquo; <strong>第11章 Tool Calling 底层 — OpenAI vs Anthropic</strong></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_10_mcp/10_mcp_deepdive.html" title="MCP 深度解析 — 设计哲学·JSON-RPC·传输层选型·三协议对比">← 第10章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_12_infrastructure/12_infrastructure.html" title="Agent 生产基础设施 — OpenClaw·Harness·Checklist">第12章 →</a>
+</div><div class="hero"><h1>第11章 Tool Calling 底层机制深度剖析</h1><p class="subtitle">📖 AI Agent 全栈学习课程 · 可运行讲义</p></div><div class="lecture"><div class="tag-row"><span class="tag tag-goal">1. 深入理解 LLM Function Calling 的「真正原理」</span><span class="tag tag-goal">2. 掌握 OpenAI / Anthropic 两套实现的技术细节和差异</span><span class="tag tag-goal">3. 理解 Streaming Tool Calls 的机制</span><span class="tag tag-goal">4. 学会 Parallel Tool Calling 的使用与限制</span><span class="tag tag-goal">5. 掌握 Strict Function Calling（严格模式）</span><span class="tag tag-goal">6. 理解 Tool Search 与 Programmatic Tool Calling 的边界</span><span class="tag tag-goal">7. 理解 Tool Calling 中的常见陷阱和解决方案</span><span class="tag tag-interview">🎤 LLM 是如何「知道」该调用哪个工具的？</span><span class="tag tag-interview">🎤 OpenAI 的 function calling 和 Anthropic 的 tool_use 有什么区别？</span><span class="tag tag-interview">🎤 什么是 Parallel Tool Calling？什么时候该用，什么时候不该用？</span><span class="tag tag-interview">🎤 Streaming 模式下如何处理 Tool Call？</span><span class="tag tag-interview">🎤 Token 消耗：tool definitions 计入 prompt token 吗？</span></div><p>&nbsp;</p>
+<p>内容核对：2026-08-01</p>
+<p>说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>本章是基于 OpenAI / Anthropic API 文档 + 实践经验的总结</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>11.1 Function Calling 真的不是 LLM 在「调用函数」！</h2>
+<p>&nbsp;</p>
+<p>这是最常见的误解。让我们从底层理解真正发生了什么。</p>
+<p>&nbsp;</p>
+<p>误解：「LLM 调用了我的函数」</p>
+<p>真相：「LLM 输出了一个 JSON 对象，你的代码解析了它并执行了函数」</p>
+<p>&nbsp;</p>
+<p>类比：</p>
+<p>你给朋友发短信：「如果需要打车，回复格式 {action: "call_taxi", from: "...", to: "..."}」</p>
+<p>朋友回复：{"action": "call_taxi", "from": "天安门", "to": "机场"}</p>
+<p>&nbsp;</p>
+<p>你做的事：</p>
+<li>1. 解析这条 JSON</li>
+<li>2. 调用打车 API("天安门", "机场")</li>
+<li>3. 告诉朋友结果</li>
+<p>&nbsp;</p>
+<p>LLM 做的事：</p>
+<li>1. 根据你的 tool definition，决定是否使用工具</li>
+<li>2. 返回一个结构化的 JSON（而不是自然语言）</li>
+<li>3. 你的代码解析 JSON 并执行真正的函数</li>
+<p>&nbsp;</p>
+<p>所以 Function Calling 本质上是：</p>
+<p>「LLM 的结构化输出能力」+「协议规约」</p>
+<p>不是 LLM 有了「执行函数」的能力！</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>11.2 Token 层面的原理 —— 工具定义去哪了？</h2>
+<p>&nbsp;</p>
+<p>当你在 API 请求中包含 tools 参数时：</p>
+<p>&nbsp;</p>
+<p>POST /v1/responses</p>
+<p>{</p>
+<p>"model": "gpt-5.6-terra",</p>
+<p>"input": [...],</p>
+<p>"tools": [</p>
+<p>{</p>
+<p>"type": "function",</p>
+<p>"name": "get_weather",</p>
+<p>"description": "查询天气",</p>
+<p>"parameters": {...},</p>
+<p>"strict": true</p>
+<pre>  }
+]</pre>
+<p>}</p>
+<p>&nbsp;</p>
+<p>OpenAI 的服务端内部提示构造不是稳定公开接口。可以确认的是：工具定义会占用</p>
+<p>输入 token / 上下文预算，因此应从 API usage 字段和真实账单测量，而不是假设</p>
+<p>服务端一定以某种文本拼接方式实现。</p>
+<p>&nbsp;</p>
+<p>Anthropic 的处理流程类似但有差异：</p>
+<li>1. 将 tools 作为独立字段发送</li>
+<li>2. 模型在训练时已学会理解 tool schema</li>
+<li>3. 同样计入 prompt token</li>
+<p>&nbsp;</p>
+<p>面试重点：tools 定义消耗 token！</p>
+<li>schema 越长，输入预算通常越大</li>
+<li>具体 token 数取决于 provider、模型与序列化方式</li>
+<li>通过 usage、tracing 和账单按版本监控</li>
+<li>优化策略：只传当前场景可能用到的工具（动态工具选择）</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>11.3 OpenAI vs Anthropic —— 两套实现对比</h2>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">┌──────────────────┬───────────────────────┬──────────────────────────┐
+│      维度         │  OpenAI Function Call  │  Anthropic Tool Use      │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 工具定义格式      │ Responses 扁平对象      │ Tool 对象                 │
+│                  │ {type:"function",     │ {name:"...",            │
+│                  │  name:"...",...}     │  description:"...",      │
+│                  │                       │  input_schema:{...}}     │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 返回格式          │ output 中 function_call│ content 中的 tool_use    │
+│                  │ items                  │ blocks                  │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 并行调用          │ 同时返回多个 tool_call  │ 同时返回多个 tool_use    │
+│                  │ (parallel_tool_calls  │ block                   │
+│                  │  参数控制)             │                         │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 流式支持          │ 增量式 tool_call 名称   │ content_block 流式输出   │
+│                  │ 和参数                  │                         │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 严格模式          │ strict: true          │ strict: true             │
+│                  │ (支持的 Schema 子集)    │ (mcp_toolset 除外)        │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ Token 计算        │ tools 序列化拼入 prompt │ tools 作为独立参数       │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 工具结果返回      │ function_call_output   │ Tool Result Content Block│
+│                  │ item + call_id          │ type="tool_result"      │
+└──────────────────┴───────────────────────┴──────────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>两种格式对比（JSON）：</p>
+<p>&nbsp;</p>
+<p># OpenAI 格式</p>
+<p>{"type": "function_call", "call_id": "call_abc123",</p>
+<p>"name": "get_weather", "arguments": "{\"city\": \"北京\"}"}</p>
+<p>&nbsp;</p>
+<p># Anthropic 格式</p>
+<p>{</p>
+<p>"role": "assistant",</p>
+<p>"content": [</p>
+<p>{</p>
+<p>"type": "tool_use",</p>
+<p>"id": "toolu_abc123",</p>
+<p>"name": "get_weather",</p>
+<p>"input": {"city": "北京"}</p>
+<pre>  }
+]</pre>
+<p>}</p>
+<p>&nbsp;</p>
+<p>关键差异：</p>
+<li>OpenAI: arguments 是 JSON 字符串（需要 json.loads）</li>
+<li>Anthropic: input 直接是 JSON 对象</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (63 行)</summary><div class="code-badges"><span class="code-badge code-badge-const">OPENAI_TOOL</span><span class="code-badge code-badge-const">ANTHROPIC_TOOL</span><span class="code-badge code-badge-const">OPENAI_PROGRAMMATIC_TOOLS</span></div><div class="code-block"><pre><span class="k">import</span> ast
+<span class="k">import</span> operator
+
+<span class="h"># 两个平台的工具定义格式对比</span>
+OPENAI_TOOL = {
+    <span class="s">"type"</span>: <span class="s">"function"</span>,
+    <span class="s">"name"</span>: <span class="s">"get_weather"</span>,
+    <span class="s">"description"</span>: <span class="s">"查询天气"</span>,
+    <span class="s">"parameters"</span>: {
+        <span class="s">"type"</span>: <span class="s">"object"</span>,
+        <span class="s">"properties"</span>: {
+            <span class="s">"city"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>, <span class="s">"description"</span>: <span class="s">"城市名称"</span>}
+        },
+        <span class="s">"required"</span>: [<span class="s">"city"</span>],
+        <span class="s">"additionalProperties"</span>: <span class="k">False</span>,
+    },
+    <span class="s">"strict"</span>: <span class="k">True</span>,
+}
+
+ANTHROPIC_TOOL = {
+    <span class="s">"name"</span>: <span class="s">"get_weather"</span>,
+    <span class="s">"description"</span>: <span class="s">"查询指定城市的天气信息。返回温度、湿度、天气状况。"</span>,
+    <span class="s">"input_schema"</span>: {
+        <span class="s">"type"</span>: <span class="s">"object"</span>,
+        <span class="s">"properties"</span>: {
+            <span class="s">"city"</span>: {
+                <span class="s">"type"</span>: <span class="s">"string"</span>,
+                <span class="s">"description"</span>: <span class="s">"城市名称，如 '北京'、'上海'"</span>,
+            }
+        },
+        <span class="s">"required"</span>: [<span class="s">"city"</span>],
+        <span class="s">"additionalProperties"</span>: <span class="k">False</span>,
+    },
+    <span class="s">"strict"</span>: <span class="k">True</span>,
+}
+
+<span class="h"># OpenAI Responses API 的 Programmatic Tool Calling 配置示意。</span>
+<span class="h"># 它只构造请求数据，不调用网络，便于离线检查 schema。</span>
+OPENAI_PROGRAMMATIC_TOOLS = [
+    {
+        <span class="s">"type"</span>: <span class="s">"function"</span>,
+        <span class="s">"name"</span>: <span class="s">"get_inventory"</span>,
+        <span class="s">"description"</span>: <span class="s">"Return sku and available_units for one SKU."</span>,
+        <span class="s">"parameters"</span>: {
+            <span class="s">"type"</span>: <span class="s">"object"</span>,
+            <span class="s">"properties"</span>: {<span class="s">"sku"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>}},
+            <span class="s">"required"</span>: [<span class="s">"sku"</span>],
+            <span class="s">"additionalProperties"</span>: <span class="k">False</span>,
+        },
+        <span class="s">"output_schema"</span>: {
+            <span class="s">"type"</span>: <span class="s">"object"</span>,
+            <span class="s">"properties"</span>: {
+                <span class="s">"sku"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>},
+                <span class="s">"available_units"</span>: {<span class="s">"type"</span>: <span class="s">"number"</span>},
+            },
+            <span class="s">"required"</span>: [<span class="s">"sku"</span>, <span class="s">"available_units"</span>],
+            <span class="s">"additionalProperties"</span>: <span class="k">False</span>,
+        },
+        <span class="s">"allowed_callers"</span>: [<span class="s">"programmatic"</span>],
+        <span class="s">"strict"</span>: <span class="k">True</span>,
+    },
+    {<span class="s">"type"</span>: <span class="s">"programmatic_tool_calling"</span>},
+]</pre></div></details></div><div class="lecture"><h2>11.4 Parallel Tool Calling —— 并行执行</h2>
+<p>&nbsp;</p>
+<p>当 LLM 判断多个工具调用之间没有依赖关系时，</p>
+<p>它可以一次性返回多个 tool_call，由你的代码并行执行。</p>
+<p>&nbsp;</p>
+<p>示例场景：</p>
+<p>用户：「北京和上海的天气分别怎么样？」</p>
+<p>&nbsp;</p>
+<p>LLM 返回 2 个 tool_call（同一个 response）:</p>
+<p>tool_call_1: get_weather("北京")</p>
+<p>tool_call_2: get_weather("上海")</p>
+<p>&nbsp;</p>
+<p>你的代码并行执行这两个请求（节省时间！）</p>
+<p>&nbsp;</p>
+<p>但需要注意：</p>
+<li>1. 并行执行的前提：工具之间没有依赖关系</li>
+<li>2. 如果 tool_2 依赖 tool_1 的结果 → 必须串行</li>
+<li>3. LLM 自己会判断（通过参数推断依赖关系）</li>
+<p>&nbsp;</p>
+<p>控制行为：</p>
+<p>OpenAI: tool_choice 参数</p>
+<li>"auto": LLM 自行决定（默认）</li>
+<li>"required": 必须至少调用一个工具</li>
+<li>"none": 不允许调用工具</li>
+<li>{"type": "function", "function": {"name": "get_weather"}}: 强制调用指定工具</li>
+<p>&nbsp;</p>
+<p>Anthropic: tool_choice 参数</p>
+<li>"auto": LLM 自行决定（默认）</li>
+<li>"any": 必须至少调用一个工具</li>
+<li>"tool": 强制调用指定工具</li>
+<li>不支持 "none"（没有等效设置）</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>11.5 Streaming Tool Calls —— 流式工具调用</h2>
+<p>&nbsp;</p>
+<p>在 streaming 模式下，tool_call 是「增量式」到达的：</p>
+<p>&nbsp;</p>
+<p>OpenAI streaming 过程：</p>
+<p>chunk_1: {"delta": {"tool_calls": [{"index": 0, "id": "call_abc"}]}}</p>
+<p>chunk_2: {"delta": {"tool_calls": [{"index": 0, "function": {"name": "get"}}]}}</p>
+<p>chunk_3: {"delta": {"tool_calls": [{"index": 0, "function": {"name": "_weather"}}]}}</p>
+<p>chunk_4: {"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{\"cit"}}]}}</p>
+<p>chunk_5: {"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "y\":\"北京\"}} ]}}</p>
+<p>...</p>
+<p>&nbsp;</p>
+<p>我们需要「组装」这些增量片段为完整的 tool_call。</p>
+<p>&nbsp;</p>
+<p>Anthropic streaming 过程：</p>
+<p>chunk_1: {"type": "content_block_start", "content_block": {"type": "tool_use", ...}}</p>
+<p>chunk_2: {"type": "content_block_delta", "delta": {"type": "input_json_delta", "partial_json": "{\"city\""}}</p>
+<p>chunk_3: {"type": "content_block_delta", "delta": {"type": "input_json_delta", "partial_json": ":\"北京\"}"}}</p>
+<p>...</p>
+<p>&nbsp;</p>
+<p>关键挑战：</p>
+<li>1. 需要维护状态机（哪些 tool_call 是同一个？）</li>
+<li>2. 参数是增量到达的，需要累积拼接</li>
+<li>3. 可能同时收到多个 tool_call 的流（用 index 区分）</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>11.5.1 Streaming 组装实战 —— 面试官想知道你处理过脏数据</h3>
+<p>&nbsp;</p>
+<p>▍ 状态机设计 —— 不只是「拼接字符串」</p>
+<p>&nbsp;</p>
+<p>面试常问：「Streaming 模式下怎么组装 tool_call？」</p>
+<p>&nbsp;</p>
+<p>简单回答是「用 index 区分 + 累积 arguments 字符串」。但真实项目中</p>
+<p>需要处理至少 5 种异常状态：</p>
+<p>&nbsp;</p>
+<p>异常 1：丢包乱序 —— 网络抖动导致 chunk_5 先到、chunk_3 后到</p>
+<p>对策：按 index + sequence_number（如果有）排序重组</p>
+<p>&nbsp;</p>
+<p>异常 2：中断恢复 —— 流中断后重新连接，tool_call 拼接了一半</p>
+<p>对策：保存中间状态，重连后从断点继续</p>
+<p>&nbsp;</p>
+<p>异常 3：JSON 解析失败 —— arguments 拼接完成但是无效 JSON</p>
+<p>对策：regex 修复常见错误（尾逗号、单引号）→ 重试 → 放弃</p>
+<p>&nbsp;</p>
+<p>异常 4：并行 tool_call 的流交错 —— 3 个 tool_call 同时流式到达</p>
+<p>对策：用 index 分桶，各自独立组装，互不干扰</p>
+<p>&nbsp;</p>
+<p>异常 5：空参数 —— LLM 某些情况下返回没有 arguments 的 tool_call</p>
+<p>对策：加默认空对象 {}，不 crash</p>
+<p>&nbsp;</p>
+<p>▍ Anthropic 的 content_block 设计为什么更优雅？</p>
+<p>&nbsp;</p>
+<p>Anthropic 用 content_block_start/delta/stop 三阶段模型：</p>
+<li>start → 声明「一个 tool_use block 开始了」，type + id 已知</li>
+<li>delta → 流式传输 input_json_delta（只传增量 JSON）</li>
+<li>stop → 声明这个 block 结束</li>
+<p>&nbsp;</p>
+<p>比 OpenAI 的 index 模式好在哪里？</p>
+<li>不需要 index 来区分并行调用（不同的 content_block 就是不同的）</li>
+<li>生命周期明确 → 你在 stop 事件时可以确认「完整了」</li>
+<li>可以处理非 JSON 的 block 类型（如文本 block + 工具 block 交替）</li>
+<p>&nbsp;</p>
+<p>面试可以提：「Anthropic 的 content_block 流式模型给每个 tool_call</p>
+<p>分配了明确的生命周期，避免了 OpenAI index 模式下的并行组装复杂度。」</p>
+<p>&nbsp;</p>
+<p>▍ 生产中的 Token 陷阱 —— tools 定义在「吃」你的预算</p>
+<p>&nbsp;</p>
+<p>tools 定义会占用输入预算。一个 Agent 如果把大量、冗长且无关的工具</p>
+<p>全部传入，每次请求都会承担额外上下文与路由难度。</p>
+<p>&nbsp;</p>
+<p>优化策略：</p>
+<p>a) 动态工具集 —— 第一轮不带 tools，让 LLM 说「我需要什么」</p>
+<p>→ 第二轮只带 2-3 个相关工具</p>
+<p>b) 工具描述聚焦 —— 清楚写明用途、边界和何时不要调用，删除重复文字</p>
+<p>c) Schema 惰性加载 —— 只在 LLM 选择了某个工具后才传完整 Schema</p>
+<p>d) 缓存工具列表 —— 使用 Prompt Caching（Ch33）缓存不变的 tools 前缀</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>11.6 Strict Function Calling —— 严格模式</h2>
+<p>&nbsp;</p>
+<p>OpenAI 与 Anthropic 的函数工具都支持 <code>strict: true</code>（Anthropic 的</p>
+<p><code>mcp_toolset</code> 例外）。它提高对受支持 JSON Schema 子集的遵循度，但调用方</p>
+<p>仍要处理拒绝、截断、网络错误、业务校验失败和工具自身异常。</p>
+<p>&nbsp;</p>
+<p>▍ Strict 模式的代价 —— 面试官想听你说「限制」</p>
+<p>&nbsp;</p>
+<p>面试常见陷阱：「你用 strict 模式了吗？」→ 如果你只说「用了，保证格式」，</p>
+<p>就太浅了。正确的深度回答应当包含 strict 模式的限制：</p>
+<p>&nbsp;</p>
+<li>1. 各平台只支持 JSON Schema 的子集，且子集会随 API 版本变化</li>
+<li>2. <code>additionalProperties: false</code>、required 和 nullable 的写法必须按官方要求</li>
+<li>3. 动态、递归或复杂联合结构要先做 provider 兼容性测试</li>
+<li>4. Schema 合法不代表参数在业务上安全：路径、金额、ID 仍需再次验证</li>
+<p>&nbsp;</p>
+<p>面试可以提：「Strict 模式适合 API 网关类的确定性工具，</p>
+<p>但对需要 LLM 灵活输出结构（如图表配置、动态查询）的场景</p>
+<p>反而会限制表达能力。我通常按工具类型分：确定性工具用 strict，</p>
+<p>创造性工具不用。」</p>
+<p>&nbsp;</p>
+<p>▍ Anthropic strict tool use</p>
+<p>&nbsp;</p>
+<p>Anthropic 当前同样可在工具定义上设置 <code>strict: true</code>；除 <code>mcp_toolset</code></p>
+<p>外可用于客户端工具和服务端工具。<code>tool_use.input</code> 在 SDK 中通常作为对象</p>
+<p>提供，但仍要用同一业务校验器检查后才能执行。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>11.6.1 Tool Calling 生产 Checklist</h3>
+<p>&nbsp;</p>
+<p>你上线前应该检查：</p>
+<p>✅ description 说明用途、输入语义、边界和禁止场景，不堆砌无关文本</p>
+<p>✅ 动态加载工具，不是一次传 20 个</p>
+<p>✅ 参数有明确的 type + default + nullable 声明</p>
+<p>✅ 工具返回有 max_length 限制（避免 10MB JSON 爆上下文）</p>
+<p>✅ 工具超时设置（>10s 的工具调异步模式）</p>
+<p>✅ 幂等性保证（相同参数多次调用 = 相同结果或安全重试）</p>
+<p>✅ 错误返回统一格式（{"error": "...", "retryable": true/false}）</p>
+<p>&nbsp;</p>
+<p>如何使用：</p>
+<li>所有参数必须定义为 object 类型</li>
+<li>所有字段必须有明确的 type</li>
+<li>可选字段必须设置 default 或 nullable</li>
+<li>不允许使用 anyOf / oneOf</li>
+<p>&nbsp;</p>
+<p>示例：</p>
+<p>{</p>
+<p>"type": "function",</p>
+<p>"name": "get_weather",</p>
+<p>"strict": true,</p>
+<p>"parameters": {</p>
+<p>"type": "object",</p>
+<p>"properties": {</p>
+<p>"city": {"type": "string"},</p>
+<p>"unit": {"type": "string", "enum": ["celsius", "fahrenheit"]}</p>
+<pre>  },
+  "required": ["city", "unit"],
+  "additionalProperties": false
+}</pre>
+<p>}</p>
+<p>&nbsp;</p>
+<p>为什么需要 strict 模式？</p>
+<li>1. 生产环境要求：参数格式错误会导致工具执行失败</li>
+<li>2. 减少重试：不需要「尝试解析 → 失败 → 重新请求 LLM」</li>
+<li>3. 安全考虑：防止 LLM 输出未定义的字段</li>
+<p>&nbsp;</p>
+<p>Anthropic 示例同样在工具对象顶层设置 <code>strict: true</code>；调用前先确认当前</p>
+<p>工具类型与模型支持该能力，并保留本地 schema 与业务规则验证。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>11.6.2 Tool Search 与 Programmatic Tool Calling（2026）</h3>
+<p>&nbsp;</p>
+<p>官方文档：</p>
+<p>https://developers.openai.com/api/docs/guides/tools-tool-search</p>
+<p>https://developers.openai.com/api/docs/guides/tools-programmatic-tool-calling</p>
+<p>&nbsp;</p>
+<p>当工具目录很大时，不应把全部 schema 永久塞进上下文。Tool Search 可以将</p>
+<p>函数、custom tool 或 MCP tool 标为 defer_loading，让模型先搜索并加载相关</p>
+<p>工具，再执行调用。它解决的是「先找到哪个工具」的问题。</p>
+<p>&nbsp;</p>
+<p>Programmatic Tool Calling（PTC）解决另一类问题：让模型在隔离的 V8 运行时中</p>
+<p>生成 JavaScript，对允许的工具做并行、循环、过滤、聚合或校验。配置要点：</p>
+<p>&nbsp;</p>
+<li>1. 请求中加入 {"type": "programmatic_tool_calling"}</li>
+<li>2. 可被程序调用的工具设置 allowed_callers: ["programmatic"]</li>
+<li>3. 为结构化返回增加 output_schema，让程序知道字段契约</li>
+<li>4. 应用仍负责执行客户端 function_call，并原样带回 call_id 与 caller</li>
+<li>5. 继续处理 program / function_call / program_output，直到出现最终 message</li>
+<p>&nbsp;</p>
+<p>选择边界：</p>
+<li>查一次数据、每一步都需要语义判断、需要审批或必须保留原生引用 → 直接调用</li>
+<li>可预测的过滤、连接、去重、聚合，大量中间结果可被压缩 → 考虑 PTC</li>
+<li>写操作默认保持直接调用，把人工审批边界留在宿主应用</li>
+<p>&nbsp;</p>
+<p>多轮 Responses 工作流还要保存状态：使用 previous_response_id 继续已存储响应，</p>
+<p>或在 store=false 时重放全部输出项；GPT-5.6 可通过 reasoning.context 控制此前</p>
+<p>reasoning 是否继续相关。不要只保存最终文本而丢失 tool/program/reasoning items。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>11.7 Tool Calling 的进阶技巧</h2>
+<p>&nbsp;</p>
+<li>1. 工具描述即 Prompt 工程</li>
+<li>description 不只是给开发者看的，是给 LLM 看的！</li>
+<li>描述要回答三个问题：</li>
+<p>a. 这个工具「做什么」？</p>
+<p>b. 「什么时候」该用？</p>
+<p>c. 「什么时候」不该用？</p>
+<p>&nbsp;</p>
+<li>2. 参数设计原则</li>
+<li>用 enum 限制选项（减少幻觉）</li>
+<li>提供清晰的参数描述</li>
+<li>必填 vs 可选要明确</li>
+<li>给出典型调用示例（在 description 中）</li>
+<p>&nbsp;</p>
+<li>3. 错误处理 —— 工具结果应「帮助 LLM 纠正」</li>
+<p>✗ return "Error 404"</p>
+<p>✓ return "未找到城市'培京'的天气数据。城市名是否拼写有误？可用城市：北京、上海。"</p>
+<p>&nbsp;</p>
+<li>4. 工具数量控制 —— 别默认传入完整目录</li>
+<li>工具越多，schema 的上下文成本和误选空间通常越大，具体影响要用评测确认</li>
+<li>小目录采用动态工具集：根据当前上下文过滤可用工具</li>
+<li>大目录采用 Tool Search / defer_loading，按需加载详细 schema</li>
+<p>&nbsp;</p>
+<li>5. 工具调用确认（Human-in-the-Loop）</li>
+<li>读操作：自动执行（get_weather, search）</li>
+<li>写操作：需要确认（send_email, delete_file）</li>
+<li>危险操作：需要二次确认（execute_sql, run_command）</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (221 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">safe_calculate</span><span class="code-badge code-badge-func">evaluate</span><span class="code-badge code-badge-func">process_openai_style</span><span class="code-badge code-badge-func">process_anthropic_style</span><span class="code-badge code-badge-func">demo_tool_calling_flow</span><span class="code-badge code-badge-func">demo_streaming_assembly</span><span class="code-badge code-badge-class">ToolCallSimulator</span><span class="code-badge code-badge-const">_ARITHMETIC_OPERATORS</span></div><div class="code-block"><pre><span class="k">import</span> ast
+<span class="k">import</span> operator
+
+<span class="h"># 两个平台的工具定义格式对比</span>
+
+_ARITHMETIC_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+
+<span class="k">def</span> <span class="f">safe_calculate</span>(raw_expression: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="s">"""只计算基础算术表达式；拒绝名称、属性、下标和函数调用。"""</span>
+    expression = raw_expression.strip()
+    <span class="k">if</span> <span class="k">not</span> expression <span class="k">or</span> <span class="b">len</span>(expression) &gt; <span class="n">100</span>:
+        <span class="k">return</span> <span class="s">"表达式错误"</span>
+
+    <span class="k">def</span> <span class="f">evaluate</span>(node):
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.Expression):
+            <span class="k">return</span> evaluate(node.body)
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.Constant) <span class="k">and</span> <span class="b">type</span>(node.value) <span class="k">in</span> {<span class="b">int</span>, <span class="b">float</span>}:
+            <span class="k">return</span> node.value
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.BinOp) <span class="k">and</span> <span class="b">type</span>(node.op) <span class="k">in</span> _ARITHMETIC_OPERATORS:
+            <span class="k">return</span> _ARITHMETIC_OPERATORS[<span class="b">type</span>(node.op)](
+                evaluate(node.left), evaluate(node.right)
+            )
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.UnaryOp) <span class="k">and</span> <span class="b">type</span>(node.op) <span class="k">in</span> _ARITHMETIC_OPERATORS:
+            <span class="k">return</span> _ARITHMETIC_OPERATORS[<span class="b">type</span>(node.op)](evaluate(node.operand))
+        <span class="k">raise</span> ValueError(<span class="s">"只允许基础算术"</span>)
+
+    <span class="k">try</span>:
+        <span class="k">return</span> <span class="b">str</span>(evaluate(ast.parse(expression, mode=<span class="s">"eval"</span>)))
+    <span class="k">except</span> (SyntaxError, ValueError, TypeError, ZeroDivisionError, OverflowError):
+        <span class="k">return</span> <span class="s">"表达式错误"</span>
+
+
+<span class="k">class</span> <span class="f">ToolCallSimulator</span>:
+    <span class="s">"""模拟两个平台的 Tool Call 处理流程。
+
+    展示从 LLM 返回 → 解析 → 执行 → 返回结果的完整链路。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.tools = {
+            <span class="s">"get_weather"</span>: <span class="k">lambda</span> args: f<span class="s">"天气: {args.get('city', '未知')} 晴 25°C"</span>,
+            <span class="s">"search"</span>: <span class="k">lambda</span> args: f<span class="s">"搜索结果(关于'{args.get('query', '')}'): ..."</span>,
+            <span class="s">"calculate"</span>: <span class="k">lambda</span> args: safe_calculate(args.get(<span class="s">"expression"</span>, <span class="s">"0"</span>)),
+        }
+
+    <span class="k">def</span> <span class="f">process_openai_style</span>(<span class="k">self</span>, llm_response: <span class="b">dict</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""处理 OpenAI 风格的 tool_calls。
+
+        Args:
+            llm_response: 模拟的 OpenAI LLM 响应。
+
+        Returns:
+            执行结果描述。
+        """</span>
+        tool_calls = llm_response.get(<span class="s">"tool_calls"</span>, [])
+        <span class="k">if</span> <span class="k">not</span> tool_calls:
+            <span class="k">return</span> <span class="s">"LLM 直接回答: "</span> + llm_response.get(<span class="s">"content"</span>, <span class="s">""</span>)
+
+        results = []
+        can_parallel = <span class="k">True</span>
+
+        <span class="h"># 检查是否可以并行（简化：都假设可并行）</span>
+        <span class="k">for</span> tc <span class="k">in</span> tool_calls:
+            func = tc[<span class="s">"function"</span>]
+            tool_name = func[<span class="s">"name"</span>]
+            <span class="h"># OpenAI 的 arguments 是 JSON 字符串！</span>
+            args = __import__(<span class="s">"json"</span>).loads(func[<span class="s">"arguments"</span>])
+
+            <span class="b">print</span>(f<span class="s">"  [OpenAI] 调用: {tool_name}({args})"</span>)
+
+            <span class="k">if</span> tool_name <span class="k">in</span> <span class="k">self</span>.tools:
+                result = <span class="k">self</span>.tools[tool_name](args)
+            <span class="k">else</span>:
+                result = f<span class="s">"错误: 未知工具 {tool_name}"</span>
+
+            results.append({
+                <span class="s">"tool_call_id"</span>: tc[<span class="s">"id"</span>],
+                <span class="s">"role"</span>: <span class="s">"tool"</span>,
+                <span class="s">"content"</span>: result,
+            })
+            <span class="b">print</span>(f<span class="s">"    结果: {result}"</span>)
+
+        <span class="h"># 组装返回给 LLM 的工具结果</span>
+        <span class="k">return</span> <span class="b">str</span>(results)
+
+    <span class="k">def</span> <span class="f">process_anthropic_style</span>(<span class="k">self</span>, llm_response: <span class="b">dict</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""处理 Anthropic 风格的 tool_use blocks。
+
+        Args:
+            llm_response: 模拟的 Anthropic LLM 响应。
+
+        Returns:
+            执行结果描述。
+        """</span>
+        content_blocks = llm_response.get(<span class="s">"content"</span>, [])
+        tool_uses = [b <span class="k">for</span> b <span class="k">in</span> content_blocks <span class="k">if</span> b.get(<span class="s">"type"</span>) == <span class="s">"tool_use"</span>]
+
+        <span class="k">if</span> <span class="k">not</span> tool_uses:
+            text_blocks = [b <span class="k">for</span> b <span class="k">in</span> content_blocks <span class="k">if</span> b.get(<span class="s">"type"</span>) == <span class="s">"text"</span>]
+            <span class="k">return</span> <span class="s">"LLM 直接回答: "</span> + <span class="s">""</span>.join(
+                b.get(<span class="s">"text"</span>, <span class="s">""</span>) <span class="k">for</span> b <span class="k">in</span> text_blocks
+            )
+
+        results = []
+        <span class="k">for</span> tu <span class="k">in</span> tool_uses:
+            tool_name = tu[<span class="s">"name"</span>]
+            <span class="h"># Anthropic 的 input 直接是 dict（不需要 json.loads）</span>
+            args = tu[<span class="s">"input"</span>]
+
+            <span class="b">print</span>(f<span class="s">"  [Anthropic] 调用: {tool_name}({args})"</span>)
+
+            <span class="k">if</span> tool_name <span class="k">in</span> <span class="k">self</span>.tools:
+                result = <span class="k">self</span>.tools[tool_name](args)
+            <span class="k">else</span>:
+                result = f<span class="s">"错误: 未知工具 {tool_name}"</span>
+
+            results.append({
+                <span class="s">"type"</span>: <span class="s">"tool_result"</span>,
+                <span class="s">"tool_use_id"</span>: tu[<span class="s">"id"</span>],
+                <span class="s">"content"</span>: result,
+            })
+            <span class="b">print</span>(f<span class="s">"    结果: {result}"</span>)
+
+        <span class="k">return</span> <span class="b">str</span>(results)
+
+
+<span class="k">def</span> <span class="f">demo_tool_calling_flow</span>():
+    <span class="s">"""演示完整的 Tool Calling 流程。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Tool Calling 完整流程演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    simulator = ToolCallSimulator()
+
+    <span class="h"># 模拟 OpenAI 风格</span>
+    <span class="b">print</span>(<span class="s">"\n  [OpenAI 风格 Tool Call]"</span>)
+    openai_response = {
+        <span class="s">"role"</span>: <span class="s">"assistant"</span>,
+        <span class="s">"tool_calls"</span>: [
+            {
+                <span class="s">"id"</span>: <span class="s">"call_abc123"</span>,
+                <span class="s">"type"</span>: <span class="s">"function"</span>,
+                <span class="s">"function"</span>: {
+                    <span class="s">"name"</span>: <span class="s">"get_weather"</span>,
+                    <span class="s">"arguments"</span>: <span class="s">'{<span class="s">"city"</span>: <span class="s">"北京"</span>}'</span>,
+                },
+            },
+            {
+                <span class="s">"id"</span>: <span class="s">"call_def456"</span>,
+                <span class="s">"type"</span>: <span class="s">"function"</span>,
+                <span class="s">"function"</span>: {
+                    <span class="s">"name"</span>: <span class="s">"calculate"</span>,
+                    <span class="s">"arguments"</span>: <span class="s">'{<span class="s">"expression"</span>: <span class="s">"25 + 30"</span>}'</span>,
+                },
+            },
+        ],
+    }
+    simulator.process_openai_style(openai_response)
+
+    <span class="h"># 模拟 Anthropic 风格</span>
+    <span class="b">print</span>(<span class="s">"\n  [Anthropic 风格 Tool Use]"</span>)
+    anthropic_response = {
+        <span class="s">"role"</span>: <span class="s">"assistant"</span>,
+        <span class="s">"content"</span>: [
+            {
+                <span class="s">"type"</span>: <span class="s">"tool_use"</span>,
+                <span class="s">"id"</span>: <span class="s">"toolu_xyz789"</span>,
+                <span class="s">"name"</span>: <span class="s">"search"</span>,
+                <span class="s">"input"</span>: {<span class="s">"query"</span>: <span class="s">"AI Agent 最新进展"</span>},
+            },
+        ],
+    }
+    simulator.process_anthropic_style(anthropic_response)
+
+
+<span class="k">def</span> <span class="f">demo_streaming_assembly</span>():
+    <span class="s">"""模拟 Streaming Tool Call 的组装过程。"""</span>
+    <span class="b">print</span>(<span class="s">"\n"</span> + <span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Streaming Tool Call 组装演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    <span class="h"># 模拟 OpenAI streaming chunks</span>
+    chunks = [
+        {<span class="s">"delta"</span>: {<span class="s">"tool_calls"</span>: [{<span class="s">"index"</span>: <span class="n">0</span>, <span class="s">"id"</span>: <span class="s">"call_abc"</span>}]}},
+        {<span class="s">"delta"</span>: {<span class="s">"tool_calls"</span>: [{<span class="s">"index"</span>: <span class="n">0</span>, <span class="s">"function"</span>: {<span class="s">"name"</span>: <span class="s">"get"</span>}}]}},
+        {<span class="s">"delta"</span>: {<span class="s">"tool_calls"</span>: [{<span class="s">"index"</span>: <span class="n">0</span>, <span class="s">"function"</span>: {<span class="s">"arguments"</span>: <span class="s">"{\"cit"</span>}}]}},
+        {<span class="s">"delta"</span>: {<span class="s">"tool_calls"</span>: [{<span class="s">"index"</span>: <span class="n">0</span>, <span class="s">"function"</span>: {<span class="s">"arguments"</span>: <span class="s">"y\":\"北京\"}"</span>}}]}},
+    ]
+
+    <span class="b">print</span>(<span class="s">"\n  接收到的 streaming chunks:"</span>)
+    tool_calls_state = {}
+    <span class="k">for</span> i, chunk <span class="k">in</span> <span class="b">enumerate</span>(chunks):
+        <span class="b">print</span>(f<span class="s">"  chunk_{i}: {chunk}"</span>)
+        delta = chunk.get(<span class="s">"delta"</span>, {})
+        tool_deltas = delta.get(<span class="s">"tool_calls"</span>, [])
+        <span class="k">for</span> td <span class="k">in</span> tool_deltas:
+            idx = td.get(<span class="s">"index"</span>, <span class="n">0</span>)
+            <span class="k">if</span> idx <span class="k">not</span> <span class="k">in</span> tool_calls_state:
+                tool_calls_state[idx] = {
+                    <span class="s">"id"</span>: td.get(<span class="s">"id"</span>, <span class="s">""</span>),
+                    <span class="s">"name"</span>: <span class="s">""</span>,
+                    <span class="s">"arguments"</span>: <span class="s">""</span>,
+                }
+            <span class="k">if</span> <span class="s">"function"</span> <span class="k">in</span> td:
+                <span class="k">if</span> <span class="s">"name"</span> <span class="k">in</span> td[<span class="s">"function"</span>]:
+                    tool_calls_state[idx][<span class="s">"name"</span>] += td[<span class="s">"function"</span>][<span class="s">"name"</span>]
+                <span class="k">if</span> <span class="s">"arguments"</span> <span class="k">in</span> td[<span class="s">"function"</span>]:
+                    tool_calls_state[idx][<span class="s">"arguments"</span>] += td[<span class="s">"function"</span>][<span class="s">"arguments"</span>]
+
+    <span class="b">print</span>(<span class="s">"\n  组装后的完整 tool_call:"</span>)
+    <span class="k">for</span> idx, tc <span class="k">in</span> tool_calls_state.items():
+        <span class="b">print</span>(f<span class="s">"  tool_call[{idx}]: {tc['name']}({tc['arguments']})"</span>)</pre></div></details></div><div class="lecture"><h2>11.8 本章总结</h2>
+<p>&nbsp;</p>
+<p>核心要点回顾：</p>
+<p>&nbsp;</p>
+<li>1. Function Calling 的本质</li>
+<li>LLM 输出结构化 JSON，不是真的「调用」函数</li>
+<li>工具定义会计入 prompt token（成本）</li>
+<li>工具描述是 LLM 选择工具的唯一依据（Prompt 工程）</li>
+<p>&nbsp;</p>
+<li>2. OpenAI vs Anthropic</li>
+<li>arguments: JSON 字符串 vs 直接对象</li>
+<li>strict mode: 两者均支持，但 schema 子集和例外不同</li>
+<li>底层原理相同，API 形式不同</li>
+<p>&nbsp;</p>
+<li>3. Parallel Tool Calling</li>
+<li>无依赖的工具可以并行执行</li>
+<li>LLM 自己判断依赖关系</li>
+<li>用 tool_choice 参数控制行为</li>
+<p>&nbsp;</p>
+<li>4. Streaming Tool Calls</li>
+<li>增量式到达，需要组装</li>
+<li>用 index 区分多个 tool_call</li>
+<li>需要维护状态机</li>
+<p>&nbsp;</p>
+<li>5. 生产建议</li>
+<li>严格模式（当可用时）</li>
+<li>错误信息帮助 LLM 自我纠正</li>
+<li>工具分读写权限，写入需确认</li>
+<li>动态工具选择（减少 token 浪费）</li>
+<p>&nbsp;</p>
+<p>面试速记：</p>
+<p>"Function Calling 的原理是什么？"</p>
+<p>→ LLM 根据 tools 定义判断是否需要调用工具</p>
+<p>→ 输出结构化 JSON（包含工具名和参数）</p>
+<p>→ 开发者的代码执行真正的函数</p>
+<p>→ 将执行结果返回给 LLM</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (38 行)</summary><div class="code-block"><pre><span class="k">import</span> ast
+<span class="k">import</span> operator
+
+<span class="h"># 两个平台的工具定义格式对比</span>
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第11章：Tool Calling 底层机制深度剖析                 ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  OpenAI/Anthropic · Parallel · Streaming · Strict   ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 11.3 两个平台的工具定义格式对比"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    <span class="k">import</span> json
+    <span class="b">print</span>(<span class="s">"OpenAI:"</span>)
+    <span class="b">print</span>(json.dumps(OPENAI_TOOL, indent=<span class="n">2</span>, ensure_ascii=<span class="k">False</span>)[:<span class="n">200</span>] + <span class="s">"..."</span>)
+    <span class="b">print</span>(<span class="s">"\nAnthropic:"</span>)
+    <span class="b">print</span>(json.dumps(ANTHROPIC_TOOL, indent=<span class="n">2</span>, ensure_ascii=<span class="k">False</span>)[:<span class="n">200</span>] + <span class="s">"..."</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 11.4-11.6 Tool Calling 流程演示"</span>)
+    demo_tool_calling_flow()
+
+    <span class="b">print</span>(<span class="s">"\n▶ 11.5 Streaming 组装演示"</span>)
+    demo_streaming_assembly()
+
+    <span class="b">print</span>(<span class="s">"\n▶ 11.7 进阶技巧总结"</span>)
+    tips = [
+        <span class="s">"工具描述 = Prompt 工程（告诉 LLM 何时用、何时不用）"</span>,
+        <span class="s">"用 enum 限制参数 = 减少幻觉"</span>,
+        <span class="s">"错误信息要能帮助 LLM 自我纠正"</span>,
+        <span class="s">"工具超过10个 → 动态过滤"</span>,
+        <span class="s">"写入操作 → 人工确认"</span>,
+        <span class="s">"strict 模式 → 支持时启用，并始终保留本地校验"</span>,
+    ]
+    <span class="k">for</span> t <span class="k">in</span> tips:
+        <span class="b">print</span>(f<span class="s">"  🔑 {t}"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n✅ 第11章完成！"</span>)</pre></div></details></div><hr style="margin:36px 0"><div class="code-section"><details><summary>📦 完整源代码 (752 行)</summary><div class="code-block"><pre><span class="s">"""
+第11章：Tool Calling 底层机制深度剖析
+=====================================
+
+内容核对：2026-08-01
+说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。
+
+📌 本章目标：
+  1. 深入理解 LLM Function Calling 的「真正原理」
+  2. 掌握 OpenAI / Anthropic 两套实现的技术细节和差异
+  3. 理解 Streaming Tool Calls 的机制
+  4. 学会 Parallel Tool Calling 的使用与限制
+  5. 掌握 Strict Function Calling（严格模式）
+  6. 理解 Tool Search 与 Programmatic Tool Calling 的边界
+  7. 理解 Tool Calling 中的常见陷阱和解决方案
+
+📌 面试高频点：
+  - LLM 是如何「知道」该调用哪个工具的？
+  - OpenAI 的 function calling 和 Anthropic 的 tool_use 有什么区别？
+  - 什么是 Parallel Tool Calling？什么时候该用，什么时候不该用？
+  - Streaming 模式下如何处理 Tool Call？
+  - Token 消耗：tool definitions 计入 prompt token 吗？
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+本章是基于 OpenAI / Anthropic API 文档 + 实践经验的总结
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+11.1 Function Calling 真的不是 LLM 在「调用函数」！
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+这是最常见的误解。让我们从底层理解真正发生了什么。
+
+误解：「LLM 调用了我的函数」
+真相：「LLM 输出了一个 JSON 对象，你的代码解析了它并执行了函数」
+
+类比：
+  你给朋友发短信：「如果需要打车，回复格式 {action: "call_taxi", from: "...", to: "..."}」
+  朋友回复：{"action": "call_taxi", "from": "天安门", "to": "机场"}
+
+  你做的事：
+    1. 解析这条 JSON
+    2. 调用打车 API("天安门", "机场")
+    3. 告诉朋友结果
+
+  LLM 做的事：
+    1. 根据你的 tool definition，决定是否使用工具
+    2. 返回一个结构化的 JSON（而不是自然语言）
+    3. 你的代码解析 JSON 并执行真正的函数
+
+所以 Function Calling 本质上是：
+  「LLM 的结构化输出能力」+「协议规约」
+  不是 LLM 有了「执行函数」的能力！
+
+
+11.2 Token 层面的原理 —— 工具定义去哪了？
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+当你在 API 请求中包含 tools 参数时：
+
+  POST /v1/responses
+  {
+    "model": "gpt-5.6-terra",
+    "input": [...],
+    "tools": [
+      {
+        "type": "function",
+        "name": "get_weather",
+        "description": "查询天气",
+        "parameters": {...},
+        "strict": true
+      }
+    ]
+  }
+
+OpenAI 的服务端内部提示构造不是稳定公开接口。可以确认的是：工具定义会占用
+输入 token / 上下文预算，因此应从 API usage 字段和真实账单测量，而不是假设
+服务端一定以某种文本拼接方式实现。
+
+Anthropic 的处理流程类似但有差异：
+  1. 将 tools 作为独立字段发送
+  2. 模型在训练时已学会理解 tool schema
+  3. 同样计入 prompt token
+
+面试重点：tools 定义消耗 token！
+  - schema 越长，输入预算通常越大
+  - 具体 token 数取决于 provider、模型与序列化方式
+  - 通过 usage、tracing 和账单按版本监控
+  - 优化策略：只传当前场景可能用到的工具（动态工具选择）
+
+
+11.3 OpenAI vs Anthropic —— 两套实现对比
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌──────────────────┬───────────────────────┬──────────────────────────┐
+│      维度         │  OpenAI Function Call  │  Anthropic Tool Use      │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 工具定义格式      │ Responses 扁平对象      │ Tool 对象                 │
+│                  │ {type:"function",     │ {name:"...",            │
+│                  │  name:"...",...}     │  description:"...",      │
+│                  │                       │  input_schema:{...}}     │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 返回格式          │ output 中 function_call│ content 中的 tool_use    │
+│                  │ items                  │ blocks                  │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 并行调用          │ 同时返回多个 tool_call  │ 同时返回多个 tool_use    │
+│                  │ (parallel_tool_calls  │ block                   │
+│                  │  参数控制)             │                         │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 流式支持          │ 增量式 tool_call 名称   │ content_block 流式输出   │
+│                  │ 和参数                  │                         │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 严格模式          │ strict: true          │ strict: true             │
+│                  │ (支持的 Schema 子集)    │ (mcp_toolset 除外)        │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ Token 计算        │ tools 序列化拼入 prompt │ tools 作为独立参数       │
+├──────────────────┼───────────────────────┼──────────────────────────┤
+│ 工具结果返回      │ function_call_output   │ Tool Result Content Block│
+│                  │ item + call_id          │ type="tool_result"      │
+└──────────────────┴───────────────────────┴──────────────────────────┘
+
+两种格式对比（JSON）：
+
+  # OpenAI 格式
+  {"type": "function_call", "call_id": "call_abc123",
+   "name": "get_weather", "arguments": "{\"city\": \"北京\"}"}
+
+  # Anthropic 格式
+  {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "tool_use",
+        "id": "toolu_abc123",
+        "name": "get_weather",
+        "input": {"city": "北京"}
+      }
+    ]
+  }
+
+关键差异：
+  - OpenAI: arguments 是 JSON 字符串（需要 json.loads）
+  - Anthropic: input 直接是 JSON 对象
+"""</span>
+
+<span class="k">import</span> ast
+<span class="k">import</span> operator
+
+<span class="h"># 两个平台的工具定义格式对比</span>
+OPENAI_TOOL = {
+    <span class="s">"type"</span>: <span class="s">"function"</span>,
+    <span class="s">"name"</span>: <span class="s">"get_weather"</span>,
+    <span class="s">"description"</span>: <span class="s">"查询天气"</span>,
+    <span class="s">"parameters"</span>: {
+        <span class="s">"type"</span>: <span class="s">"object"</span>,
+        <span class="s">"properties"</span>: {
+            <span class="s">"city"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>, <span class="s">"description"</span>: <span class="s">"城市名称"</span>}
+        },
+        <span class="s">"required"</span>: [<span class="s">"city"</span>],
+        <span class="s">"additionalProperties"</span>: <span class="k">False</span>,
+    },
+    <span class="s">"strict"</span>: <span class="k">True</span>,
+}
+
+ANTHROPIC_TOOL = {
+    <span class="s">"name"</span>: <span class="s">"get_weather"</span>,
+    <span class="s">"description"</span>: <span class="s">"查询指定城市的天气信息。返回温度、湿度、天气状况。"</span>,
+    <span class="s">"input_schema"</span>: {
+        <span class="s">"type"</span>: <span class="s">"object"</span>,
+        <span class="s">"properties"</span>: {
+            <span class="s">"city"</span>: {
+                <span class="s">"type"</span>: <span class="s">"string"</span>,
+                <span class="s">"description"</span>: <span class="s">"城市名称，如 '北京'、'上海'"</span>,
+            }
+        },
+        <span class="s">"required"</span>: [<span class="s">"city"</span>],
+        <span class="s">"additionalProperties"</span>: <span class="k">False</span>,
+    },
+    <span class="s">"strict"</span>: <span class="k">True</span>,
+}
+
+<span class="h"># OpenAI Responses API 的 Programmatic Tool Calling 配置示意。</span>
+<span class="h"># 它只构造请求数据，不调用网络，便于离线检查 schema。</span>
+OPENAI_PROGRAMMATIC_TOOLS = [
+    {
+        <span class="s">"type"</span>: <span class="s">"function"</span>,
+        <span class="s">"name"</span>: <span class="s">"get_inventory"</span>,
+        <span class="s">"description"</span>: <span class="s">"Return sku and available_units for one SKU."</span>,
+        <span class="s">"parameters"</span>: {
+            <span class="s">"type"</span>: <span class="s">"object"</span>,
+            <span class="s">"properties"</span>: {<span class="s">"sku"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>}},
+            <span class="s">"required"</span>: [<span class="s">"sku"</span>],
+            <span class="s">"additionalProperties"</span>: <span class="k">False</span>,
+        },
+        <span class="s">"output_schema"</span>: {
+            <span class="s">"type"</span>: <span class="s">"object"</span>,
+            <span class="s">"properties"</span>: {
+                <span class="s">"sku"</span>: {<span class="s">"type"</span>: <span class="s">"string"</span>},
+                <span class="s">"available_units"</span>: {<span class="s">"type"</span>: <span class="s">"number"</span>},
+            },
+            <span class="s">"required"</span>: [<span class="s">"sku"</span>, <span class="s">"available_units"</span>],
+            <span class="s">"additionalProperties"</span>: <span class="k">False</span>,
+        },
+        <span class="s">"allowed_callers"</span>: [<span class="s">"programmatic"</span>],
+        <span class="s">"strict"</span>: <span class="k">True</span>,
+    },
+    {<span class="s">"type"</span>: <span class="s">"programmatic_tool_calling"</span>},
+]
+
+
+<span class="s">"""
+11.4 Parallel Tool Calling —— 并行执行
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+当 LLM 判断多个工具调用之间没有依赖关系时，
+它可以一次性返回多个 tool_call，由你的代码并行执行。
+
+示例场景：
+  用户：「北京和上海的天气分别怎么样？」
+
+  LLM 返回 2 个 tool_call（同一个 response）:
+    tool_call_1: get_weather("北京")
+    tool_call_2: get_weather("上海")
+
+  你的代码并行执行这两个请求（节省时间！）
+
+但需要注意：
+  1. 并行执行的前提：工具之间没有依赖关系
+  2. 如果 tool_2 依赖 tool_1 的结果 → 必须串行
+  3. LLM 自己会判断（通过参数推断依赖关系）
+
+控制行为：
+  OpenAI: tool_choice 参数
+    - "auto": LLM 自行决定（默认）
+    - "required": 必须至少调用一个工具
+    - "none": 不允许调用工具
+    - {"type": "function", "function": {"name": "get_weather"}}: 强制调用指定工具
+
+  Anthropic: tool_choice 参数
+    - "auto": LLM 自行决定（默认）
+    - "any": 必须至少调用一个工具
+    - "tool": 强制调用指定工具
+    - 不支持 "none"（没有等效设置）
+
+
+11.5 Streaming Tool Calls —— 流式工具调用
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+在 streaming 模式下，tool_call 是「增量式」到达的：
+
+  OpenAI streaming 过程：
+    chunk_1: {"delta": {"tool_calls": [{"index": 0, "id": "call_abc"}]}}
+    chunk_2: {"delta": {"tool_calls": [{"index": 0, "function": {"name": "get"}}]}}
+    chunk_3: {"delta": {"tool_calls": [{"index": 0, "function": {"name": "_weather"}}]}}
+    chunk_4: {"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{\"cit"}}]}}
+    chunk_5: {"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "y\":\"北京\"}} ]}}
+    ...
+
+  我们需要「组装」这些增量片段为完整的 tool_call。
+
+  Anthropic streaming 过程：
+    chunk_1: {"type": "content_block_start", "content_block": {"type": "tool_use", ...}}
+    chunk_2: {"type": "content_block_delta", "delta": {"type": "input_json_delta", "partial_json": "{\"city\""}}
+    chunk_3: {"type": "content_block_delta", "delta": {"type": "input_json_delta", "partial_json": ":\"北京\"}"}}
+    ...
+
+关键挑战：
+  1. 需要维护状态机（哪些 tool_call 是同一个？）
+  2. 参数是增量到达的，需要累积拼接
+  3. 可能同时收到多个 tool_call 的流（用 index 区分）
+
+
+11.5.1 Streaming 组装实战 —— 面试官想知道你处理过脏数据
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+▍ 状态机设计 —— 不只是「拼接字符串」
+
+  面试常问：「Streaming 模式下怎么组装 tool_call？」
+
+  简单回答是「用 index 区分 + 累积 arguments 字符串」。但真实项目中
+  需要处理至少 5 种异常状态：
+
+  异常 1：丢包乱序 —— 网络抖动导致 chunk_5 先到、chunk_3 后到
+    对策：按 index + sequence_number（如果有）排序重组
+
+  异常 2：中断恢复 —— 流中断后重新连接，tool_call 拼接了一半
+    对策：保存中间状态，重连后从断点继续
+
+  异常 3：JSON 解析失败 —— arguments 拼接完成但是无效 JSON
+    对策：regex 修复常见错误（尾逗号、单引号）→ 重试 → 放弃
+
+  异常 4：并行 tool_call 的流交错 —— 3 个 tool_call 同时流式到达
+    对策：用 index 分桶，各自独立组装，互不干扰
+
+  异常 5：空参数 —— LLM 某些情况下返回没有 arguments 的 tool_call
+    对策：加默认空对象 {}，不 crash
+
+▍ Anthropic 的 content_block 设计为什么更优雅？
+
+  Anthropic 用 content_block_start/delta/stop 三阶段模型：
+    - start → 声明「一个 tool_use block 开始了」，type + id 已知
+    - delta → 流式传输 input_json_delta（只传增量 JSON）
+    - stop → 声明这个 block 结束
+
+  比 OpenAI 的 index 模式好在哪里？
+    - 不需要 index 来区分并行调用（不同的 content_block 就是不同的）
+    - 生命周期明确 → 你在 stop 事件时可以确认「完整了」
+    - 可以处理非 JSON 的 block 类型（如文本 block + 工具 block 交替）
+
+  面试可以提：「Anthropic 的 content_block 流式模型给每个 tool_call
+  分配了明确的生命周期，避免了 OpenAI index 模式下的并行组装复杂度。」
+
+▍ 生产中的 Token 陷阱 —— tools 定义在「吃」你的预算
+
+  tools 定义会占用输入预算。一个 Agent 如果把大量、冗长且无关的工具
+  全部传入，每次请求都会承担额外上下文与路由难度。
+
+  优化策略：
+    a) 动态工具集 —— 第一轮不带 tools，让 LLM 说「我需要什么」
+       → 第二轮只带 2-3 个相关工具
+    b) 工具描述聚焦 —— 清楚写明用途、边界和何时不要调用，删除重复文字
+    c) Schema 惰性加载 —— 只在 LLM 选择了某个工具后才传完整 Schema
+    d) 缓存工具列表 —— 使用 Prompt Caching（Ch33）缓存不变的 tools 前缀
+
+
+11.6 Strict Function Calling —— 严格模式
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OpenAI 与 Anthropic 的函数工具都支持 `strict: true`（Anthropic 的
+`mcp_toolset` 例外）。它提高对受支持 JSON Schema 子集的遵循度，但调用方
+仍要处理拒绝、截断、网络错误、业务校验失败和工具自身异常。
+
+▍ Strict 模式的代价 —— 面试官想听你说「限制」
+
+  面试常见陷阱：「你用 strict 模式了吗？」→ 如果你只说「用了，保证格式」，
+  就太浅了。正确的深度回答应当包含 strict 模式的限制：
+
+  1. 各平台只支持 JSON Schema 的子集，且子集会随 API 版本变化
+  2. `additionalProperties: false`、required 和 nullable 的写法必须按官方要求
+  3. 动态、递归或复杂联合结构要先做 provider 兼容性测试
+  4. Schema 合法不代表参数在业务上安全：路径、金额、ID 仍需再次验证
+
+  面试可以提：「Strict 模式适合 API 网关类的确定性工具，
+  但对需要 LLM 灵活输出结构（如图表配置、动态查询）的场景
+  反而会限制表达能力。我通常按工具类型分：确定性工具用 strict，
+  创造性工具不用。」
+
+▍ Anthropic strict tool use
+
+  Anthropic 当前同样可在工具定义上设置 `strict: true`；除 `mcp_toolset`
+  外可用于客户端工具和服务端工具。`tool_use.input` 在 SDK 中通常作为对象
+  提供，但仍要用同一业务校验器检查后才能执行。
+
+
+11.6.1 Tool Calling 生产 Checklist
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  你上线前应该检查：
+  ✅ description 说明用途、输入语义、边界和禁止场景，不堆砌无关文本
+  ✅ 动态加载工具，不是一次传 20 个
+  ✅ 参数有明确的 type + default + nullable 声明
+  ✅ 工具返回有 max_length 限制（避免 10MB JSON 爆上下文）
+  ✅ 工具超时设置（&gt;10s 的工具调异步模式）
+  ✅ 幂等性保证（相同参数多次调用 = 相同结果或安全重试）
+  ✅ 错误返回统一格式（{"error": "...", "retryable": true/false}）
+
+如何使用：
+  - 所有参数必须定义为 object 类型
+  - 所有字段必须有明确的 type
+  - 可选字段必须设置 default 或 nullable
+  - 不允许使用 anyOf / oneOf
+
+示例：
+  {
+    "type": "function",
+    "name": "get_weather",
+    "strict": true,
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "city": {"type": "string"},
+        "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]}
+      },
+      "required": ["city", "unit"],
+      "additionalProperties": false
+    }
+  }
+
+为什么需要 strict 模式？
+  1. 生产环境要求：参数格式错误会导致工具执行失败
+  2. 减少重试：不需要「尝试解析 → 失败 → 重新请求 LLM」
+  3. 安全考虑：防止 LLM 输出未定义的字段
+
+Anthropic 示例同样在工具对象顶层设置 `strict: true`；调用前先确认当前
+工具类型与模型支持该能力，并保留本地 schema 与业务规则验证。
+
+
+11.6.2 Tool Search 与 Programmatic Tool Calling（2026）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+官方文档：
+  https://developers.openai.com/api/docs/guides/tools-tool-search
+  https://developers.openai.com/api/docs/guides/tools-programmatic-tool-calling
+
+当工具目录很大时，不应把全部 schema 永久塞进上下文。Tool Search 可以将
+函数、custom tool 或 MCP tool 标为 defer_loading，让模型先搜索并加载相关
+工具，再执行调用。它解决的是「先找到哪个工具」的问题。
+
+Programmatic Tool Calling（PTC）解决另一类问题：让模型在隔离的 V8 运行时中
+生成 JavaScript，对允许的工具做并行、循环、过滤、聚合或校验。配置要点：
+
+  1. 请求中加入 {"type": "programmatic_tool_calling"}
+  2. 可被程序调用的工具设置 allowed_callers: ["programmatic"]
+  3. 为结构化返回增加 output_schema，让程序知道字段契约
+  4. 应用仍负责执行客户端 function_call，并原样带回 call_id 与 caller
+  5. 继续处理 program / function_call / program_output，直到出现最终 message
+
+选择边界：
+  - 查一次数据、每一步都需要语义判断、需要审批或必须保留原生引用 → 直接调用
+  - 可预测的过滤、连接、去重、聚合，大量中间结果可被压缩 → 考虑 PTC
+  - 写操作默认保持直接调用，把人工审批边界留在宿主应用
+
+多轮 Responses 工作流还要保存状态：使用 previous_response_id 继续已存储响应，
+或在 store=false 时重放全部输出项；GPT-5.6 可通过 reasoning.context 控制此前
+reasoning 是否继续相关。不要只保存最终文本而丢失 tool/program/reasoning items。
+
+
+11.7 Tool Calling 的进阶技巧
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 工具描述即 Prompt 工程
+   - description 不只是给开发者看的，是给 LLM 看的！
+   - 描述要回答三个问题：
+     a. 这个工具「做什么」？
+     b. 「什么时候」该用？
+     c. 「什么时候」不该用？
+
+2. 参数设计原则
+   - 用 enum 限制选项（减少幻觉）
+   - 提供清晰的参数描述
+   - 必填 vs 可选要明确
+   - 给出典型调用示例（在 description 中）
+
+3. 错误处理 —— 工具结果应「帮助 LLM 纠正」
+   ✗ return "Error 404"
+   ✓ return "未找到城市'培京'的天气数据。城市名是否拼写有误？可用城市：北京、上海。"
+
+4. 工具数量控制 —— 别默认传入完整目录
+   - 工具越多，schema 的上下文成本和误选空间通常越大，具体影响要用评测确认
+   - 小目录采用动态工具集：根据当前上下文过滤可用工具
+   - 大目录采用 Tool Search / defer_loading，按需加载详细 schema
+
+5. 工具调用确认（Human-in-the-Loop）
+   - 读操作：自动执行（get_weather, search）
+   - 写操作：需要确认（send_email, delete_file）
+   - 危险操作：需要二次确认（execute_sql, run_command）
+"""</span>
+
+
+_ARITHMETIC_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+
+<span class="k">def</span> <span class="f">safe_calculate</span>(raw_expression: <span class="b">str</span>) -&gt; <span class="b">str</span>:
+    <span class="s">"""只计算基础算术表达式；拒绝名称、属性、下标和函数调用。"""</span>
+    expression = raw_expression.strip()
+    <span class="k">if</span> <span class="k">not</span> expression <span class="k">or</span> <span class="b">len</span>(expression) &gt; <span class="n">100</span>:
+        <span class="k">return</span> <span class="s">"表达式错误"</span>
+
+    <span class="k">def</span> <span class="f">evaluate</span>(node):
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.Expression):
+            <span class="k">return</span> evaluate(node.body)
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.Constant) <span class="k">and</span> <span class="b">type</span>(node.value) <span class="k">in</span> {<span class="b">int</span>, <span class="b">float</span>}:
+            <span class="k">return</span> node.value
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.BinOp) <span class="k">and</span> <span class="b">type</span>(node.op) <span class="k">in</span> _ARITHMETIC_OPERATORS:
+            <span class="k">return</span> _ARITHMETIC_OPERATORS[<span class="b">type</span>(node.op)](
+                evaluate(node.left), evaluate(node.right)
+            )
+        <span class="k">if</span> <span class="b">isinstance</span>(node, ast.UnaryOp) <span class="k">and</span> <span class="b">type</span>(node.op) <span class="k">in</span> _ARITHMETIC_OPERATORS:
+            <span class="k">return</span> _ARITHMETIC_OPERATORS[<span class="b">type</span>(node.op)](evaluate(node.operand))
+        <span class="k">raise</span> ValueError(<span class="s">"只允许基础算术"</span>)
+
+    <span class="k">try</span>:
+        <span class="k">return</span> <span class="b">str</span>(evaluate(ast.parse(expression, mode=<span class="s">"eval"</span>)))
+    <span class="k">except</span> (SyntaxError, ValueError, TypeError, ZeroDivisionError, OverflowError):
+        <span class="k">return</span> <span class="s">"表达式错误"</span>
+
+
+<span class="k">class</span> <span class="f">ToolCallSimulator</span>:
+    <span class="s">"""模拟两个平台的 Tool Call 处理流程。
+
+    展示从 LLM 返回 → 解析 → 执行 → 返回结果的完整链路。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.tools = {
+            <span class="s">"get_weather"</span>: <span class="k">lambda</span> args: f<span class="s">"天气: {args.get('city', '未知')} 晴 25°C"</span>,
+            <span class="s">"search"</span>: <span class="k">lambda</span> args: f<span class="s">"搜索结果(关于'{args.get('query', '')}'): ..."</span>,
+            <span class="s">"calculate"</span>: <span class="k">lambda</span> args: safe_calculate(args.get(<span class="s">"expression"</span>, <span class="s">"0"</span>)),
+        }
+
+    <span class="k">def</span> <span class="f">process_openai_style</span>(<span class="k">self</span>, llm_response: <span class="b">dict</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""处理 OpenAI 风格的 tool_calls。
+
+        Args:
+            llm_response: 模拟的 OpenAI LLM 响应。
+
+        Returns:
+            执行结果描述。
+        """</span>
+        tool_calls = llm_response.get(<span class="s">"tool_calls"</span>, [])
+        <span class="k">if</span> <span class="k">not</span> tool_calls:
+            <span class="k">return</span> <span class="s">"LLM 直接回答: "</span> + llm_response.get(<span class="s">"content"</span>, <span class="s">""</span>)
+
+        results = []
+        can_parallel = <span class="k">True</span>
+
+        <span class="h"># 检查是否可以并行（简化：都假设可并行）</span>
+        <span class="k">for</span> tc <span class="k">in</span> tool_calls:
+            func = tc[<span class="s">"function"</span>]
+            tool_name = func[<span class="s">"name"</span>]
+            <span class="h"># OpenAI 的 arguments 是 JSON 字符串！</span>
+            args = __import__(<span class="s">"json"</span>).loads(func[<span class="s">"arguments"</span>])
+
+            <span class="b">print</span>(f<span class="s">"  [OpenAI] 调用: {tool_name}({args})"</span>)
+
+            <span class="k">if</span> tool_name <span class="k">in</span> <span class="k">self</span>.tools:
+                result = <span class="k">self</span>.tools[tool_name](args)
+            <span class="k">else</span>:
+                result = f<span class="s">"错误: 未知工具 {tool_name}"</span>
+
+            results.append({
+                <span class="s">"tool_call_id"</span>: tc[<span class="s">"id"</span>],
+                <span class="s">"role"</span>: <span class="s">"tool"</span>,
+                <span class="s">"content"</span>: result,
+            })
+            <span class="b">print</span>(f<span class="s">"    结果: {result}"</span>)
+
+        <span class="h"># 组装返回给 LLM 的工具结果</span>
+        <span class="k">return</span> <span class="b">str</span>(results)
+
+    <span class="k">def</span> <span class="f">process_anthropic_style</span>(<span class="k">self</span>, llm_response: <span class="b">dict</span>) -&gt; <span class="b">str</span>:
+        <span class="s">"""处理 Anthropic 风格的 tool_use blocks。
+
+        Args:
+            llm_response: 模拟的 Anthropic LLM 响应。
+
+        Returns:
+            执行结果描述。
+        """</span>
+        content_blocks = llm_response.get(<span class="s">"content"</span>, [])
+        tool_uses = [b <span class="k">for</span> b <span class="k">in</span> content_blocks <span class="k">if</span> b.get(<span class="s">"type"</span>) == <span class="s">"tool_use"</span>]
+
+        <span class="k">if</span> <span class="k">not</span> tool_uses:
+            text_blocks = [b <span class="k">for</span> b <span class="k">in</span> content_blocks <span class="k">if</span> b.get(<span class="s">"type"</span>) == <span class="s">"text"</span>]
+            <span class="k">return</span> <span class="s">"LLM 直接回答: "</span> + <span class="s">""</span>.join(
+                b.get(<span class="s">"text"</span>, <span class="s">""</span>) <span class="k">for</span> b <span class="k">in</span> text_blocks
+            )
+
+        results = []
+        <span class="k">for</span> tu <span class="k">in</span> tool_uses:
+            tool_name = tu[<span class="s">"name"</span>]
+            <span class="h"># Anthropic 的 input 直接是 dict（不需要 json.loads）</span>
+            args = tu[<span class="s">"input"</span>]
+
+            <span class="b">print</span>(f<span class="s">"  [Anthropic] 调用: {tool_name}({args})"</span>)
+
+            <span class="k">if</span> tool_name <span class="k">in</span> <span class="k">self</span>.tools:
+                result = <span class="k">self</span>.tools[tool_name](args)
+            <span class="k">else</span>:
+                result = f<span class="s">"错误: 未知工具 {tool_name}"</span>
+
+            results.append({
+                <span class="s">"type"</span>: <span class="s">"tool_result"</span>,
+                <span class="s">"tool_use_id"</span>: tu[<span class="s">"id"</span>],
+                <span class="s">"content"</span>: result,
+            })
+            <span class="b">print</span>(f<span class="s">"    结果: {result}"</span>)
+
+        <span class="k">return</span> <span class="b">str</span>(results)
+
+
+<span class="k">def</span> <span class="f">demo_tool_calling_flow</span>():
+    <span class="s">"""演示完整的 Tool Calling 流程。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Tool Calling 完整流程演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    simulator = ToolCallSimulator()
+
+    <span class="h"># 模拟 OpenAI 风格</span>
+    <span class="b">print</span>(<span class="s">"\n  [OpenAI 风格 Tool Call]"</span>)
+    openai_response = {
+        <span class="s">"role"</span>: <span class="s">"assistant"</span>,
+        <span class="s">"tool_calls"</span>: [
+            {
+                <span class="s">"id"</span>: <span class="s">"call_abc123"</span>,
+                <span class="s">"type"</span>: <span class="s">"function"</span>,
+                <span class="s">"function"</span>: {
+                    <span class="s">"name"</span>: <span class="s">"get_weather"</span>,
+                    <span class="s">"arguments"</span>: <span class="s">'{<span class="s">"city"</span>: <span class="s">"北京"</span>}'</span>,
+                },
+            },
+            {
+                <span class="s">"id"</span>: <span class="s">"call_def456"</span>,
+                <span class="s">"type"</span>: <span class="s">"function"</span>,
+                <span class="s">"function"</span>: {
+                    <span class="s">"name"</span>: <span class="s">"calculate"</span>,
+                    <span class="s">"arguments"</span>: <span class="s">'{<span class="s">"expression"</span>: <span class="s">"25 + 30"</span>}'</span>,
+                },
+            },
+        ],
+    }
+    simulator.process_openai_style(openai_response)
+
+    <span class="h"># 模拟 Anthropic 风格</span>
+    <span class="b">print</span>(<span class="s">"\n  [Anthropic 风格 Tool Use]"</span>)
+    anthropic_response = {
+        <span class="s">"role"</span>: <span class="s">"assistant"</span>,
+        <span class="s">"content"</span>: [
+            {
+                <span class="s">"type"</span>: <span class="s">"tool_use"</span>,
+                <span class="s">"id"</span>: <span class="s">"toolu_xyz789"</span>,
+                <span class="s">"name"</span>: <span class="s">"search"</span>,
+                <span class="s">"input"</span>: {<span class="s">"query"</span>: <span class="s">"AI Agent 最新进展"</span>},
+            },
+        ],
+    }
+    simulator.process_anthropic_style(anthropic_response)
+
+
+<span class="k">def</span> <span class="f">demo_streaming_assembly</span>():
+    <span class="s">"""模拟 Streaming Tool Call 的组装过程。"""</span>
+    <span class="b">print</span>(<span class="s">"\n"</span> + <span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Streaming Tool Call 组装演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    <span class="h"># 模拟 OpenAI streaming chunks</span>
+    chunks = [
+        {<span class="s">"delta"</span>: {<span class="s">"tool_calls"</span>: [{<span class="s">"index"</span>: <span class="n">0</span>, <span class="s">"id"</span>: <span class="s">"call_abc"</span>}]}},
+        {<span class="s">"delta"</span>: {<span class="s">"tool_calls"</span>: [{<span class="s">"index"</span>: <span class="n">0</span>, <span class="s">"function"</span>: {<span class="s">"name"</span>: <span class="s">"get"</span>}}]}},
+        {<span class="s">"delta"</span>: {<span class="s">"tool_calls"</span>: [{<span class="s">"index"</span>: <span class="n">0</span>, <span class="s">"function"</span>: {<span class="s">"arguments"</span>: <span class="s">"{\"cit"</span>}}]}},
+        {<span class="s">"delta"</span>: {<span class="s">"tool_calls"</span>: [{<span class="s">"index"</span>: <span class="n">0</span>, <span class="s">"function"</span>: {<span class="s">"arguments"</span>: <span class="s">"y\":\"北京\"}"</span>}}]}},
+    ]
+
+    <span class="b">print</span>(<span class="s">"\n  接收到的 streaming chunks:"</span>)
+    tool_calls_state = {}
+    <span class="k">for</span> i, chunk <span class="k">in</span> <span class="b">enumerate</span>(chunks):
+        <span class="b">print</span>(f<span class="s">"  chunk_{i}: {chunk}"</span>)
+        delta = chunk.get(<span class="s">"delta"</span>, {})
+        tool_deltas = delta.get(<span class="s">"tool_calls"</span>, [])
+        <span class="k">for</span> td <span class="k">in</span> tool_deltas:
+            idx = td.get(<span class="s">"index"</span>, <span class="n">0</span>)
+            <span class="k">if</span> idx <span class="k">not</span> <span class="k">in</span> tool_calls_state:
+                tool_calls_state[idx] = {
+                    <span class="s">"id"</span>: td.get(<span class="s">"id"</span>, <span class="s">""</span>),
+                    <span class="s">"name"</span>: <span class="s">""</span>,
+                    <span class="s">"arguments"</span>: <span class="s">""</span>,
+                }
+            <span class="k">if</span> <span class="s">"function"</span> <span class="k">in</span> td:
+                <span class="k">if</span> <span class="s">"name"</span> <span class="k">in</span> td[<span class="s">"function"</span>]:
+                    tool_calls_state[idx][<span class="s">"name"</span>] += td[<span class="s">"function"</span>][<span class="s">"name"</span>]
+                <span class="k">if</span> <span class="s">"arguments"</span> <span class="k">in</span> td[<span class="s">"function"</span>]:
+                    tool_calls_state[idx][<span class="s">"arguments"</span>] += td[<span class="s">"function"</span>][<span class="s">"arguments"</span>]
+
+    <span class="b">print</span>(<span class="s">"\n  组装后的完整 tool_call:"</span>)
+    <span class="k">for</span> idx, tc <span class="k">in</span> tool_calls_state.items():
+        <span class="b">print</span>(f<span class="s">"  tool_call[{idx}]: {tc['name']}({tc['arguments']})"</span>)
+
+
+<span class="s">"""
+11.8 本章总结
+━━━━━━━━━━━━━━
+
+核心要点回顾：
+
+1. Function Calling 的本质
+   - LLM 输出结构化 JSON，不是真的「调用」函数
+   - 工具定义会计入 prompt token（成本）
+   - 工具描述是 LLM 选择工具的唯一依据（Prompt 工程）
+
+2. OpenAI vs Anthropic
+   - arguments: JSON 字符串 vs 直接对象
+   - strict mode: 两者均支持，但 schema 子集和例外不同
+   - 底层原理相同，API 形式不同
+
+3. Parallel Tool Calling
+   - 无依赖的工具可以并行执行
+   - LLM 自己判断依赖关系
+   - 用 tool_choice 参数控制行为
+
+4. Streaming Tool Calls
+   - 增量式到达，需要组装
+   - 用 index 区分多个 tool_call
+   - 需要维护状态机
+
+5. 生产建议
+   - 严格模式（当可用时）
+   - 错误信息帮助 LLM 自我纠正
+   - 工具分读写权限，写入需确认
+   - 动态工具选择（减少 token 浪费）
+
+面试速记：
+  "Function Calling 的原理是什么？"
+  → LLM 根据 tools 定义判断是否需要调用工具
+  → 输出结构化 JSON（包含工具名和参数）
+  → 开发者的代码执行真正的函数
+  → 将执行结果返回给 LLM
+"""</span>
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第11章：Tool Calling 底层机制深度剖析                 ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  OpenAI/Anthropic · Parallel · Streaming · Strict   ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 11.3 两个平台的工具定义格式对比"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    <span class="k">import</span> json
+    <span class="b">print</span>(<span class="s">"OpenAI:"</span>)
+    <span class="b">print</span>(json.dumps(OPENAI_TOOL, indent=<span class="n">2</span>, ensure_ascii=<span class="k">False</span>)[:<span class="n">200</span>] + <span class="s">"..."</span>)
+    <span class="b">print</span>(<span class="s">"\nAnthropic:"</span>)
+    <span class="b">print</span>(json.dumps(ANTHROPIC_TOOL, indent=<span class="n">2</span>, ensure_ascii=<span class="k">False</span>)[:<span class="n">200</span>] + <span class="s">"..."</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 11.4-11.6 Tool Calling 流程演示"</span>)
+    demo_tool_calling_flow()
+
+    <span class="b">print</span>(<span class="s">"\n▶ 11.5 Streaming 组装演示"</span>)
+    demo_streaming_assembly()
+
+    <span class="b">print</span>(<span class="s">"\n▶ 11.7 进阶技巧总结"</span>)
+    tips = [
+        <span class="s">"工具描述 = Prompt 工程（告诉 LLM 何时用、何时不用）"</span>,
+        <span class="s">"用 enum 限制参数 = 减少幻觉"</span>,
+        <span class="s">"错误信息要能帮助 LLM 自我纠正"</span>,
+        <span class="s">"工具超过10个 → 动态过滤"</span>,
+        <span class="s">"写入操作 → 人工确认"</span>,
+        <span class="s">"strict 模式 → 支持时启用，并始终保留本地校验"</span>,
+    ]
+    <span class="k">for</span> t <span class="k">in</span> tips:
+        <span class="b">print</span>(f<span class="s">"  🔑 {t}"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n✅ 第11章完成！"</span>)
+</pre></div></details></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_10_mcp/10_mcp_deepdive.html" title="MCP 深度解析 — 设计哲学·JSON-RPC·传输层选型·三协议对比">← 第10章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_12_infrastructure/12_infrastructure.html" title="Agent 生产基础设施 — OpenClaw·Harness·Checklist">第12章 →</a>
+</div></div></div></div></body></html>

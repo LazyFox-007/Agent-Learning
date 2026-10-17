@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第15章：A2A 1.0 —— Agent 发现、消息与任务协作 — AI Agent 全栈课程</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: #f8f9fa; color: #1a1a2e; line-height: 1.8;
+}
+.page-wrapper { display: flex; min-height: 100vh; }
+
+/* 侧边栏 TOC */
+.sidebar {
+  width: 240px; min-width: 240px; background: #0f172a; color: #e2e8f0;
+  padding: 24px 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; font-size: .85em; border-right: 1px solid #1e293b;
+}
+.sidebar-title {
+  font-weight: 700; font-size: 1.05em; padding: 0 18px 16px;
+  border-bottom: 1px solid #1e293b; margin-bottom: 12px; color: white;
+}
+.sidebar-title a { color: #8ab4f8; text-decoration: none; }
+.sidebar-title a:hover { text-decoration: underline; }
+.sidebar-layer {
+  padding: 6px 18px; margin-top: 8px; color: #64748b;
+  font-size: .78em; text-transform: uppercase; letter-spacing: .5px;
+}
+.sidebar-link {
+  display: block; padding: 5px 18px 5px 18px; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: all .15s; font-size: .88em;
+}
+.sidebar-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+.sidebar-link.active {
+  color: #60a5fa; background: rgba(96,165,250,.1);
+  border-left-color: #60a5fa; font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1; min-width: 0; padding: 40px 24px 80px;
+  max-width: calc(100vw - 240px);
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 48px 32px; border-radius: 12px; margin-bottom: 36px;
+}
+.hero h1 { font-size: 2em; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { opacity: 0.9; font-size: 1.05em; }
+
+/* 讲义标题层级 */
+.lecture { background: white; border-radius: 10px; padding: 36px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 32px; }
+.lecture h2 {
+  font-size: 1.25em; color: #667eea; margin: 28px 0 12px;
+  padding-bottom: 6px; border-bottom: 2px solid #e8e8ff;
+}
+.lecture h3 {
+  font-size: 1.08em; color: #555; margin: 22px 0 8px;
+  padding-left: 10px; border-left: 3px solid #667eea;
+}
+.lecture p { margin: 10px 0; }
+.lecture ul, .lecture ol { margin: 8px 0 8px 24px; }
+.lecture li { margin: 4px 0; }
+.lecture pre {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+  padding: 18px 22px; overflow-x: auto; font-size: .88em;
+  line-height: 1.55; margin: 14px 0;
+}
+.lecture code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; }
+.lecture p code, .lecture li code {
+  background: #eee8ff; padding: 1px 6px; border-radius: 4px;
+  font-size: .92em; color: #6c3cc0;
+}
+.lecture strong { color: #333; }
+.lecture em { color: #555; }
+.lecture blockquote {
+  border-left: 4px solid #667eea; padding: 8px 16px;
+  margin: 14px 0; background: #f4f4ff; border-radius: 0 8px 8px 0;
+  color: #555;
+}
+.lecture table {
+  border-collapse: collapse; width: 100%; margin: 16px 0;
+  font-size: .92em; background: white; border-radius: 6px; overflow: hidden;
+}
+.lecture table th {
+  background: #667eea; color: white; font-weight: 600;
+  padding: 10px 14px; text-align: left;
+}
+.lecture table td {
+  padding: 9px 14px; border-bottom: 1px solid #e8e8f0;
+}
+.lecture table tr:hover td { background: #f4f4ff; }
+.lecture hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+/* 架构图 / 流程图 — 与代码块相同的 pre 渲染方式 */
+.diagram-label {
+  font-size: .85em; font-weight: 600; color: #8ab4f8;
+  background: linear-gradient(135deg, #2d3a5c 0%, #1e2d4a 100%);
+  padding: 8px 18px; letter-spacing: .5px; margin: 18px 0 0 0;
+  border-radius: 10px 10px 0 0; border: 1px solid #3a4a6a; border-bottom: none;
+}
+.diagram-pre {
+  border-radius: 0 0 10px 10px; margin: 0 0 18px 0;
+  border-top: none; border: 1px solid #2a3045;
+}
+.ascii-art {
+  background: #1a1e2b; color: #c0caf5; border-radius: 0 0 10px 10px;
+  padding: 18px 22px; overflow-x: auto; font-size: .8em;
+  line-height: 1.3; margin: 0;
+  font-family: "JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace;
+  border: none; white-space: pre;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 目标/考点标签 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: .85em; font-weight: 500;
+}
+.tag-goal { background: #e8f5e9; color: #2e7d32; }
+.tag-interview { background: #fff3e0; color: #e65100; }
+
+/* 代码块区域 */
+.code-section { margin-top: 24px; }
+.code-section summary {
+  font-size: 1.1em; font-weight: 600; cursor: pointer;
+  padding: 10px 16px; background: #1e1e2e; color: #cdd6f4;
+  border-radius: 8px 8px 0 0; user-select: none;
+}
+.code-section pre {
+  margin: 0; border-radius: 0 0 8px 8px; max-height: 70vh;
+  overflow-y: auto;
+}
+.code-block {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 0 0 8px 8px;
+  padding: 20px 24px; overflow-x: auto; font-size: .85em;
+  line-height: 1.6; max-height: 70vh; overflow-y: auto;
+}
+
+/* IDE 风格语法高亮颜色 */
+.code-block .k { color: #c586c0; }     /* 关键字 def/class/import */
+.code-block .s { color: #ce9178; }     /* 字符串 */
+.code-block .h { color: #6a9955; }     /* 注释 */
+.code-block .d { color: #dcdcaa; }     /* 装饰器 */
+.code-block .n { color: #b5cea8; }     /* 数字 */
+.code-block .f { color: #4ec9b0; }     /* 函数名 */
+.code-block .b { color: #569cd6; }     /* 内置函数 */
+
+/* 讲义→代码 视觉过渡 */
+.code-bridge {
+  text-align: center; color: #667eea; font-size: .9em;
+  padding: 8px 0 4px; font-weight: 500;
+}
+.code-badges {
+  padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 6px;
+  background: #2a2a3e; border-bottom: 1px solid #444;
+}
+.code-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: .8em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.code-badge-func { background: #1e3a5f; color: #4ec9b0; }
+.code-badge-class { background: #1e3a5f; color: #dcdcaa; }
+.code-badge-const { background: #1e3a5f; color: #b5cea8; }
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main-content { max-width: calc(100vw - 200px); }
+}
+@media (max-width: 768px) {
+  .page-wrapper { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; height: auto; max-height: 45vh;
+    position: static; display: none; }
+  .sidebar.open { display: block; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .main-content { max-width: 100%; padding: 16px 10px 60px; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0; }
+  .hero { padding: 28px 18px; }
+  .hero h1 { font-size: 1.4em; }
+  .lecture { padding: 20px 16px; }
+}
+
+/* 打印 */
+@media print {
+  body { background: white; }
+  .lecture { box-shadow: none; }
+  .code-block { background: #f5f5f5; color: #222; }
+}
+
+/* 上/下章导航 */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 32px 0; gap: 16px;
+}
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 22px; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: .95em; transition: all .2s;
+}
+.nav-prev { background: #f0f0ff; color: #667eea; }
+.nav-prev:hover { background: #e0e0ff; }
+.nav-next { background: #667eea; color: white; }
+.nav-next:hover { background: #5560d8; }
+.nav-disabled { background: #eee; color: #999; cursor: not-allowed; pointer-events: none; }
+.nav-home { background: #f5f5f5; color: #555; }
+.nav-home:hover { background: #e0e0e0; }
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: .88em; color: #888; margin-bottom: 20px;
+}
+.breadcrumb a { color: #667eea; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* 移动端侧边栏开关 */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; background: #667eea;
+  color: white; border: none; font-size: 1.2em; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102,126,234,.4);
+}
+@media (max-width: 768px) { .sidebar-toggle { display: flex; align-items: center; justify-content: center; } }
+
+/* 浏览量统计徽章 */
+
+
+
+</style>
+
+</head>
+<body>
+<div class="page-wrapper">
+<!-- generated-from-sha256:f1814640aa0ade33cc3e7af084c3a9b83422a51a835150c70baf0806cddd81d7 -->
+<div class="sidebar" id="sidebar">
+<div class="sidebar-title"><a href="../index.html">🤖 AI Agent 全栈课程</a></div>
+<div class="sidebar-layer">第1层 理论基础</div>
+<a class="sidebar-link" href="../chapter_00_overview/00_course_overview.html">Ch0 课程概览与环境搭建</a>
+<a class="sidebar-link" href="../chapter_01_fundamentals/01_hello_agent.html">Ch1 第一个 Agent</a>
+<a class="sidebar-link" href="../chapter_02_components/02_agent_components.html">Ch2 Agent 核心组件</a>
+<a class="sidebar-link" href="../chapter_03_types/03_agent_types.html">Ch3 Agent 类型分类</a>
+<div class="sidebar-layer">第2层 工程实践</div>
+<a class="sidebar-link" href="../chapter_04_frameworks/04_frameworks.html">Ch4 主流框架实战</a>
+<a class="sidebar-link" href="../chapter_05_multi_agent/05_multi_agent.html">Ch5 多智能体系统</a>
+<a class="sidebar-link" href="../chapter_06_evaluation/06_evaluation.html">Ch6 评估与测试</a>
+<a class="sidebar-link" href="../chapter_07_interview/07_interview_prep.html">Ch7 求职面试准备</a>
+<div class="sidebar-layer">第3层 深度技术</div>
+<a class="sidebar-link" href="../chapter_08_claude_code/08_claude_code_architecture.html">Ch8 Claude Code 架构</a>
+<a class="sidebar-link" href="../chapter_09_rag_deepdive/09_rag_deepdive.html">Ch9 RAG 深度解析</a>
+<a class="sidebar-link" href="../chapter_10_mcp/10_mcp_deepdive.html">Ch10 MCP 深度解析</a>
+<a class="sidebar-link" href="../chapter_11_tool_calling/11_tool_calling_deepdive.html">Ch11 Tool Calling 底层</a>
+<a class="sidebar-link" href="../chapter_12_infrastructure/12_infrastructure.html">Ch12 Agent 生产基础设施</a>
+<div class="sidebar-layer">第4层 工程化前沿</div>
+<a class="sidebar-link" href="../chapter_13_fastapi/13_fastapi_agent_service.html">Ch13 FastAPI 服务化</a>
+<a class="sidebar-link" href="../chapter_14_sqlite/14_sqlite_agent_storage.html">Ch14 SQLite 持久化</a>
+<a class="sidebar-link active" href="../chapter_15_a2a/15_a2a_protocol.html">Ch15 Google A2A 协议</a>
+<a class="sidebar-link" href="../chapter_16_memgpt/16_memgpt_letta.html">Ch16 MemGPT/Letta 记忆</a>
+<a class="sidebar-link" href="../chapter_17_computer_use/17_computer_use.html">Ch17 Computer Use</a>
+<a class="sidebar-link" href="../chapter_18_security/18_agent_security.html">Ch18 Agent 安全与护栏</a>
+<div class="sidebar-layer">第5层 高级架构</div>
+<a class="sidebar-link" href="../chapter_19_workflow_patterns/19_workflow_patterns.html">Ch19 Agentic Workflow 设</a>
+<a class="sidebar-link" href="../chapter_20_context_engineering/20_context_engineering.html">Ch20 Context Engineerin</a>
+<a class="sidebar-link" href="../chapter_21_streaming/21_streaming_architecture.html">Ch21 Streaming & 实时架构</a>
+<a class="sidebar-link" href="../chapter_22_dspy/22_dspy.html">Ch22 DSPy 自动优化</a>
+<a class="sidebar-link" href="../chapter_23_code_agents/23_code_agents.html">Ch23 代码 Agent 架构横评</a>
+<a class="sidebar-link" href="../chapter_24_observability/24_observability.html">Ch24 Agent 可观测性</a>
+<div class="sidebar-layer">第6层 基础补强</div>
+<a class="sidebar-link" href="../chapter_25_vectordb/25_vectordb.html">Ch25 向量数据库选型</a>
+<a class="sidebar-link" href="../chapter_26_model_routing/26_model_routing.html">Ch26 模型路由策略</a>
+<a class="sidebar-link" href="../chapter_27_prompt_eng/27_prompt_engineering.html">Ch27 Agent Prompt 工程</a>
+<a class="sidebar-link" href="../chapter_28_cache/28_cache.html">Ch28 语义缓存与 Token 优化</a>
+<div class="sidebar-layer">第7层 专家进阶</div>
+<a class="sidebar-link" href="../chapter_29_multimodal/29_multimodal.html">Ch29 Multi-Modal Agent</a>
+<a class="sidebar-link" href="../chapter_30_reliability/30_reliability.html">Ch30 Agent 可靠性工程</a>
+<a class="sidebar-link" href="../chapter_31_benchmarks/31_benchmarks.html">Ch31 Agent 评测体系深度</a>
+<a class="sidebar-link" href="../chapter_32_self_improving/32_self_improving.html">Ch32 Self-Improving Age</a>
+<a class="sidebar-link" href="../chapter_33_prompt_cache/33_prompt_cache.html">Ch33 Prompt Caching & 推</a>
+<a class="sidebar-link" href="../chapter_34_finetune/34_finetune.html">Ch34 模型微调 for Function </a>
+<a class="sidebar-link" href="../chapter_35_data_flywheel/35_data_flywheel.html">Ch35 数据飞轮</a>
+<a class="sidebar-link" href="../chapter_36_defense/36_defense.html">Ch36 Agent 纵深安全</a>
+</div>
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div class="main-content"><div class="container"><div class="breadcrumb"><a href="../index.html">📖 AI Agent 全栈课程</a> &raquo; <strong>第15章 Google A2A 协议 — AgentCard·Task·Artifact</strong></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_14_sqlite/14_sqlite_agent_storage.html" title="SQLite 持久化 — 5 表 Schema·WAL·审计查询">← 第14章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_16_memgpt/16_memgpt_letta.html" title="MemGPT/Letta 记忆 — Core Memory·Heartbeat·Sleep-Time">第16章 →</a>
+</div><div class="hero"><h1>第15章 A2A 1.0 —— Agent 发现、消息与任务协作</h1><p class="subtitle">📖 AI Agent 全栈学习课程 · 可运行讲义</p></div><div class="lecture"><div class="tag-row"><span class="tag tag-goal">1. 理解 A2A 与 MCP、Function Calling 的边界</span><span class="tag tag-goal">2. 掌握 AgentCard、Message、Task、Artifact 四个核心对象</span><span class="tag tag-goal">3. 熟悉 SendMessage / GetTask / ListTasks / CancelTask 等 v1.0 操作</span><span class="tag tag-goal">4. 理解流式事件、长任务、身份授权和多租户隔离</span><span class="tag tag-goal">5. 识别从 v0.x 迁移到 v1.0 的破坏性变化</span></div><p>&nbsp;</p>
+<p>内容核对：2026-08-01</p>
+<p>说明：协议字段以 A2A v1.0 为核对基线；本章 Python Server 是教学模拟，</p>
+<p>不替代官方 SDK，也未实现真实 REST、gRPC、JSON-RPC 网络绑定或 JWS 验签。</p>
+<p>官方 v1.0 变更：https://a2a-protocol.org/latest/whats-new-v1/</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>15.1 A2A 解决什么问题？</h2>
+<p>&nbsp;</p>
+<p>当一个 Agent 需要把任务委派给另一个独立服务时，仅有“调用函数”还不够：</p>
+<p>远端 Agent 可能需要数分钟处理、请求补充信息、流式产生中间结果，并最终交付</p>
+<p>多个 Artifact。A2A 为这类跨服务协作定义发现、消息、任务状态和产物模型。</p>
+<p>&nbsp;</p>
+<p>Function Calling：模型选择本进程可用函数</p>
+<p>MCP             ：AI Host 发现并调用工具、资源和提示模板</p>
+<p>A2A             ：独立 Agent 服务之间发现能力并交换 Message / Task</p>
+<p>&nbsp;</p>
+<p>常见组合：主 Agent 通过 A2A 委派“生成财务报告”，财务 Agent 内部再通过 MCP</p>
+<p>读取数据库和模板。协议可以组合，但不应把远端 Agent 伪装成无状态小函数。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>15.2 AgentCard v1.0</h2>
+<p>&nbsp;</p>
+<p>公开 AgentCard 通常通过 well-known URI 发现。v1.0 的重要变化是：</p>
+<li>endpoint 不再放在顶层 <code>url</code></li>
+<li><code>protocolVersion</code> 位于每个 AgentInterface</li>
+<li><code>supportedInterfaces[]</code> 合并旧 preferred/additional transport 字段</li>
+<li><code>capabilities.extendedAgentCard</code> 表示可获取鉴权后的扩展卡</li>
+<li>可使用 JCS + JWS 验证签名；不要仅信任下载地址</li>
+<p>&nbsp;</p>
+<p>示例（字段按实际 SDK 生成，勿手写长期维护）：</p>
+<p>&nbsp;</p>
+<p>{</p>
+<p>"name": "Report Agent",</p>
+<p>"description": "生成审计报告",</p>
+<p>"version": "2.3.0",</p>
+<p>"supportedInterfaces": [{</p>
+<p>"url": "https://agents.example.com/report",</p>
+<p>"protocolBinding": "JSONRPC",</p>
+<p>"protocolVersion": "1.0"</p>
+<pre>}],
+"capabilities": {"streaming": true, "extendedAgentCard": true},
+"defaultInputModes": ["text/plain", "application/json"],
+"defaultOutputModes": ["text/markdown", "application/json"],
+"skills": [{
+  "id": "audit-report",
+  "name": "审计报告",
+  "description": "根据已授权的数据生成报告",
+  "tags": ["audit", "report"]
+}]</pre>
+<p>}</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>15.3 v1.0 对象模型</h2>
+<p>&nbsp;</p>
+<p>Message：一次用户或 Agent 消息，role 使用 ROLE_USER / ROLE_AGENT。</p>
+<p>Part   ：统一内容结构，通过 text / raw / url / data 成员区分，不再使用 kind。</p>
+<p>Task   ：可跟踪的工作单元，含 id、contextId、status、history、artifacts。</p>
+<p>Artifact：Agent 交付的结构化结果，由一个或多个统一 Part 组成。</p>
+<p>&nbsp;</p>
+<p>Task 状态使用 SCREAMING_SNAKE_CASE：</p>
+<p>TASK_STATE_SUBMITTED / WORKING / COMPLETED / FAILED / CANCELED /</p>
+<p>REJECTED / INPUT_REQUIRED / AUTH_REQUIRED</p>
+<p>&nbsp;</p>
+<p>时间戳使用 ISO 8601 UTC，精确到毫秒。服务端必须按已认证调用者限制 Task 可见性。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>15.4 核心操作与流式事件</h2>
+<p>&nbsp;</p>
+<p>SendMessage          ：发送消息，返回 Message 或 Task</p>
+<p>SendStreamingMessage ：发送消息并接收有序事件流</p>
+<p>GetTask              ：读取调用者可见的 Task</p>
+<p>ListTasks            ：分页列出调用者可见的 Task</p>
+<p>CancelTask           ：请求取消允许取消的 Task</p>
+<p>SubscribeToTask      ：重新订阅仍在运行的任务</p>
+<p>GetExtendedAgentCard ：鉴权后获取扩展能力描述</p>
+<p>&nbsp;</p>
+<p>流式事件不再使用 <code>kind</code> 和 <code>final</code>；通过成员名区分：</p>
+<p>&nbsp;</p>
+<p>{"statusUpdate": {"taskId": "...", "status": {...}}}</p>
+<p>{"artifactUpdate": {"taskId": "...", "artifact": {...}}}</p>
+<p>&nbsp;</p>
+<p>终态由协议绑定的流关闭规则表示，而不是额外的 final 布尔值。</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (221 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">utc_now</span><span class="code-badge code-badge-func">public_view</span><span class="code-badge code-badge-func">agent_card</span><span class="code-badge code-badge-func">send_message</span><span class="code-badge code-badge-func">get_task</span><span class="code-badge code-badge-func">list_tasks</span><span class="code-badge code-badge-func">cancel_task</span><span class="code-badge code-badge-func">dispatch</span><span class="code-badge code-badge-class">TaskState</span><span class="code-badge code-badge-class">Caller</span><span class="code-badge code-badge-class">TaskRecord</span><span class="code-badge code-badge-class">A2AError</span><span class="code-badge code-badge-class">A2ATeachingServer</span><span class="code-badge code-badge-const">TERMINAL_STATES</span></div><div class="code-block"><pre><span class="k">from</span> __future__ <span class="k">import</span> annotations
+
+<span class="k">import</span> json
+<span class="k">import</span> uuid
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass, field
+<span class="k">from</span> datetime <span class="k">import</span> datetime, timezone
+<span class="k">from</span> enum <span class="k">import</span> Enum
+<span class="k">from</span> typing <span class="k">import</span> Any
+
+
+<span class="k">def</span> <span class="f">utc_now</span>() -&gt; <span class="b">str</span>:
+    <span class="s">"""返回 A2A 示例使用的毫秒级 UTC 时间。"""</span>
+    <span class="k">return</span> datetime.now(timezone.utc).isoformat(timespec=<span class="s">"milliseconds"</span>).replace(<span class="s">"+00:00"</span>, <span class="s">"Z"</span>)
+
+
+<span class="k">class</span> <span class="f">TaskState</span>(<span class="b">str</span>, Enum):
+    SUBMITTED = <span class="s">"TASK_STATE_SUBMITTED"</span>
+    WORKING = <span class="s">"TASK_STATE_WORKING"</span>
+    COMPLETED = <span class="s">"TASK_STATE_COMPLETED"</span>
+    FAILED = <span class="s">"TASK_STATE_FAILED"</span>
+    CANCELED = <span class="s">"TASK_STATE_CANCELED"</span>
+    REJECTED = <span class="s">"TASK_STATE_REJECTED"</span>
+    INPUT_REQUIRED = <span class="s">"TASK_STATE_INPUT_REQUIRED"</span>
+    AUTH_REQUIRED = <span class="s">"TASK_STATE_AUTH_REQUIRED"</span>
+
+
+TERMINAL_STATES = {
+    TaskState.COMPLETED,
+    TaskState.FAILED,
+    TaskState.CANCELED,
+    TaskState.REJECTED,
+}
+
+
+<span <span class="k">class</span>="d">@dataclass</span>(frozen=<span class="k">True</span>)
+<span class="k">class</span> <span class="f">Caller</span>:
+    <span class="s">"""网络层完成认证后传给业务层的调用者上下文。"""</span>
+
+    subject: <span class="b">str</span>
+    tenant: <span class="b">str</span>
+    scopes: frozenset[<span class="b">str</span>] = frozenset()
+
+
+<span <span class="k">class</span>="d">@dataclass</span>
+<span class="k">class</span> <span class="f">TaskRecord</span>:
+    <span class="b">id</span>: <span class="b">str</span>
+    context_id: <span class="b">str</span>
+    owner_subject: <span class="b">str</span>
+    tenant: <span class="b">str</span>
+    status: TaskState
+    created_at: <span class="b">str</span>
+    last_modified: <span class="b">str</span>
+    history: <span class="b">list</span>[<span class="b">dict</span>[<span class="b">str</span>, Any]] = field(default_factory=<span class="b">list</span>)
+    artifacts: <span class="b">list</span>[<span class="b">dict</span>[<span class="b">str</span>, Any]] = field(default_factory=<span class="b">list</span>)
+
+    <span class="k">def</span> <span class="f">public_view</span>(<span class="k">self</span>, include_history: bool = <span class="k">False</span>) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        result = {
+            <span class="s">"id"</span>: <span class="k">self</span>.<span class="b">id</span>,
+            <span class="s">"contextId"</span>: <span class="k">self</span>.context_id,
+            <span class="s">"status"</span>: {<span class="s">"state"</span>: <span class="k">self</span>.status.value, <span class="s">"timestamp"</span>: <span class="k">self</span>.last_modified},
+            <span class="s">"createdAt"</span>: <span class="k">self</span>.created_at,
+            <span class="s">"lastModified"</span>: <span class="k">self</span>.last_modified,
+            <span class="s">"artifacts"</span>: <span class="k">self</span>.artifacts,
+        }
+        <span class="k">if</span> include_history:
+            result[<span class="s">"history"</span>] = <span class="k">self</span>.history
+        <span class="k">return</span> result
+
+
+<span class="k">class</span> <span class="f">A2AError</span>(Exception):
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="f">A2ATeachingServer</span>:
+    <span class="s">"""A2A v1.0 对象与操作的内存教学实现。
+
+    真实服务应使用官方 SDK 生成 binding、google.rpc.Status 错误、分页 token、
+    JWS 签名、OAuth/mTLS 与持久化。本类的关键点是 Task 隔离和 v1.0 命名。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>) -&gt; <span class="k">None</span>:
+        <span class="k">self</span>._tasks: <span class="b">dict</span>[<span class="b">str</span>, TaskRecord] = {}
+        <span class="k">self</span>._message_index: <span class="b">dict</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">str</span>, <span class="b">str</span>], <span class="b">str</span>] = {}
+
+    <span <span class="k">class</span>="d">@staticmethod</span>
+    <span class="k">def</span> <span class="f">agent_card</span>() -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="k">return</span> {
+            <span class="s">"name"</span>: <span class="s">"Agent Study Report Demo"</span>,
+            <span class="s">"description"</span>: <span class="s">"使用模拟数据演示 A2A v1.0 对象模型"</span>,
+            <span class="s">"version"</span>: <span class="s">"2026.8"</span>,
+            <span class="s">"supportedInterfaces"</span>: [
+                {
+                    <span class="s">"url"</span>: <span class="s">"https://agents.example.invalid/report"</span>,
+                    <span class="s">"protocolBinding"</span>: <span class="s">"JSONRPC"</span>,
+                    <span class="s">"protocolVersion"</span>: <span class="s">"1.0"</span>,
+                }
+            ],
+            <span class="s">"capabilities"</span>: {
+                <span class="s">"streaming"</span>: <span class="k">True</span>,
+                <span class="s">"pushNotifications"</span>: <span class="k">False</span>,
+                <span class="s">"extendedAgentCard"</span>: <span class="k">False</span>,
+            },
+            <span class="s">"defaultInputModes"</span>: [<span class="s">"text/plain"</span>],
+            <span class="s">"defaultOutputModes"</span>: [<span class="s">"text/markdown"</span>],
+            <span class="s">"skills"</span>: [
+                {
+                    <span class="s">"id"</span>: <span class="s">"course-summary"</span>,
+                    <span class="s">"name"</span>: <span class="s">"课程摘要"</span>,
+                    <span class="s">"description"</span>: <span class="s">"根据用户文本生成模拟摘要 Artifact"</span>,
+                    <span class="s">"tags"</span>: [<span class="s">"summary"</span>, <span class="s">"education"</span>],
+                }
+            ],
+        }
+
+    <span class="k">def</span> <span class="f">send_message</span>(<span class="k">self</span>, caller: Caller, message: <span class="b">dict</span>[<span class="b">str</span>, Any]) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="s">"""实现 SendMessage 的教学子集，并用 messageId 保证重试幂等。"""</span>
+        <span class="k">self</span>._require_scope(caller, <span class="s">"tasks:write"</span>)
+        <span class="k">self</span>._validate_message(message)
+        message_id = message[<span class="s">"messageId"</span>]
+        dedupe_key = (caller.tenant, caller.subject, message_id)
+        existing_id = <span class="k">self</span>._message_index.get(dedupe_key)
+        <span class="k">if</span> existing_id:
+            <span class="k">return</span> <span class="k">self</span>._tasks[existing_id].public_view(include_history=<span class="k">True</span>)
+
+        now = utc_now()
+        task_id = <span class="b">str</span>(uuid.uuid4())
+        context_id = <span class="b">str</span>(message.get(<span class="s">"contextId"</span>) <span class="k">or</span> uuid.uuid4())
+        task = TaskRecord(
+            <span class="b">id</span>=task_id,
+            context_id=context_id,
+            owner_subject=caller.subject,
+            tenant=caller.tenant,
+            status=TaskState.SUBMITTED,
+            created_at=now,
+            last_modified=now,
+            history=[message],
+        )
+        <span class="k">self</span>._tasks[task_id] = task
+        <span class="k">self</span>._message_index[dedupe_key] = task_id
+
+        <span class="h"># 教学模拟为同步完成；真实 Server 可异步进入 WORKING 并流式发送事件。</span>
+        task.status = TaskState.WORKING
+        task.last_modified = utc_now()
+        user_text = <span class="s">" "</span>.join(<span class="b">str</span>(part.get(<span class="s">"text"</span>, <span class="s">""</span>)) <span class="k">for</span> part <span class="k">in</span> message[<span class="s">"parts"</span>])
+        task.artifacts.append(
+            {
+                <span class="s">"artifactId"</span>: <span class="b">str</span>(uuid.uuid4()),
+                <span class="s">"name"</span>: <span class="s">"summary.md"</span>,
+                <span class="s">"parts"</span>: [
+                    {
+                        <span class="s">"text"</span>: f"<span class="h"># 模拟摘要\n\n已接收：{user_text}",</span>
+                        <span class="s">"mediaType"</span>: <span class="s">"text/markdown"</span>,
+                    }
+                ],
+            }
+        )
+        task.status = TaskState.COMPLETED
+        task.last_modified = utc_now()
+        <span class="k">return</span> task.public_view(include_history=<span class="k">True</span>)
+
+    <span class="k">def</span> <span class="f">get_task</span>(<span class="k">self</span>, caller: Caller, task_id: <span class="b">str</span>, include_history: bool = <span class="k">False</span>) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="k">self</span>._require_scope(caller, <span class="s">"tasks:read"</span>)
+        <span class="k">return</span> <span class="k">self</span>._visible_task(caller, task_id).public_view(include_history)
+
+    <span class="k">def</span> <span class="f">list_tasks</span>(<span class="k">self</span>, caller: Caller, page_size: <span class="b">int</span> = <span class="n">20</span>) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="k">self</span>._require_scope(caller, <span class="s">"tasks:read"</span>)
+        bounded_size = <span class="b">max</span>(<span class="n">1</span>, <span class="b">min</span>(page_size, <span class="n">100</span>))
+        visible = [
+            task.public_view(<span class="k">False</span>)
+            <span class="k">for</span> task <span class="k">in</span> <span class="k">self</span>._tasks.values()
+            <span class="k">if</span> task.tenant == caller.tenant <span class="k">and</span> task.owner_subject == caller.subject
+        ]
+        <span class="h"># 真实实现需返回不可伪造、稳定排序的 nextPageToken。</span>
+        <span class="k">return</span> {<span class="s">"tasks"</span>: visible[:bounded_size], <span class="s">"nextPageToken"</span>: <span class="k">None</span>}
+
+    <span class="k">def</span> <span class="f">cancel_task</span>(<span class="k">self</span>, caller: Caller, task_id: <span class="b">str</span>) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="k">self</span>._require_scope(caller, <span class="s">"tasks:write"</span>)
+        task = <span class="k">self</span>._visible_task(caller, task_id)
+        <span class="k">if</span> task.status <span class="k">in</span> TERMINAL_STATES:
+            <span class="k">raise</span> A2AError(f<span class="s">"task in terminal state: {task.status.value}"</span>)
+        task.status = TaskState.CANCELED
+        task.last_modified = utc_now()
+        <span class="k">return</span> task.public_view(<span class="k">False</span>)
+
+    <span class="k">def</span> <span class="f">dispatch</span>(<span class="k">self</span>, caller: Caller, operation: <span class="b">str</span>, params: <span class="b">dict</span>[<span class="b">str</span>, Any]) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="s">"""用 v1.0 操作名模拟 binding 分派。"""</span>
+        <span class="k">if</span> operation == <span class="s">"SendMessage"</span>:
+            <span class="k">return</span> <span class="k">self</span>.send_message(caller, params[<span class="s">"message"</span>])
+        <span class="k">if</span> operation == <span class="s">"GetTask"</span>:
+            <span class="k">return</span> <span class="k">self</span>.get_task(caller, params[<span class="s">"id"</span>], params.get(<span class="s">"includeHistory"</span>, <span class="k">False</span>))
+        <span class="k">if</span> operation == <span class="s">"ListTasks"</span>:
+            <span class="k">return</span> <span class="k">self</span>.list_tasks(caller, params.get(<span class="s">"pageSize"</span>, <span class="n">20</span>))
+        <span class="k">if</span> operation == <span class="s">"CancelTask"</span>:
+            <span class="k">return</span> <span class="k">self</span>.cancel_task(caller, params[<span class="s">"id"</span>])
+        <span class="k">raise</span> A2AError(f<span class="s">"unsupported operation: {operation}"</span>)
+
+    <span <span class="k">class</span>="d">@staticmethod</span>
+    <span class="k">def</span> <span class="f">_validate_message</span>(message: <span class="b">dict</span>[<span class="b">str</span>, Any]) -&gt; <span class="k">None</span>:
+        <span class="k">if</span> message.get(<span class="s">"role"</span>) != <span class="s">"ROLE_USER"</span>:
+            <span class="k">raise</span> A2AError(<span class="s">"teaching server expects role ROLE_USER"</span>)
+        <span class="k">if</span> <span class="k">not</span> <span class="b">isinstance</span>(message.get(<span class="s">"messageId"</span>), <span class="b">str</span>) <span class="k">or</span> <span class="k">not</span> message[<span class="s">"messageId"</span>]:
+            <span class="k">raise</span> A2AError(<span class="s">"messageId is required"</span>)
+        parts = message.get(<span class="s">"parts"</span>)
+        <span class="k">if</span> <span class="k">not</span> <span class="b">isinstance</span>(parts, <span class="b">list</span>) <span class="k">or</span> <span class="k">not</span> parts:
+            <span class="k">raise</span> A2AError(<span class="s">"parts must be a non-empty list"</span>)
+        <span class="k">for</span> part <span class="k">in</span> parts:
+            content_members = {<span class="s">"text"</span>, <span class="s">"raw"</span>, <span class="s">"url"</span>, <span class="s">"data"</span>}.intersection(part)
+            <span class="k">if</span> <span class="b">len</span>(content_members) != <span class="n">1</span>:
+                <span class="k">raise</span> A2AError(<span class="s">"each Part must contain exactly one content member"</span>)
+
+    <span <span class="k">class</span>="d">@staticmethod</span>
+    <span class="k">def</span> <span class="f">_require_scope</span>(caller: Caller, scope: <span class="b">str</span>) -&gt; <span class="k">None</span>:
+        <span class="k">if</span> scope <span class="k">not</span> <span class="k">in</span> caller.scopes:
+            <span class="k">raise</span> A2AError(f<span class="s">"missing scope: {scope}"</span>)
+
+    <span class="k">def</span> <span class="f">_visible_task</span>(<span class="k">self</span>, caller: Caller, task_id: <span class="b">str</span>) -&gt; TaskRecord:
+        task = <span class="k">self</span>._tasks.get(task_id)
+        <span class="k">if</span> task <span class="k">is</span> <span class="k">None</span> <span class="k">or</span> task.tenant != caller.tenant <span class="k">or</span> task.owner_subject != caller.subject:
+            <span class="h"># 不区分“不存在”和“无权访问”，避免枚举其他租户的 Task。</span>
+            <span class="k">raise</span> A2AError(<span class="s">"task not found"</span>)
+        <span class="k">return</span> task</pre></div></details></div><div class="lecture"><h2>15.5 从 v0.x 迁移到 v1.0</h2>
+<p>&nbsp;</p>
+<p>必须更新的高风险项：</p>
+<li>1. 操作名：message/send → SendMessage；tasks/get → GetTask；新增 ListTasks</li>
+<li>2. 枚举：小写/连字符 → ROLE_* 与 TASK_STATE_* 的 SCREAMING_SNAKE_CASE</li>
+<li>3. Part：删除 kind 和嵌套 file；使用 text/raw/url/data 成员判别</li>
+<li>4. AgentCard：迁移到 supportedInterfaces[]，协议版本下沉到 interface</li>
+<li>5. 流事件：删除 kind/final，使用 statusUpdate / artifactUpdate 成员</li>
+<li>6. 错误：按 binding 映射到标准化 google.rpc.Status 语义</li>
+<li>7. 安全：现代 OAuth、可选 mTLS、AgentCard JWS 签名与多租户 scope</li>
+<p>&nbsp;</p>
+<p>推荐迁移流程：先建立 v0.x ↔ v1.0 兼容层与契约测试，再双栈灰度；所有调用方</p>
+<p>升级完成后移除旧 binding。不要仅做字段搜索替换，Part 和事件判别逻辑必须重测。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>15.6 生产检查清单</h2>
+<p>&nbsp;</p>
+<li>AgentCard 只声明稳定能力；验证签名、域名和安全方案</li>
+<li>每个 Task 绑定 authenticated subject 与 tenant，查询时再次授权</li>
+<li>messageId / 业务幂等键防止网络重试产生重复副作用</li>
+<li>长任务设置超时、取消、续订、事件重放和 Artifact 保留策略</li>
+<li>Push Notification 回调需验证目标、签名并防止 SSRF</li>
+<li>跨 Agent 输入和 Artifact 都是不可信内容，需扫描和最小化再进入模型上下文</li>
+<li>记录 operation、agent、task、tenant、状态转换、耗时和错误，但避免泄露正文</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (33 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">demo</span></div><div class="code-block"><pre><span class="k">from</span> __future__ <span class="k">import</span> annotations
+
+<span class="k">import</span> json
+<span class="k">import</span> uuid
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass, field
+<span class="k">from</span> datetime <span class="k">import</span> datetime, timezone
+<span class="k">from</span> enum <span class="k">import</span> Enum
+<span class="k">from</span> typing <span class="k">import</span> Any
+
+<span class="k">def</span> <span class="f">demo</span>() -&gt; <span class="k">None</span>:
+    server = A2ATeachingServer()
+    caller = Caller(
+        subject=<span class="s">"user-42"</span>,
+        tenant=<span class="s">"tenant-demo"</span>,
+        scopes=frozenset({<span class="s">"tasks:read"</span>, <span class="s">"tasks:write"</span>}),
+    )
+    message = {
+        <span class="s">"messageId"</span>: <span class="s">"msg-demo-001"</span>,
+        <span class="s">"role"</span>: <span class="s">"ROLE_USER"</span>,
+        <span class="s">"parts"</span>: [{<span class="s">"text"</span>: <span class="s">"请总结 A2A v1.0 的核心变化"</span>, <span class="s">"mediaType"</span>: <span class="s">"text/plain"</span>}],
+    }
+
+    <span class="b">print</span>(<span class="s">"AgentCard v1.0:"</span>)
+    <span class="b">print</span>(json.dumps(server.agent_card(), ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    task = server.dispatch(caller, <span class="s">"SendMessage"</span>, {<span class="s">"message"</span>: message})
+    <span class="b">print</span>(<span class="s">"\nSendMessage result:"</span>)
+    <span class="b">print</span>(json.dumps(task, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    <span class="b">print</span>(<span class="s">"\nListTasks result:"</span>)
+    <span class="b">print</span>(json.dumps(server.dispatch(caller, <span class="s">"ListTasks"</span>, {}), ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    demo()</pre></div></details></div><hr style="margin:36px 0"><div class="code-section"><details><summary>📦 完整源代码 (377 行)</summary><div class="code-block"><pre><span class="s">"""
+第15章：A2A 1.0 —— Agent 发现、消息与任务协作
+==============================================
+
+内容核对：2026-08-01
+说明：协议字段以 A2A v1.0 为核对基线；本章 Python Server 是教学模拟，
+不替代官方 SDK，也未实现真实 REST、gRPC、JSON-RPC 网络绑定或 JWS 验签。
+官方 v1.0 变更：https://a2a-protocol.org/latest/whats-new-v1/
+
+📌 本章目标：
+  1. 理解 A2A 与 MCP、Function Calling 的边界
+  2. 掌握 AgentCard、Message、Task、Artifact 四个核心对象
+  3. 熟悉 SendMessage / GetTask / ListTasks / CancelTask 等 v1.0 操作
+  4. 理解流式事件、长任务、身份授权和多租户隔离
+  5. 识别从 v0.x 迁移到 v1.0 的破坏性变化
+
+
+15.1 A2A 解决什么问题？
+━━━━━━━━━━━━━━━━━━━━━━━
+
+当一个 Agent 需要把任务委派给另一个独立服务时，仅有“调用函数”还不够：
+远端 Agent 可能需要数分钟处理、请求补充信息、流式产生中间结果，并最终交付
+多个 Artifact。A2A 为这类跨服务协作定义发现、消息、任务状态和产物模型。
+
+  Function Calling：模型选择本进程可用函数
+  MCP             ：AI Host 发现并调用工具、资源和提示模板
+  A2A             ：独立 Agent 服务之间发现能力并交换 Message / Task
+
+常见组合：主 Agent 通过 A2A 委派“生成财务报告”，财务 Agent 内部再通过 MCP
+读取数据库和模板。协议可以组合，但不应把远端 Agent 伪装成无状态小函数。
+
+
+15.2 AgentCard v1.0
+━━━━━━━━━━━━━━━━━━
+
+公开 AgentCard 通常通过 well-known URI 发现。v1.0 的重要变化是：
+  - endpoint 不再放在顶层 `url`
+  - `protocolVersion` 位于每个 AgentInterface
+  - `supportedInterfaces[]` 合并旧 preferred/additional transport 字段
+  - `capabilities.extendedAgentCard` 表示可获取鉴权后的扩展卡
+  - 可使用 JCS + JWS 验证签名；不要仅信任下载地址
+
+示例（字段按实际 SDK 生成，勿手写长期维护）：
+
+  {
+    "name": "Report Agent",
+    "description": "生成审计报告",
+    "version": "2.3.0",
+    "supportedInterfaces": [{
+      "url": "https://agents.example.com/report",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }],
+    "capabilities": {"streaming": true, "extendedAgentCard": true},
+    "defaultInputModes": ["text/plain", "application/json"],
+    "defaultOutputModes": ["text/markdown", "application/json"],
+    "skills": [{
+      "id": "audit-report",
+      "name": "审计报告",
+      "description": "根据已授权的数据生成报告",
+      "tags": ["audit", "report"]
+    }]
+  }
+
+
+15.3 v1.0 对象模型
+━━━━━━━━━━━━━━━━━━━
+
+Message：一次用户或 Agent 消息，role 使用 ROLE_USER / ROLE_AGENT。
+Part   ：统一内容结构，通过 text / raw / url / data 成员区分，不再使用 kind。
+Task   ：可跟踪的工作单元，含 id、contextId、status、history、artifacts。
+Artifact：Agent 交付的结构化结果，由一个或多个统一 Part 组成。
+
+Task 状态使用 SCREAMING_SNAKE_CASE：
+  TASK_STATE_SUBMITTED / WORKING / COMPLETED / FAILED / CANCELED /
+  REJECTED / INPUT_REQUIRED / AUTH_REQUIRED
+
+时间戳使用 ISO 8601 UTC，精确到毫秒。服务端必须按已认证调用者限制 Task 可见性。
+
+
+15.4 核心操作与流式事件
+━━━━━━━━━━━━━━━━━━━━━━━
+
+  SendMessage          ：发送消息，返回 Message 或 Task
+  SendStreamingMessage ：发送消息并接收有序事件流
+  GetTask              ：读取调用者可见的 Task
+  ListTasks            ：分页列出调用者可见的 Task
+  CancelTask           ：请求取消允许取消的 Task
+  SubscribeToTask      ：重新订阅仍在运行的任务
+  GetExtendedAgentCard ：鉴权后获取扩展能力描述
+
+流式事件不再使用 `kind` 和 `final`；通过成员名区分：
+
+  {"statusUpdate": {"taskId": "...", "status": {...}}}
+  {"artifactUpdate": {"taskId": "...", "artifact": {...}}}
+
+终态由协议绑定的流关闭规则表示，而不是额外的 final 布尔值。
+"""</span>
+
+<span class="k">from</span> __future__ <span class="k">import</span> annotations
+
+<span class="k">import</span> json
+<span class="k">import</span> uuid
+<span class="k">from</span> dataclasses <span class="k">import</span> dataclass, field
+<span class="k">from</span> datetime <span class="k">import</span> datetime, timezone
+<span class="k">from</span> enum <span class="k">import</span> Enum
+<span class="k">from</span> typing <span class="k">import</span> Any
+
+
+<span class="k">def</span> <span class="f">utc_now</span>() -&gt; <span class="b">str</span>:
+    <span class="s">"""返回 A2A 示例使用的毫秒级 UTC 时间。"""</span>
+    <span class="k">return</span> datetime.now(timezone.utc).isoformat(timespec=<span class="s">"milliseconds"</span>).replace(<span class="s">"+00:00"</span>, <span class="s">"Z"</span>)
+
+
+<span class="k">class</span> <span class="f">TaskState</span>(<span class="b">str</span>, Enum):
+    SUBMITTED = <span class="s">"TASK_STATE_SUBMITTED"</span>
+    WORKING = <span class="s">"TASK_STATE_WORKING"</span>
+    COMPLETED = <span class="s">"TASK_STATE_COMPLETED"</span>
+    FAILED = <span class="s">"TASK_STATE_FAILED"</span>
+    CANCELED = <span class="s">"TASK_STATE_CANCELED"</span>
+    REJECTED = <span class="s">"TASK_STATE_REJECTED"</span>
+    INPUT_REQUIRED = <span class="s">"TASK_STATE_INPUT_REQUIRED"</span>
+    AUTH_REQUIRED = <span class="s">"TASK_STATE_AUTH_REQUIRED"</span>
+
+
+TERMINAL_STATES = {
+    TaskState.COMPLETED,
+    TaskState.FAILED,
+    TaskState.CANCELED,
+    TaskState.REJECTED,
+}
+
+
+<span <span class="k">class</span>="d">@dataclass</span>(frozen=<span class="k">True</span>)
+<span class="k">class</span> <span class="f">Caller</span>:
+    <span class="s">"""网络层完成认证后传给业务层的调用者上下文。"""</span>
+
+    subject: <span class="b">str</span>
+    tenant: <span class="b">str</span>
+    scopes: frozenset[<span class="b">str</span>] = frozenset()
+
+
+<span <span class="k">class</span>="d">@dataclass</span>
+<span class="k">class</span> <span class="f">TaskRecord</span>:
+    <span class="b">id</span>: <span class="b">str</span>
+    context_id: <span class="b">str</span>
+    owner_subject: <span class="b">str</span>
+    tenant: <span class="b">str</span>
+    status: TaskState
+    created_at: <span class="b">str</span>
+    last_modified: <span class="b">str</span>
+    history: <span class="b">list</span>[<span class="b">dict</span>[<span class="b">str</span>, Any]] = field(default_factory=<span class="b">list</span>)
+    artifacts: <span class="b">list</span>[<span class="b">dict</span>[<span class="b">str</span>, Any]] = field(default_factory=<span class="b">list</span>)
+
+    <span class="k">def</span> <span class="f">public_view</span>(<span class="k">self</span>, include_history: bool = <span class="k">False</span>) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        result = {
+            <span class="s">"id"</span>: <span class="k">self</span>.<span class="b">id</span>,
+            <span class="s">"contextId"</span>: <span class="k">self</span>.context_id,
+            <span class="s">"status"</span>: {<span class="s">"state"</span>: <span class="k">self</span>.status.value, <span class="s">"timestamp"</span>: <span class="k">self</span>.last_modified},
+            <span class="s">"createdAt"</span>: <span class="k">self</span>.created_at,
+            <span class="s">"lastModified"</span>: <span class="k">self</span>.last_modified,
+            <span class="s">"artifacts"</span>: <span class="k">self</span>.artifacts,
+        }
+        <span class="k">if</span> include_history:
+            result[<span class="s">"history"</span>] = <span class="k">self</span>.history
+        <span class="k">return</span> result
+
+
+<span class="k">class</span> <span class="f">A2AError</span>(Exception):
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="f">A2ATeachingServer</span>:
+    <span class="s">"""A2A v1.0 对象与操作的内存教学实现。
+
+    真实服务应使用官方 SDK 生成 binding、google.rpc.Status 错误、分页 token、
+    JWS 签名、OAuth/mTLS 与持久化。本类的关键点是 Task 隔离和 v1.0 命名。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>) -&gt; <span class="k">None</span>:
+        <span class="k">self</span>._tasks: <span class="b">dict</span>[<span class="b">str</span>, TaskRecord] = {}
+        <span class="k">self</span>._message_index: <span class="b">dict</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">str</span>, <span class="b">str</span>], <span class="b">str</span>] = {}
+
+    <span <span class="k">class</span>="d">@staticmethod</span>
+    <span class="k">def</span> <span class="f">agent_card</span>() -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="k">return</span> {
+            <span class="s">"name"</span>: <span class="s">"Agent Study Report Demo"</span>,
+            <span class="s">"description"</span>: <span class="s">"使用模拟数据演示 A2A v1.0 对象模型"</span>,
+            <span class="s">"version"</span>: <span class="s">"2026.8"</span>,
+            <span class="s">"supportedInterfaces"</span>: [
+                {
+                    <span class="s">"url"</span>: <span class="s">"https://agents.example.invalid/report"</span>,
+                    <span class="s">"protocolBinding"</span>: <span class="s">"JSONRPC"</span>,
+                    <span class="s">"protocolVersion"</span>: <span class="s">"1.0"</span>,
+                }
+            ],
+            <span class="s">"capabilities"</span>: {
+                <span class="s">"streaming"</span>: <span class="k">True</span>,
+                <span class="s">"pushNotifications"</span>: <span class="k">False</span>,
+                <span class="s">"extendedAgentCard"</span>: <span class="k">False</span>,
+            },
+            <span class="s">"defaultInputModes"</span>: [<span class="s">"text/plain"</span>],
+            <span class="s">"defaultOutputModes"</span>: [<span class="s">"text/markdown"</span>],
+            <span class="s">"skills"</span>: [
+                {
+                    <span class="s">"id"</span>: <span class="s">"course-summary"</span>,
+                    <span class="s">"name"</span>: <span class="s">"课程摘要"</span>,
+                    <span class="s">"description"</span>: <span class="s">"根据用户文本生成模拟摘要 Artifact"</span>,
+                    <span class="s">"tags"</span>: [<span class="s">"summary"</span>, <span class="s">"education"</span>],
+                }
+            ],
+        }
+
+    <span class="k">def</span> <span class="f">send_message</span>(<span class="k">self</span>, caller: Caller, message: <span class="b">dict</span>[<span class="b">str</span>, Any]) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="s">"""实现 SendMessage 的教学子集，并用 messageId 保证重试幂等。"""</span>
+        <span class="k">self</span>._require_scope(caller, <span class="s">"tasks:write"</span>)
+        <span class="k">self</span>._validate_message(message)
+        message_id = message[<span class="s">"messageId"</span>]
+        dedupe_key = (caller.tenant, caller.subject, message_id)
+        existing_id = <span class="k">self</span>._message_index.get(dedupe_key)
+        <span class="k">if</span> existing_id:
+            <span class="k">return</span> <span class="k">self</span>._tasks[existing_id].public_view(include_history=<span class="k">True</span>)
+
+        now = utc_now()
+        task_id = <span class="b">str</span>(uuid.uuid4())
+        context_id = <span class="b">str</span>(message.get(<span class="s">"contextId"</span>) <span class="k">or</span> uuid.uuid4())
+        task = TaskRecord(
+            <span class="b">id</span>=task_id,
+            context_id=context_id,
+            owner_subject=caller.subject,
+            tenant=caller.tenant,
+            status=TaskState.SUBMITTED,
+            created_at=now,
+            last_modified=now,
+            history=[message],
+        )
+        <span class="k">self</span>._tasks[task_id] = task
+        <span class="k">self</span>._message_index[dedupe_key] = task_id
+
+        <span class="h"># 教学模拟为同步完成；真实 Server 可异步进入 WORKING 并流式发送事件。</span>
+        task.status = TaskState.WORKING
+        task.last_modified = utc_now()
+        user_text = <span class="s">" "</span>.join(<span class="b">str</span>(part.get(<span class="s">"text"</span>, <span class="s">""</span>)) <span class="k">for</span> part <span class="k">in</span> message[<span class="s">"parts"</span>])
+        task.artifacts.append(
+            {
+                <span class="s">"artifactId"</span>: <span class="b">str</span>(uuid.uuid4()),
+                <span class="s">"name"</span>: <span class="s">"summary.md"</span>,
+                <span class="s">"parts"</span>: [
+                    {
+                        <span class="s">"text"</span>: f"<span class="h"># 模拟摘要\n\n已接收：{user_text}",</span>
+                        <span class="s">"mediaType"</span>: <span class="s">"text/markdown"</span>,
+                    }
+                ],
+            }
+        )
+        task.status = TaskState.COMPLETED
+        task.last_modified = utc_now()
+        <span class="k">return</span> task.public_view(include_history=<span class="k">True</span>)
+
+    <span class="k">def</span> <span class="f">get_task</span>(<span class="k">self</span>, caller: Caller, task_id: <span class="b">str</span>, include_history: bool = <span class="k">False</span>) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="k">self</span>._require_scope(caller, <span class="s">"tasks:read"</span>)
+        <span class="k">return</span> <span class="k">self</span>._visible_task(caller, task_id).public_view(include_history)
+
+    <span class="k">def</span> <span class="f">list_tasks</span>(<span class="k">self</span>, caller: Caller, page_size: <span class="b">int</span> = <span class="n">20</span>) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="k">self</span>._require_scope(caller, <span class="s">"tasks:read"</span>)
+        bounded_size = <span class="b">max</span>(<span class="n">1</span>, <span class="b">min</span>(page_size, <span class="n">100</span>))
+        visible = [
+            task.public_view(<span class="k">False</span>)
+            <span class="k">for</span> task <span class="k">in</span> <span class="k">self</span>._tasks.values()
+            <span class="k">if</span> task.tenant == caller.tenant <span class="k">and</span> task.owner_subject == caller.subject
+        ]
+        <span class="h"># 真实实现需返回不可伪造、稳定排序的 nextPageToken。</span>
+        <span class="k">return</span> {<span class="s">"tasks"</span>: visible[:bounded_size], <span class="s">"nextPageToken"</span>: <span class="k">None</span>}
+
+    <span class="k">def</span> <span class="f">cancel_task</span>(<span class="k">self</span>, caller: Caller, task_id: <span class="b">str</span>) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="k">self</span>._require_scope(caller, <span class="s">"tasks:write"</span>)
+        task = <span class="k">self</span>._visible_task(caller, task_id)
+        <span class="k">if</span> task.status <span class="k">in</span> TERMINAL_STATES:
+            <span class="k">raise</span> A2AError(f<span class="s">"task in terminal state: {task.status.value}"</span>)
+        task.status = TaskState.CANCELED
+        task.last_modified = utc_now()
+        <span class="k">return</span> task.public_view(<span class="k">False</span>)
+
+    <span class="k">def</span> <span class="f">dispatch</span>(<span class="k">self</span>, caller: Caller, operation: <span class="b">str</span>, params: <span class="b">dict</span>[<span class="b">str</span>, Any]) -&gt; <span class="b">dict</span>[<span class="b">str</span>, Any]:
+        <span class="s">"""用 v1.0 操作名模拟 binding 分派。"""</span>
+        <span class="k">if</span> operation == <span class="s">"SendMessage"</span>:
+            <span class="k">return</span> <span class="k">self</span>.send_message(caller, params[<span class="s">"message"</span>])
+        <span class="k">if</span> operation == <span class="s">"GetTask"</span>:
+            <span class="k">return</span> <span class="k">self</span>.get_task(caller, params[<span class="s">"id"</span>], params.get(<span class="s">"includeHistory"</span>, <span class="k">False</span>))
+        <span class="k">if</span> operation == <span class="s">"ListTasks"</span>:
+            <span class="k">return</span> <span class="k">self</span>.list_tasks(caller, params.get(<span class="s">"pageSize"</span>, <span class="n">20</span>))
+        <span class="k">if</span> operation == <span class="s">"CancelTask"</span>:
+            <span class="k">return</span> <span class="k">self</span>.cancel_task(caller, params[<span class="s">"id"</span>])
+        <span class="k">raise</span> A2AError(f<span class="s">"unsupported operation: {operation}"</span>)
+
+    <span <span class="k">class</span>="d">@staticmethod</span>
+    <span class="k">def</span> <span class="f">_validate_message</span>(message: <span class="b">dict</span>[<span class="b">str</span>, Any]) -&gt; <span class="k">None</span>:
+        <span class="k">if</span> message.get(<span class="s">"role"</span>) != <span class="s">"ROLE_USER"</span>:
+            <span class="k">raise</span> A2AError(<span class="s">"teaching server expects role ROLE_USER"</span>)
+        <span class="k">if</span> <span class="k">not</span> <span class="b">isinstance</span>(message.get(<span class="s">"messageId"</span>), <span class="b">str</span>) <span class="k">or</span> <span class="k">not</span> message[<span class="s">"messageId"</span>]:
+            <span class="k">raise</span> A2AError(<span class="s">"messageId is required"</span>)
+        parts = message.get(<span class="s">"parts"</span>)
+        <span class="k">if</span> <span class="k">not</span> <span class="b">isinstance</span>(parts, <span class="b">list</span>) <span class="k">or</span> <span class="k">not</span> parts:
+            <span class="k">raise</span> A2AError(<span class="s">"parts must be a non-empty list"</span>)
+        <span class="k">for</span> part <span class="k">in</span> parts:
+            content_members = {<span class="s">"text"</span>, <span class="s">"raw"</span>, <span class="s">"url"</span>, <span class="s">"data"</span>}.intersection(part)
+            <span class="k">if</span> <span class="b">len</span>(content_members) != <span class="n">1</span>:
+                <span class="k">raise</span> A2AError(<span class="s">"each Part must contain exactly one content member"</span>)
+
+    <span <span class="k">class</span>="d">@staticmethod</span>
+    <span class="k">def</span> <span class="f">_require_scope</span>(caller: Caller, scope: <span class="b">str</span>) -&gt; <span class="k">None</span>:
+        <span class="k">if</span> scope <span class="k">not</span> <span class="k">in</span> caller.scopes:
+            <span class="k">raise</span> A2AError(f<span class="s">"missing scope: {scope}"</span>)
+
+    <span class="k">def</span> <span class="f">_visible_task</span>(<span class="k">self</span>, caller: Caller, task_id: <span class="b">str</span>) -&gt; TaskRecord:
+        task = <span class="k">self</span>._tasks.get(task_id)
+        <span class="k">if</span> task <span class="k">is</span> <span class="k">None</span> <span class="k">or</span> task.tenant != caller.tenant <span class="k">or</span> task.owner_subject != caller.subject:
+            <span class="h"># 不区分“不存在”和“无权访问”，避免枚举其他租户的 Task。</span>
+            <span class="k">raise</span> A2AError(<span class="s">"task not found"</span>)
+        <span class="k">return</span> task
+
+
+<span class="s">"""
+15.5 从 v0.x 迁移到 v1.0
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+必须更新的高风险项：
+  1. 操作名：message/send → SendMessage；tasks/get → GetTask；新增 ListTasks
+  2. 枚举：小写/连字符 → ROLE_* 与 TASK_STATE_* 的 SCREAMING_SNAKE_CASE
+  3. Part：删除 kind 和嵌套 file；使用 text/raw/url/data 成员判别
+  4. AgentCard：迁移到 supportedInterfaces[]，协议版本下沉到 interface
+  5. 流事件：删除 kind/final，使用 statusUpdate / artifactUpdate 成员
+  6. 错误：按 binding 映射到标准化 google.rpc.Status 语义
+  7. 安全：现代 OAuth、可选 mTLS、AgentCard JWS 签名与多租户 scope
+
+推荐迁移流程：先建立 v0.x ↔ v1.0 兼容层与契约测试，再双栈灰度；所有调用方
+升级完成后移除旧 binding。不要仅做字段搜索替换，Part 和事件判别逻辑必须重测。
+
+
+15.6 生产检查清单
+━━━━━━━━━━━━━━━━━━━
+
+  - AgentCard 只声明稳定能力；验证签名、域名和安全方案
+  - 每个 Task 绑定 authenticated subject 与 tenant，查询时再次授权
+  - messageId / 业务幂等键防止网络重试产生重复副作用
+  - 长任务设置超时、取消、续订、事件重放和 Artifact 保留策略
+  - Push Notification 回调需验证目标、签名并防止 SSRF
+  - 跨 Agent 输入和 Artifact 都是不可信内容，需扫描和最小化再进入模型上下文
+  - 记录 operation、agent、task、tenant、状态转换、耗时和错误，但避免泄露正文
+"""</span>
+
+
+<span class="k">def</span> <span class="f">demo</span>() -&gt; <span class="k">None</span>:
+    server = A2ATeachingServer()
+    caller = Caller(
+        subject=<span class="s">"user-42"</span>,
+        tenant=<span class="s">"tenant-demo"</span>,
+        scopes=frozenset({<span class="s">"tasks:read"</span>, <span class="s">"tasks:write"</span>}),
+    )
+    message = {
+        <span class="s">"messageId"</span>: <span class="s">"msg-demo-001"</span>,
+        <span class="s">"role"</span>: <span class="s">"ROLE_USER"</span>,
+        <span class="s">"parts"</span>: [{<span class="s">"text"</span>: <span class="s">"请总结 A2A v1.0 的核心变化"</span>, <span class="s">"mediaType"</span>: <span class="s">"text/plain"</span>}],
+    }
+
+    <span class="b">print</span>(<span class="s">"AgentCard v1.0:"</span>)
+    <span class="b">print</span>(json.dumps(server.agent_card(), ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    task = server.dispatch(caller, <span class="s">"SendMessage"</span>, {<span class="s">"message"</span>: message})
+    <span class="b">print</span>(<span class="s">"\nSendMessage result:"</span>)
+    <span class="b">print</span>(json.dumps(task, ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+    <span class="b">print</span>(<span class="s">"\nListTasks result:"</span>)
+    <span class="b">print</span>(json.dumps(server.dispatch(caller, <span class="s">"ListTasks"</span>, {}), ensure_ascii=<span class="k">False</span>, indent=<span class="n">2</span>))
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    demo()
+</pre></div></details></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_14_sqlite/14_sqlite_agent_storage.html" title="SQLite 持久化 — 5 表 Schema·WAL·审计查询">← 第14章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_16_memgpt/16_memgpt_letta.html" title="MemGPT/Letta 记忆 — Core Memory·Heartbeat·Sleep-Time">第16章 →</a>
+</div></div></div></div></body></html>

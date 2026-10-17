@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第0章：AI Agent 课程概览与前置知识 — AI Agent 全栈课程</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: #f8f9fa; color: #1a1a2e; line-height: 1.8;
+}
+.page-wrapper { display: flex; min-height: 100vh; }
+
+/* 侧边栏 TOC */
+.sidebar {
+  width: 240px; min-width: 240px; background: #0f172a; color: #e2e8f0;
+  padding: 24px 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; font-size: .85em; border-right: 1px solid #1e293b;
+}
+.sidebar-title {
+  font-weight: 700; font-size: 1.05em; padding: 0 18px 16px;
+  border-bottom: 1px solid #1e293b; margin-bottom: 12px; color: white;
+}
+.sidebar-title a { color: #8ab4f8; text-decoration: none; }
+.sidebar-title a:hover { text-decoration: underline; }
+.sidebar-layer {
+  padding: 6px 18px; margin-top: 8px; color: #64748b;
+  font-size: .78em; text-transform: uppercase; letter-spacing: .5px;
+}
+.sidebar-link {
+  display: block; padding: 5px 18px 5px 18px; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: all .15s; font-size: .88em;
+}
+.sidebar-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+.sidebar-link.active {
+  color: #60a5fa; background: rgba(96,165,250,.1);
+  border-left-color: #60a5fa; font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1; min-width: 0; padding: 40px 24px 80px;
+  max-width: calc(100vw - 240px);
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 48px 32px; border-radius: 12px; margin-bottom: 36px;
+}
+.hero h1 { font-size: 2em; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { opacity: 0.9; font-size: 1.05em; }
+
+/* 讲义标题层级 */
+.lecture { background: white; border-radius: 10px; padding: 36px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 32px; }
+.lecture h2 {
+  font-size: 1.25em; color: #667eea; margin: 28px 0 12px;
+  padding-bottom: 6px; border-bottom: 2px solid #e8e8ff;
+}
+.lecture h3 {
+  font-size: 1.08em; color: #555; margin: 22px 0 8px;
+  padding-left: 10px; border-left: 3px solid #667eea;
+}
+.lecture p { margin: 10px 0; }
+.lecture ul, .lecture ol { margin: 8px 0 8px 24px; }
+.lecture li { margin: 4px 0; }
+.lecture pre {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+  padding: 18px 22px; overflow-x: auto; font-size: .88em;
+  line-height: 1.55; margin: 14px 0;
+}
+.lecture code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; }
+.lecture p code, .lecture li code {
+  background: #eee8ff; padding: 1px 6px; border-radius: 4px;
+  font-size: .92em; color: #6c3cc0;
+}
+.lecture strong { color: #333; }
+.lecture em { color: #555; }
+.lecture blockquote {
+  border-left: 4px solid #667eea; padding: 8px 16px;
+  margin: 14px 0; background: #f4f4ff; border-radius: 0 8px 8px 0;
+  color: #555;
+}
+.lecture table {
+  border-collapse: collapse; width: 100%; margin: 16px 0;
+  font-size: .92em; background: white; border-radius: 6px; overflow: hidden;
+}
+.lecture table th {
+  background: #667eea; color: white; font-weight: 600;
+  padding: 10px 14px; text-align: left;
+}
+.lecture table td {
+  padding: 9px 14px; border-bottom: 1px solid #e8e8f0;
+}
+.lecture table tr:hover td { background: #f4f4ff; }
+.lecture hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+/* 架构图 / 流程图 — 与代码块相同的 pre 渲染方式 */
+.diagram-label {
+  font-size: .85em; font-weight: 600; color: #8ab4f8;
+  background: linear-gradient(135deg, #2d3a5c 0%, #1e2d4a 100%);
+  padding: 8px 18px; letter-spacing: .5px; margin: 18px 0 0 0;
+  border-radius: 10px 10px 0 0; border: 1px solid #3a4a6a; border-bottom: none;
+}
+.diagram-pre {
+  border-radius: 0 0 10px 10px; margin: 0 0 18px 0;
+  border-top: none; border: 1px solid #2a3045;
+}
+.ascii-art {
+  background: #1a1e2b; color: #c0caf5; border-radius: 0 0 10px 10px;
+  padding: 18px 22px; overflow-x: auto; font-size: .8em;
+  line-height: 1.3; margin: 0;
+  font-family: "JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace;
+  border: none; white-space: pre;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 目标/考点标签 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: .85em; font-weight: 500;
+}
+.tag-goal { background: #e8f5e9; color: #2e7d32; }
+.tag-interview { background: #fff3e0; color: #e65100; }
+
+/* 代码块区域 */
+.code-section { margin-top: 24px; }
+.code-section summary {
+  font-size: 1.1em; font-weight: 600; cursor: pointer;
+  padding: 10px 16px; background: #1e1e2e; color: #cdd6f4;
+  border-radius: 8px 8px 0 0; user-select: none;
+}
+.code-section pre {
+  margin: 0; border-radius: 0 0 8px 8px; max-height: 70vh;
+  overflow-y: auto;
+}
+.code-block {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 0 0 8px 8px;
+  padding: 20px 24px; overflow-x: auto; font-size: .85em;
+  line-height: 1.6; max-height: 70vh; overflow-y: auto;
+}
+
+/* IDE 风格语法高亮颜色 */
+.code-block .k { color: #c586c0; }     /* 关键字 def/class/import */
+.code-block .s { color: #ce9178; }     /* 字符串 */
+.code-block .h { color: #6a9955; }     /* 注释 */
+.code-block .d { color: #dcdcaa; }     /* 装饰器 */
+.code-block .n { color: #b5cea8; }     /* 数字 */
+.code-block .f { color: #4ec9b0; }     /* 函数名 */
+.code-block .b { color: #569cd6; }     /* 内置函数 */
+
+/* 讲义→代码 视觉过渡 */
+.code-bridge {
+  text-align: center; color: #667eea; font-size: .9em;
+  padding: 8px 0 4px; font-weight: 500;
+}
+.code-badges {
+  padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 6px;
+  background: #2a2a3e; border-bottom: 1px solid #444;
+}
+.code-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: .8em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.code-badge-func { background: #1e3a5f; color: #4ec9b0; }
+.code-badge-class { background: #1e3a5f; color: #dcdcaa; }
+.code-badge-const { background: #1e3a5f; color: #b5cea8; }
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main-content { max-width: calc(100vw - 200px); }
+}
+@media (max-width: 768px) {
+  .page-wrapper { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; height: auto; max-height: 45vh;
+    position: static; display: none; }
+  .sidebar.open { display: block; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .main-content { max-width: 100%; padding: 16px 10px 60px; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0; }
+  .hero { padding: 28px 18px; }
+  .hero h1 { font-size: 1.4em; }
+  .lecture { padding: 20px 16px; }
+}
+
+/* 打印 */
+@media print {
+  body { background: white; }
+  .lecture { box-shadow: none; }
+  .code-block { background: #f5f5f5; color: #222; }
+}
+
+/* 上/下章导航 */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 32px 0; gap: 16px;
+}
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 22px; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: .95em; transition: all .2s;
+}
+.nav-prev { background: #f0f0ff; color: #667eea; }
+.nav-prev:hover { background: #e0e0ff; }
+.nav-next { background: #667eea; color: white; }
+.nav-next:hover { background: #5560d8; }
+.nav-disabled { background: #eee; color: #999; cursor: not-allowed; pointer-events: none; }
+.nav-home { background: #f5f5f5; color: #555; }
+.nav-home:hover { background: #e0e0e0; }
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: .88em; color: #888; margin-bottom: 20px;
+}
+.breadcrumb a { color: #667eea; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* 移动端侧边栏开关 */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; background: #667eea;
+  color: white; border: none; font-size: 1.2em; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102,126,234,.4);
+}
+@media (max-width: 768px) { .sidebar-toggle { display: flex; align-items: center; justify-content: center; } }
+
+/* 浏览量统计徽章 */
+
+
+
+</style>
+
+</head>
+<body>
+<div class="page-wrapper">
+<!-- generated-from-sha256:340e152fca3c5bbac21cc9a4059af7ff2b65bef1a8103fd91d14bac29a320024 -->
+<div class="sidebar" id="sidebar">
+<div class="sidebar-title"><a href="../index.html">🤖 AI Agent 全栈课程</a></div>
+<div class="sidebar-layer">第1层 理论基础</div>
+<a class="sidebar-link active" href="../chapter_00_overview/00_course_overview.html">Ch0 课程概览与环境搭建</a>
+<a class="sidebar-link" href="../chapter_01_fundamentals/01_hello_agent.html">Ch1 第一个 Agent</a>
+<a class="sidebar-link" href="../chapter_02_components/02_agent_components.html">Ch2 Agent 核心组件</a>
+<a class="sidebar-link" href="../chapter_03_types/03_agent_types.html">Ch3 Agent 类型分类</a>
+<div class="sidebar-layer">第2层 工程实践</div>
+<a class="sidebar-link" href="../chapter_04_frameworks/04_frameworks.html">Ch4 主流框架实战</a>
+<a class="sidebar-link" href="../chapter_05_multi_agent/05_multi_agent.html">Ch5 多智能体系统</a>
+<a class="sidebar-link" href="../chapter_06_evaluation/06_evaluation.html">Ch6 评估与测试</a>
+<a class="sidebar-link" href="../chapter_07_interview/07_interview_prep.html">Ch7 求职面试准备</a>
+<div class="sidebar-layer">第3层 深度技术</div>
+<a class="sidebar-link" href="../chapter_08_claude_code/08_claude_code_architecture.html">Ch8 Claude Code 架构</a>
+<a class="sidebar-link" href="../chapter_09_rag_deepdive/09_rag_deepdive.html">Ch9 RAG 深度解析</a>
+<a class="sidebar-link" href="../chapter_10_mcp/10_mcp_deepdive.html">Ch10 MCP 深度解析</a>
+<a class="sidebar-link" href="../chapter_11_tool_calling/11_tool_calling_deepdive.html">Ch11 Tool Calling 底层</a>
+<a class="sidebar-link" href="../chapter_12_infrastructure/12_infrastructure.html">Ch12 Agent 生产基础设施</a>
+<div class="sidebar-layer">第4层 工程化前沿</div>
+<a class="sidebar-link" href="../chapter_13_fastapi/13_fastapi_agent_service.html">Ch13 FastAPI 服务化</a>
+<a class="sidebar-link" href="../chapter_14_sqlite/14_sqlite_agent_storage.html">Ch14 SQLite 持久化</a>
+<a class="sidebar-link" href="../chapter_15_a2a/15_a2a_protocol.html">Ch15 Google A2A 协议</a>
+<a class="sidebar-link" href="../chapter_16_memgpt/16_memgpt_letta.html">Ch16 MemGPT/Letta 记忆</a>
+<a class="sidebar-link" href="../chapter_17_computer_use/17_computer_use.html">Ch17 Computer Use</a>
+<a class="sidebar-link" href="../chapter_18_security/18_agent_security.html">Ch18 Agent 安全与护栏</a>
+<div class="sidebar-layer">第5层 高级架构</div>
+<a class="sidebar-link" href="../chapter_19_workflow_patterns/19_workflow_patterns.html">Ch19 Agentic Workflow 设</a>
+<a class="sidebar-link" href="../chapter_20_context_engineering/20_context_engineering.html">Ch20 Context Engineerin</a>
+<a class="sidebar-link" href="../chapter_21_streaming/21_streaming_architecture.html">Ch21 Streaming & 实时架构</a>
+<a class="sidebar-link" href="../chapter_22_dspy/22_dspy.html">Ch22 DSPy 自动优化</a>
+<a class="sidebar-link" href="../chapter_23_code_agents/23_code_agents.html">Ch23 代码 Agent 架构横评</a>
+<a class="sidebar-link" href="../chapter_24_observability/24_observability.html">Ch24 Agent 可观测性</a>
+<div class="sidebar-layer">第6层 基础补强</div>
+<a class="sidebar-link" href="../chapter_25_vectordb/25_vectordb.html">Ch25 向量数据库选型</a>
+<a class="sidebar-link" href="../chapter_26_model_routing/26_model_routing.html">Ch26 模型路由策略</a>
+<a class="sidebar-link" href="../chapter_27_prompt_eng/27_prompt_engineering.html">Ch27 Agent Prompt 工程</a>
+<a class="sidebar-link" href="../chapter_28_cache/28_cache.html">Ch28 语义缓存与 Token 优化</a>
+<div class="sidebar-layer">第7层 专家进阶</div>
+<a class="sidebar-link" href="../chapter_29_multimodal/29_multimodal.html">Ch29 Multi-Modal Agent</a>
+<a class="sidebar-link" href="../chapter_30_reliability/30_reliability.html">Ch30 Agent 可靠性工程</a>
+<a class="sidebar-link" href="../chapter_31_benchmarks/31_benchmarks.html">Ch31 Agent 评测体系深度</a>
+<a class="sidebar-link" href="../chapter_32_self_improving/32_self_improving.html">Ch32 Self-Improving Age</a>
+<a class="sidebar-link" href="../chapter_33_prompt_cache/33_prompt_cache.html">Ch33 Prompt Caching & 推</a>
+<a class="sidebar-link" href="../chapter_34_finetune/34_finetune.html">Ch34 模型微调 for Function </a>
+<a class="sidebar-link" href="../chapter_35_data_flywheel/35_data_flywheel.html">Ch35 数据飞轮</a>
+<a class="sidebar-link" href="../chapter_36_defense/36_defense.html">Ch36 Agent 纵深安全</a>
+</div>
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div class="main-content"><div class="container"><div class="breadcrumb"><a href="../index.html">📖 AI Agent 全栈课程</a> &raquo; <strong>第0章 课程概览与环境搭建</strong></div><div class="nav-bar">
+<span class="nav-link nav-disabled">← 已是第一章</span>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_01_fundamentals/01_hello_agent.html" title="第一个 Agent — 裸写 ReAct 循环">第1章 →</a>
+</div><div class="hero"><h1>第0章 AI Agent 课程概览与前置知识</h1><p class="subtitle">📖 AI Agent 全栈学习课程 · 可运行讲义</p></div><div class="lecture"><div class="tag-row"><span class="tag tag-goal">1. 理解「什么是 AI Agent」- 建立直觉认知</span><span class="tag tag-goal">2. 掌握 Agent 的核心组成公式：Agent = LLM + 规划 + 记忆 + 工具</span><span class="tag tag-goal">3. 了解 Agent 开发的完整技术栈和 37 章学习路线</span><span class="tag tag-goal">4. 确认学习本课程所需的前置知识</span><span class="tag tag-goal">0.1 Agent 是什么？（5分钟理解）</span><span class="tag tag-goal">0.2 为什么 2024-2026 年是 Agent 爆发期？</span><span class="tag tag-goal">0.3 Agent 核心公式：Agent = LLM + 规划 + 记忆 + 工具</span><span class="tag tag-goal">0.4 全套学习路线图（37章七层递进）</span><span class="tag tag-goal">0.5 前置知识自查清单</span><span class="tag tag-goal">0.6 环境搭建（一键运行）</span></div><p>&nbsp;</p>
+<p>内容核对：2026-08-01</p>
+<p>说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>0.1 Agent 是什么？—— 用类比建立直觉</h2>
+<p>&nbsp;</p>
+<p>要理解 Agent，先看一个最简单的对比：</p>
+<p>&nbsp;</p>
+<p>❌ 普通 LLM（如 ChatGPT 基础版）：</p>
+<p>用户：「北京明天天气怎么样？」</p>
+<p>LLM：「抱歉，我无法获取实时数据。」  ← 只会"说"，不会"做"</p>
+<p>&nbsp;</p>
+<p>为什么？因为 LLM 的「世界」只有训练数据。它就像一个被困在房间里</p>
+<p>的人，只能靠记忆回答。它不知道「现在」发生了什么。</p>
+<p>&nbsp;</p>
+<p>✅ AI Agent：</p>
+<p>用户：「北京明天天气怎么样？」</p>
+<p>Agent 内部执行了 4 步：</p>
+<li>1. 思考(Think)：用户想知道天气 → 我需要调用天气查询工具</li>
+<li>2. 行动(Act)：调用 get_weather("北京") → 发送 HTTP 请求到天气 API</li>
+<li>3. 观察(Observe)：返回 {"明天": "晴，25°C"} → 拿到真实数据</li>
+<li>4. 回答：用自然语言组织结果 → 「北京明天晴天，气温 25°C」</li>
+<p>&nbsp;</p>
+<p>核心区别：</p>
+<li>LLM = 「大脑」（会思考，但只能靠记忆）</li>
+<li>Agent = 「大脑 + 手」（会思考 + 能获取新信息、执行操作）</li>
+<p>&nbsp;</p>
+<p>这就引出了 Agent 开发的核心思维：我们不是在教 LLM 更多知识，</p>
+<p>而是在给它装「手」——让它能查、能算、能操作。这才是 Agent 和</p>
+<p>聊天机器人的本质分界线。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>0.2 为什么 Agent 是 2024-2026 年最热门方向？</h2>
+<p>&nbsp;</p>
+<p>关键时间线：</p>
+<p>&nbsp;</p>
+<p>── 2023: LLM 之年 ──</p>
+<li>2023.03: AutoGPT 开源，Star 数一周破 10 万</li>
+<li>2023.06: OpenAI 发布 Function Calling</li>
+<li>2023.10: LangChain 发布 LangGraph（Agent 编排框架）</li>
+<li>2023.12: MemGPT 论文发布（LLM as Operating System）</li>
+<p>&nbsp;</p>
+<p>── 2024: RAG 与 Agent 元年 ──</p>
+<li>2024.05: OpenAI 发布 GPT-4o，原生支持工具调用</li>
+<li>2024.10: Anthropic 发布 Computer Use（Claude 操控电脑）</li>
+<li>2024.11: Anthropic 发布 MCP 协议（Agent ↔ 工具的 USB-C）</li>
+<p>&nbsp;</p>
+<p>── 2025: Agent 工程平台化 ──</p>
+<li>2025.01: DeepSeek-R1 发布，推理能力大幅提升</li>
+<li>2025.02: Anthropic 推出 Claude Code 编码 Agent</li>
+<li>2025.03: OpenAI 推出 Responses API 与内置 Agent 工具</li>
+<li>2025.04: Google 发起 A2A 协议（Agent ↔ Agent）</li>
+<li>2025: Claude Code SDK 更名为 Claude Agent SDK</li>
+<p>&nbsp;</p>
+<p>── 2026: 协议、安全与评测走向规范化 ──</p>
+<li>2026: A2A 1.0 统一操作、AgentCard 与跨 Agent 互操作模型</li>
+<li>2026.07: MCP 2026-07-28 采用无状态核心，简化传输与实现</li>
+<li>2026: OWASP 发布 Agentic Applications Top 10（ASI01-ASI10）</li>
+<p>&nbsp;</p>
+<p>工程信号（截至 2026-08-01）：</p>
+<li>Agent 已从“单次模型调用”扩展到工具、状态、协议、评测和安全体系</li>
+<li>MCP、A2A、OpenTelemetry GenAI 语义约定等开放规范持续演进</li>
+<li>生产团队更看重可评测、可观测、可恢复和最小权限，而非框架数量</li>
+<li>岗位数量和薪资会随地区与时间变化，本课程不提供未经来源验证的统计值</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>0.3 Agent 核心公式</h2>
+<p>&nbsp;</p>
+<p>Agent = LLM + 规划(Planning) + 记忆(Memory) + 工具(Tools)</p>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌─────────────────────────────────────────────┐
+  │                  AI Agent                   │
+  │  ┌─────────┐  ┌────────┐  ┌──────────────┐  │
+  │  │   LLM   │  │ 规划器  │  │   记忆系统    │  │
+  │  │ (大脑)   │  │Planning│  │   Memory     │   │
+  │  └────┬────┘  └───┬────┘  └──────┬───────┘  │
+  │       │           │              │          │
+  │       └───────────┼──────────────┘          │
+  │                   │                         │
+  │            ┌──────┴──────┐                  │
+  │            │   工具调用    │                 │
+  │            │   Tools     │                  │
+  │            │ 搜索/API/代码│                  │
+  │            └─────────────┘                  │
+  └─────────────────────────────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>Agent 执行循环（核心，面试高频！）：</p>
+<li>1. 感知(Perceive)：接收用户输入和上一次行动的结果</li>
+<li>2. 思考(Think)：LLM 分析当前状态，决定下一步</li>
+<li>3. 行动(Act)：调用工具或生成最终回答</li>
+<li>4. 观察(Observe)：获取行动结果</li>
+<p>→ 回到步骤 1，直到任务完成</p>
+<p>&nbsp;</p>
+<p>这个循环被称为「ReAct 循环」(Reasoning + Acting)，</p>
+<p>是 99% 的 Agent 框架的底层逻辑。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>0.4 全套学习路线图（37章七层递进）</h2>
+<p>&nbsp;</p>
+<p>本课程按「理论 → 实践 → 深度 → 工程 → 架构 → 补强 → 专家」七层递进，</p>
+<p>共 37 章（Ch0-Ch36），每章既是完整讲义也是可运行代码。</p>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌─────────────────────────────────────────────────────────────┐
+  │ 第1层：Agent 理论基础（Ch0-3）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch0 课程概览  │ 学习路线图、环境搭建、API Key 配置        │ │
+  │ │ Ch1 第一个Agent│ 裸写 ReAct 循环、Function Calling 原理   │ │
+  │ │ Ch2 核心组件  │ 规划器 + 记忆系统 + 工具设计黄金法则       │ │
+  │ │ Ch3 类型分类  │ ReAct / Plan-Execute / Reflexion 对比    │ │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第2层：工程实践与框架（Ch4-7）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch4 主流框架  │ LangChain Agent + LangGraph 状态机实战    │ │
+  │ │ Ch5 多智能体  │ Multi-Agent 协作、Writer+Reviewer 模式    │ │
+  │ │ Ch6 评估测试  │ 评测框架 + LLM-as-Judge + 生产 Checklist   │ │
+  │ │ Ch7 求职面试  │ 20道高频面试题 + 项目指南 + 面试流程       │ │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第3层：深度技术剖析（Ch8-12）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch8 ClaudeCode│ Agent循环·Steering队列·上下文压缩·SubAgent│
+  │ │ Ch9 RAG深度   │ 从Naive到生产级·Chunk·Embedding·RRF     │
+  │ │ Ch10 MCP协议  │ 无状态JSON-RPC·原语·stdio/Streamable HTTP│
+  │ │ Ch11 ToolCall │ OpenAI vs Anthropic·Streaming·Strict模式 │
+  │ │ Ch12 基础设施  │ OpenClaw架构·Harness·Agent生产化Checklist │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第4层：工程化与前沿（Ch13-18）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch13 FastAPI  │ REST API·SSE·WebSocket·生产部署架构      │
+  │ │ Ch14 SQLite   │ 5表Schema·WAL模式·会话/任务/用户管理     │
+  │ │ Ch15 A2A协议   │ v1.0 AgentCard·Message·Task·Artifact    │
+  │ │ Ch16 MemGPT   │ Core Memory·Heartbeat·Sleep-Time·FS记忆  │
+  │ │ Ch17 CompUse  │ Beta工具·Screenshot-Action·安全沙箱     │
+  │ │ Ch18 安全防护  │ OWASP Agentic Top 10·权限分级·4层防御   │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第5层：高级架构与优化（Ch19-24）                              │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch19 Workflow │ Reflection·Routing·Orchestrator等7种模式 │
+  │ │ Ch20 Context  │ Context Rot·预算管理·XML结构化Prompt     │
+  │ │ Ch21 Streaming│ EventBus·动态中断·背压控制               │
+  │ │ Ch22 DSPy    │ Signature→Module→Optimizer 自动优化       │
+  │ │ Ch23 CodeAgent│ CodeAct·ACI·Plan-Execute·SWE-bench横评   │
+  │ │ Ch24 可观测   │ OTel GenAI语义·Tracing·LangSmith/Langfuse│
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第6层：基础能力补强（Ch25-28）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch25 向量库   │ Chroma·Pinecone·Milvus·Qdrant对比·Embedding│
+  │ │ Ch26 模型路由  │ Threshold·Cascade·Semantic·Cost-Aware 4种 │
+  │ │ Ch27 Prompt   │ System Prompt 6模块模板·工具描述评分卡   │
+  │ │ Ch28 语义缓存  │ 三级缓存(Exact→Semantic→LLM)·Token预算   │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第7层：专家级进阶（Ch29-36）                                  │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch29 多模态   │ 视觉+文本联合推理·多模态Tool Calling     │
+  │ │ Ch30 可靠性   │ 熔断器·指数退避重试·幂等性·降级策略     │
+  │ │ Ch31 评测体系  │ GAIA·AgentBench·WebArena·tau-bench      │
+  │ │ Ch32 自改进   │ Bad Case收集→自动改Prompt→评测验证      │
+  │ │ Ch33 Cache   │ OpenAI/Anthropic Prompt Cache·KV复用     │
+  │ │ Ch34 微调     │ LoRA微调·数据准备·成本收益对比           │
+  │ │ Ch35 数据飞轮  │ 交互采集→Bad Case识别→自动触发改进     │
+  │ │ Ch36 纵深安全  │ Canary Token·分层隔离·行为沙箱          │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  └─────────────────────────────────────────────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>学习建议：</p>
+<li>1. 新手入门：按 Ch0 → Ch36 顺序学习，每章 1-2 小时</li>
+<li>2. 有基础者：直接跳到 Ch8 开始深度技术</li>
+<li>3. 面试突击（重点章节）：</li>
+<p>Ch7(面试20问) + Ch8(Claude Code) + Ch9(RAG) + Ch10(MCP)</p>
+<p>+ Ch11(ToolCall) + Ch15(A2A) + Ch18(安全) + Ch19(Workflow)</p>
+<li>4. 构建产品：Ch13(FastAPI) + Ch14(SQLite) + Ch24(可观测)</li>
+<p>+ Ch26(模型路由) + Ch28(语义缓存)</p>
+<li>5. 降本增效：Ch26(路由) + Ch28(缓存) + Ch33(Prompt Cache)，收益以实测为准</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>0.5 前置知识自查清单</h2>
+<p>&nbsp;</p>
+<p>学习本课程前，你需要具备：</p>
+<p>&nbsp;</p>
+<p>✅ Python 基础</p>
+<li>会写函数、类、装饰器</li>
+<li>会用 pip 安装包</li>
+<li>理解异步编程（async/await）的概念（Ch1-12 了解即可，Ch13 必须）</li>
+<li>了解 SQL 基础（Ch14 需要）</li>
+<p>&nbsp;</p>
+<p>✅ LLM 基础认知</p>
+<li>用过 ChatGPT / Claude / 文心一言 等产品</li>
+<li>知道什么是 Prompt（提示词）</li>
+<li>了解 Token 是什么</li>
+<li>了解 Function Calling 的概念（Ch1 会详细讲）</li>
+<p>&nbsp;</p>
+<p>✅ 基本概念</p>
+<li>知道什么是 API 调用 / HTTP 协议</li>
+<li>了解 JSON 数据格式</li>
+<li>理解「函数」和「函数调用」的区别</li>
+<li>了解 Git 基本操作</li>
+<p>&nbsp;</p>
+<p>⚠️ 不需要：</p>
+<li>不需要深度学习理论基础（不会训练模型）</li>
+<li>不需要 C++ / CUDA</li>
+<li>不需要分布式系统经验</li>
+<li>不需要前端开发能力</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>0.6 环境搭建</h2>
+<p>&nbsp;</p>
+<p>下面是一键安装脚本，运行本文件即可检查环境。</p>
+<p>如需运行后续章节的 Agent 代码，需要安装如下依赖：</p>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌────────────────────┬────────────────────────────────────┐
+  │       章节          │            需要的依赖               │
+  ├────────────────────┼────────────────────────────────────┤
+  │ Ch0 环境检查       │ 标准库（无需额外安装）              │
+  │ Ch1-3 基础理论     │ openai, python-dotenv              │
+  │ Ch4-5 框架         │ langchain, langchain-openai,      │
+  │                    │ langgraph                         │
+  │ Ch6-7 评测+面试    │ 无需额外依赖                       │
+  │ Ch8-12 深度技术    │ 标准库；真实 SDK 练习按章节选装    │
+  │ Ch13 FastAPI       │ fastapi, uvicorn                  │
+  │ Ch14 SQLite        │ 标准库（无需额外安装）              │
+  │ Ch15-18 协议/安全  │ 无需额外依赖（标准库）              │
+  │ Ch19-21 架构流式   │ 标准库（无需额外安装）              │
+  │ Ch22-24 优化可观测  │ 标准库（无需额外安装）              │
+  │ Ch25 向量数据库    │ numpy（演示用）                    │
+  │ Ch26-28 路由/缓存  │ 标准库（无需额外安装）              │
+  │ Ch29-36 专家进阶   │ 标准库（无需额外安装）              │
+  └────────────────────┴────────────────────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>⚡ 从仓库根目录安装已核对的主版本范围：</p>
+<p>python -m pip install -r requirements.txt</p>
+<p>&nbsp;</p>
+<p>💡 大部分章节（Ch8-36）仅使用 Python 标准库</p>
+<p>（sqlite3 / asyncio / hashlib / json / time），无需额外安装即可运行。</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (68 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">check_python_version</span><span class="code-badge code-badge-func">install_dependencies</span><span class="code-badge code-badge-func">show_env_setup_guide</span></div><div class="code-block"><pre><span class="k">import</span> subprocess
+<span class="k">import</span> sys
+<span class="k">from</span> pathlib <span class="k">import</span> Path
+
+
+<span class="k">def</span> <span class="f">check_python_version</span>():
+    <span class="s">"""检查 Python 版本是否满足要求（&gt;= 3.10）。"""</span>
+    version = sys.version_info
+    <span class="k">if</span> version.major &gt;= <span class="n">3</span> <span class="k">and</span> version.minor &gt;= <span class="n">10</span>:
+        <span class="b">print</span>(f<span class="s">"[✓] Python {version.major}.{version.minor}.{version.micro} - 满足要求"</span>)
+        <span class="k">return</span> <span class="k">True</span>
+    <span class="b">print</span>(f<span class="s">"[✗] Python {version.major}.{version.minor} - 需要 Python 3.10+"</span>)
+    <span class="k">return</span> <span class="k">False</span>
+
+
+<span class="k">def</span> <span class="f">install_dependencies</span>():
+    <span class="s">"""从版本化依赖文件安装课程依赖。"""</span>
+    requirements = Path(__file__).resolve().parents[<span class="n">1</span>] / <span class="s">"requirements.txt"</span>
+    <span class="b">print</span>(f<span class="s">"正在安装 {requirements} 中列出的依赖..."</span>)
+    subprocess.check_call(
+        [sys.executable, <span class="s">"-m"</span>, <span class="s">"pip"</span>, <span class="s">"install"</span>, <span class="s">"-r"</span>, <span class="b">str</span>(requirements)]
+    )
+    <span class="b">print</span>(<span class="s">"\n[✓] 所有依赖安装完成！"</span>)
+
+
+<span class="k">def</span> <span class="f">show_env_setup_guide</span>():
+    <span class="s">"""展示 API Key 配置说明。"""</span>
+    guide = <span class="s">"""
+    ╔══════════════════════════════════════════════════════════╗
+    ║              API Key 配置指南                             ║
+    ╠══════════════════════════════════════════════════════════╣
+    ║                                                          ║
+    ║  1. 在项目根目录创建 .env 文件：                           ║
+    ║     OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx               ║
+    ║     OPENAI_BASE_URL=https://api.openai.com/v1            ║
+    ║                                                          ║
+    ║  2. 如使用国产模型（如 DeepSeek / 通义千问）：              ║
+    ║     OPENAI_API_KEY=your-deepseek-key                     ║
+    ║     OPENAI_BASE_URL=https://api.deepseek.com/v1          ║
+    ║     LLM_MODEL=deepseek-chat                             ║
+    ║                                                          ║
+    ║  3. 验证配置：                                            ║
+    ║     python -c "from openai import OpenAI;                ║
+    ║       import os; from dotenv import load_dotenv;         ║
+    ║       load_dotenv();                                    ║
+    ║       client = OpenAI();                                ║
+    ║       print(client.models.list().data[0].id)"            ║
+    ║                                                          ║
+    ╚══════════════════════════════════════════════════════════╝
+    """</span>
+    <span class="b">print</span>(guide)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"   AI Agent 课程 - 环境检查与安装"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>()
+
+    <span class="k">if</span> <span class="k">not</span> check_python_version():
+        sys.exit(<span class="n">1</span>)
+
+    <span class="b">print</span>()
+    <span class="b">print</span>(<span class="s">"后续章节运行前，请先执行依赖安装："</span>)
+    <span class="b">print</span>(<span class="s">"  python -m pip install -r requirements.txt"</span>)
+    <span class="b">print</span>()
+
+    show_env_setup_guide()</pre></div></details></div><hr style="margin:36px 0"><div class="code-section"><details><summary>📦 完整源代码 (338 行)</summary><div class="code-block"><pre><span class="s">"""
+第0章：AI Agent 课程概览与前置知识
+===================================
+
+内容核对：2026-08-01
+说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。
+
+📌 本章目标：
+  1. 理解「什么是 AI Agent」- 建立直觉认知
+  2. 掌握 Agent 的核心组成公式：Agent = LLM + 规划 + 记忆 + 工具
+  3. 了解 Agent 开发的完整技术栈和 37 章学习路线
+  4. 确认学习本课程所需的前置知识
+
+📌 本章结构：
+  0.1 Agent 是什么？（5分钟理解）
+  0.2 为什么 2024-2026 年是 Agent 爆发期？
+  0.3 Agent 核心公式：Agent = LLM + 规划 + 记忆 + 工具
+  0.4 全套学习路线图（37章七层递进）
+  0.5 前置知识自查清单
+  0.6 环境搭建（一键运行）
+
+---
+
+0.1 Agent 是什么？—— 用类比建立直觉
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+要理解 Agent，先看一个最简单的对比：
+
+❌ 普通 LLM（如 ChatGPT 基础版）：
+   用户：「北京明天天气怎么样？」
+   LLM：「抱歉，我无法获取实时数据。」  ← 只会"说"，不会"做"
+
+  为什么？因为 LLM 的「世界」只有训练数据。它就像一个被困在房间里
+  的人，只能靠记忆回答。它不知道「现在」发生了什么。
+
+✅ AI Agent：
+   用户：「北京明天天气怎么样？」
+   Agent 内部执行了 4 步：
+     1. 思考(Think)：用户想知道天气 → 我需要调用天气查询工具
+     2. 行动(Act)：调用 get_weather("北京") → 发送 HTTP 请求到天气 API
+     3. 观察(Observe)：返回 {"明天": "晴，25°C"} → 拿到真实数据
+     4. 回答：用自然语言组织结果 → 「北京明天晴天，气温 25°C」
+
+核心区别：
+  - LLM = 「大脑」（会思考，但只能靠记忆）
+  - Agent = 「大脑 + 手」（会思考 + 能获取新信息、执行操作）
+
+这就引出了 Agent 开发的核心思维：我们不是在教 LLM 更多知识，
+而是在给它装「手」——让它能查、能算、能操作。这才是 Agent 和
+聊天机器人的本质分界线。
+
+---
+
+0.2 为什么 Agent 是 2024-2026 年最热门方向？
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+关键时间线：
+
+  ── 2023: LLM 之年 ──
+    • 2023.03: AutoGPT 开源，Star 数一周破 10 万
+    • 2023.06: OpenAI 发布 Function Calling
+    • 2023.10: LangChain 发布 LangGraph（Agent 编排框架）
+    • 2023.12: MemGPT 论文发布（LLM as Operating System）
+
+  ── 2024: RAG 与 Agent 元年 ──
+    • 2024.05: OpenAI 发布 GPT-4o，原生支持工具调用
+    • 2024.10: Anthropic 发布 Computer Use（Claude 操控电脑）
+    • 2024.11: Anthropic 发布 MCP 协议（Agent ↔ 工具的 USB-C）
+
+  ── 2025: Agent 工程平台化 ──
+    • 2025.01: DeepSeek-R1 发布，推理能力大幅提升
+    • 2025.02: Anthropic 推出 Claude Code 编码 Agent
+    • 2025.03: OpenAI 推出 Responses API 与内置 Agent 工具
+    • 2025.04: Google 发起 A2A 协议（Agent ↔ Agent）
+    • 2025: Claude Code SDK 更名为 Claude Agent SDK
+
+  ── 2026: 协议、安全与评测走向规范化 ──
+    • 2026: A2A 1.0 统一操作、AgentCard 与跨 Agent 互操作模型
+    • 2026.07: MCP 2026-07-28 采用无状态核心，简化传输与实现
+    • 2026: OWASP 发布 Agentic Applications Top 10（ASI01-ASI10）
+
+工程信号（截至 2026-08-01）：
+  - Agent 已从“单次模型调用”扩展到工具、状态、协议、评测和安全体系
+  - MCP、A2A、OpenTelemetry GenAI 语义约定等开放规范持续演进
+  - 生产团队更看重可评测、可观测、可恢复和最小权限，而非框架数量
+  - 岗位数量和薪资会随地区与时间变化，本课程不提供未经来源验证的统计值
+
+---
+
+0.3 Agent 核心公式
+━━━━━━━━━━━━━━━━━━
+
+  Agent = LLM + 规划(Planning) + 记忆(Memory) + 工具(Tools)
+
+  ┌─────────────────────────────────────────────┐
+  │                  AI Agent                   │
+  │  ┌─────────┐  ┌────────┐  ┌──────────────┐  │
+  │  │   LLM   │  │ 规划器  │  │   记忆系统    │  │
+  │  │ (大脑)   │  │Planning│  │   Memory     │   │
+  │  └────┬────┘  └───┬────┘  └──────┬───────┘  │
+  │       │           │              │          │
+  │       └───────────┼──────────────┘          │
+  │                   │                         │
+  │            ┌──────┴──────┐                  │
+  │            │   工具调用    │                 │
+  │            │   Tools     │                  │
+  │            │ 搜索/API/代码│                  │
+  │            └─────────────┘                  │
+  └─────────────────────────────────────────────┘
+
+  Agent 执行循环（核心，面试高频！）：
+    1. 感知(Perceive)：接收用户输入和上一次行动的结果
+    2. 思考(Think)：LLM 分析当前状态，决定下一步
+    3. 行动(Act)：调用工具或生成最终回答
+    4. 观察(Observe)：获取行动结果
+    → 回到步骤 1，直到任务完成
+
+  这个循环被称为「ReAct 循环」(Reasoning + Acting)，
+  是 99% 的 Agent 框架的底层逻辑。
+
+
+0.4 全套学习路线图（37章七层递进）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+本课程按「理论 → 实践 → 深度 → 工程 → 架构 → 补强 → 专家」七层递进，
+共 37 章（Ch0-Ch36），每章既是完整讲义也是可运行代码。
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │ 第1层：Agent 理论基础（Ch0-3）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch0 课程概览  │ 学习路线图、环境搭建、API Key 配置        │ │
+  │ │ Ch1 第一个Agent│ 裸写 ReAct 循环、Function Calling 原理   │ │
+  │ │ Ch2 核心组件  │ 规划器 + 记忆系统 + 工具设计黄金法则       │ │
+  │ │ Ch3 类型分类  │ ReAct / Plan-Execute / Reflexion 对比    │ │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第2层：工程实践与框架（Ch4-7）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch4 主流框架  │ LangChain Agent + LangGraph 状态机实战    │ │
+  │ │ Ch5 多智能体  │ Multi-Agent 协作、Writer+Reviewer 模式    │ │
+  │ │ Ch6 评估测试  │ 评测框架 + LLM-as-Judge + 生产 Checklist   │ │
+  │ │ Ch7 求职面试  │ 20道高频面试题 + 项目指南 + 面试流程       │ │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第3层：深度技术剖析（Ch8-12）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch8 ClaudeCode│ Agent循环·Steering队列·上下文压缩·SubAgent│
+  │ │ Ch9 RAG深度   │ 从Naive到生产级·Chunk·Embedding·RRF     │
+  │ │ Ch10 MCP协议  │ 无状态JSON-RPC·原语·stdio/Streamable HTTP│
+  │ │ Ch11 ToolCall │ OpenAI vs Anthropic·Streaming·Strict模式 │
+  │ │ Ch12 基础设施  │ OpenClaw架构·Harness·Agent生产化Checklist │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第4层：工程化与前沿（Ch13-18）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch13 FastAPI  │ REST API·SSE·WebSocket·生产部署架构      │
+  │ │ Ch14 SQLite   │ 5表Schema·WAL模式·会话/任务/用户管理     │
+  │ │ Ch15 A2A协议   │ v1.0 AgentCard·Message·Task·Artifact    │
+  │ │ Ch16 MemGPT   │ Core Memory·Heartbeat·Sleep-Time·FS记忆  │
+  │ │ Ch17 CompUse  │ Beta工具·Screenshot-Action·安全沙箱     │
+  │ │ Ch18 安全防护  │ OWASP Agentic Top 10·权限分级·4层防御   │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第5层：高级架构与优化（Ch19-24）                              │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch19 Workflow │ Reflection·Routing·Orchestrator等7种模式 │
+  │ │ Ch20 Context  │ Context Rot·预算管理·XML结构化Prompt     │
+  │ │ Ch21 Streaming│ EventBus·动态中断·背压控制               │
+  │ │ Ch22 DSPy    │ Signature→Module→Optimizer 自动优化       │
+  │ │ Ch23 CodeAgent│ CodeAct·ACI·Plan-Execute·SWE-bench横评   │
+  │ │ Ch24 可观测   │ OTel GenAI语义·Tracing·LangSmith/Langfuse│
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第6层：基础能力补强（Ch25-28）                                │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch25 向量库   │ Chroma·Pinecone·Milvus·Qdrant对比·Embedding│
+  │ │ Ch26 模型路由  │ Threshold·Cascade·Semantic·Cost-Aware 4种 │
+  │ │ Ch27 Prompt   │ System Prompt 6模块模板·工具描述评分卡   │
+  │ │ Ch28 语义缓存  │ 三级缓存(Exact→Semantic→LLM)·Token预算   │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  ├─────────────────────────────────────────────────────────────┤
+  │ 第7层：专家级进阶（Ch29-36）                                  │
+  │ ┌──────────────┬──────────────────────────────────────────┐ │
+  │ │ Ch29 多模态   │ 视觉+文本联合推理·多模态Tool Calling     │
+  │ │ Ch30 可靠性   │ 熔断器·指数退避重试·幂等性·降级策略     │
+  │ │ Ch31 评测体系  │ GAIA·AgentBench·WebArena·tau-bench      │
+  │ │ Ch32 自改进   │ Bad Case收集→自动改Prompt→评测验证      │
+  │ │ Ch33 Cache   │ OpenAI/Anthropic Prompt Cache·KV复用     │
+  │ │ Ch34 微调     │ LoRA微调·数据准备·成本收益对比           │
+  │ │ Ch35 数据飞轮  │ 交互采集→Bad Case识别→自动触发改进     │
+  │ │ Ch36 纵深安全  │ Canary Token·分层隔离·行为沙箱          │
+  │ └──────────────┴──────────────────────────────────────────┘ │
+  └─────────────────────────────────────────────────────────────┘
+
+学习建议：
+  1. 新手入门：按 Ch0 → Ch36 顺序学习，每章 1-2 小时
+  2. 有基础者：直接跳到 Ch8 开始深度技术
+  3. 面试突击（重点章节）：
+     Ch7(面试20问) + Ch8(Claude Code) + Ch9(RAG) + Ch10(MCP)
+     + Ch11(ToolCall) + Ch15(A2A) + Ch18(安全) + Ch19(Workflow)
+  4. 构建产品：Ch13(FastAPI) + Ch14(SQLite) + Ch24(可观测)
+     + Ch26(模型路由) + Ch28(语义缓存)
+  5. 降本增效：Ch26(路由) + Ch28(缓存) + Ch33(Prompt Cache)，收益以实测为准
+
+---
+
+0.5 前置知识自查清单
+━━━━━━━━━━━━━━━━━━━
+
+学习本课程前，你需要具备：
+
+  ✅ Python 基础
+     - 会写函数、类、装饰器
+     - 会用 pip 安装包
+     - 理解异步编程（async/await）的概念（Ch1-12 了解即可，Ch13 必须）
+     - 了解 SQL 基础（Ch14 需要）
+
+  ✅ LLM 基础认知
+     - 用过 ChatGPT / Claude / 文心一言 等产品
+     - 知道什么是 Prompt（提示词）
+     - 了解 Token 是什么
+     - 了解 Function Calling 的概念（Ch1 会详细讲）
+
+  ✅ 基本概念
+     - 知道什么是 API 调用 / HTTP 协议
+     - 了解 JSON 数据格式
+     - 理解「函数」和「函数调用」的区别
+     - 了解 Git 基本操作
+
+  ⚠️ 不需要：
+     - 不需要深度学习理论基础（不会训练模型）
+     - 不需要 C++ / CUDA
+     - 不需要分布式系统经验
+     - 不需要前端开发能力
+
+---
+
+0.6 环境搭建
+━━━━━━━━━━━
+
+下面是一键安装脚本，运行本文件即可检查环境。
+如需运行后续章节的 Agent 代码，需要安装如下依赖：
+
+  ┌────────────────────┬────────────────────────────────────┐
+  │       章节          │            需要的依赖               │
+  ├────────────────────┼────────────────────────────────────┤
+  │ Ch0 环境检查       │ 标准库（无需额外安装）              │
+  │ Ch1-3 基础理论     │ openai, python-dotenv              │
+  │ Ch4-5 框架         │ langchain, langchain-openai,      │
+  │                    │ langgraph                         │
+  │ Ch6-7 评测+面试    │ 无需额外依赖                       │
+  │ Ch8-12 深度技术    │ 标准库；真实 SDK 练习按章节选装    │
+  │ Ch13 FastAPI       │ fastapi, uvicorn                  │
+  │ Ch14 SQLite        │ 标准库（无需额外安装）              │
+  │ Ch15-18 协议/安全  │ 无需额外依赖（标准库）              │
+  │ Ch19-21 架构流式   │ 标准库（无需额外安装）              │
+  │ Ch22-24 优化可观测  │ 标准库（无需额外安装）              │
+  │ Ch25 向量数据库    │ numpy（演示用）                    │
+  │ Ch26-28 路由/缓存  │ 标准库（无需额外安装）              │
+  │ Ch29-36 专家进阶   │ 标准库（无需额外安装）              │
+  └────────────────────┴────────────────────────────────────┘
+
+  ⚡ 从仓库根目录安装已核对的主版本范围：
+    python -m pip install -r requirements.txt
+
+  💡 大部分章节（Ch8-36）仅使用 Python 标准库
+     （sqlite3 / asyncio / hashlib / json / time），无需额外安装即可运行。
+"""</span>
+
+<span class="k">import</span> subprocess
+<span class="k">import</span> sys
+<span class="k">from</span> pathlib <span class="k">import</span> Path
+
+
+<span class="k">def</span> <span class="f">check_python_version</span>():
+    <span class="s">"""检查 Python 版本是否满足要求（&gt;= 3.10）。"""</span>
+    version = sys.version_info
+    <span class="k">if</span> version.major &gt;= <span class="n">3</span> <span class="k">and</span> version.minor &gt;= <span class="n">10</span>:
+        <span class="b">print</span>(f<span class="s">"[✓] Python {version.major}.{version.minor}.{version.micro} - 满足要求"</span>)
+        <span class="k">return</span> <span class="k">True</span>
+    <span class="b">print</span>(f<span class="s">"[✗] Python {version.major}.{version.minor} - 需要 Python 3.10+"</span>)
+    <span class="k">return</span> <span class="k">False</span>
+
+
+<span class="k">def</span> <span class="f">install_dependencies</span>():
+    <span class="s">"""从版本化依赖文件安装课程依赖。"""</span>
+    requirements = Path(__file__).resolve().parents[<span class="n">1</span>] / <span class="s">"requirements.txt"</span>
+    <span class="b">print</span>(f<span class="s">"正在安装 {requirements} 中列出的依赖..."</span>)
+    subprocess.check_call(
+        [sys.executable, <span class="s">"-m"</span>, <span class="s">"pip"</span>, <span class="s">"install"</span>, <span class="s">"-r"</span>, <span class="b">str</span>(requirements)]
+    )
+    <span class="b">print</span>(<span class="s">"\n[✓] 所有依赖安装完成！"</span>)
+
+
+<span class="k">def</span> <span class="f">show_env_setup_guide</span>():
+    <span class="s">"""展示 API Key 配置说明。"""</span>
+    guide = <span class="s">"""
+    ╔══════════════════════════════════════════════════════════╗
+    ║              API Key 配置指南                             ║
+    ╠══════════════════════════════════════════════════════════╣
+    ║                                                          ║
+    ║  1. 在项目根目录创建 .env 文件：                           ║
+    ║     OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx               ║
+    ║     OPENAI_BASE_URL=https://api.openai.com/v1            ║
+    ║                                                          ║
+    ║  2. 如使用国产模型（如 DeepSeek / 通义千问）：              ║
+    ║     OPENAI_API_KEY=your-deepseek-key                     ║
+    ║     OPENAI_BASE_URL=https://api.deepseek.com/v1          ║
+    ║     LLM_MODEL=deepseek-chat                             ║
+    ║                                                          ║
+    ║  3. 验证配置：                                            ║
+    ║     python -c "from openai import OpenAI;                ║
+    ║       import os; from dotenv import load_dotenv;         ║
+    ║       load_dotenv();                                    ║
+    ║       client = OpenAI();                                ║
+    ║       print(client.models.list().data[0].id)"            ║
+    ║                                                          ║
+    ╚══════════════════════════════════════════════════════════╝
+    """</span>
+    <span class="b">print</span>(guide)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"   AI Agent 课程 - 环境检查与安装"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>()
+
+    <span class="k">if</span> <span class="k">not</span> check_python_version():
+        sys.exit(<span class="n">1</span>)
+
+    <span class="b">print</span>()
+    <span class="b">print</span>(<span class="s">"后续章节运行前，请先执行依赖安装："</span>)
+    <span class="b">print</span>(<span class="s">"  python -m pip install -r requirements.txt"</span>)
+    <span class="b">print</span>()
+
+    show_env_setup_guide()
+</pre></div></details></div><div class="nav-bar">
+<span class="nav-link nav-disabled">← 已是第一章</span>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_01_fundamentals/01_hello_agent.html" title="第一个 Agent — 裸写 ReAct 循环">第1章 →</a>
+</div></div></div></div></body></html>

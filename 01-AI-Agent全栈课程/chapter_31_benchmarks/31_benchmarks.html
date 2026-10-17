@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第31章：Agent 评测体系深度 —— 不只是「看起来不错」 — AI Agent 全栈课程</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: #f8f9fa; color: #1a1a2e; line-height: 1.8;
+}
+.page-wrapper { display: flex; min-height: 100vh; }
+
+/* 侧边栏 TOC */
+.sidebar {
+  width: 240px; min-width: 240px; background: #0f172a; color: #e2e8f0;
+  padding: 24px 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; font-size: .85em; border-right: 1px solid #1e293b;
+}
+.sidebar-title {
+  font-weight: 700; font-size: 1.05em; padding: 0 18px 16px;
+  border-bottom: 1px solid #1e293b; margin-bottom: 12px; color: white;
+}
+.sidebar-title a { color: #8ab4f8; text-decoration: none; }
+.sidebar-title a:hover { text-decoration: underline; }
+.sidebar-layer {
+  padding: 6px 18px; margin-top: 8px; color: #64748b;
+  font-size: .78em; text-transform: uppercase; letter-spacing: .5px;
+}
+.sidebar-link {
+  display: block; padding: 5px 18px 5px 18px; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: all .15s; font-size: .88em;
+}
+.sidebar-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+.sidebar-link.active {
+  color: #60a5fa; background: rgba(96,165,250,.1);
+  border-left-color: #60a5fa; font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1; min-width: 0; padding: 40px 24px 80px;
+  max-width: calc(100vw - 240px);
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 48px 32px; border-radius: 12px; margin-bottom: 36px;
+}
+.hero h1 { font-size: 2em; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { opacity: 0.9; font-size: 1.05em; }
+
+/* 讲义标题层级 */
+.lecture { background: white; border-radius: 10px; padding: 36px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 32px; }
+.lecture h2 {
+  font-size: 1.25em; color: #667eea; margin: 28px 0 12px;
+  padding-bottom: 6px; border-bottom: 2px solid #e8e8ff;
+}
+.lecture h3 {
+  font-size: 1.08em; color: #555; margin: 22px 0 8px;
+  padding-left: 10px; border-left: 3px solid #667eea;
+}
+.lecture p { margin: 10px 0; }
+.lecture ul, .lecture ol { margin: 8px 0 8px 24px; }
+.lecture li { margin: 4px 0; }
+.lecture pre {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+  padding: 18px 22px; overflow-x: auto; font-size: .88em;
+  line-height: 1.55; margin: 14px 0;
+}
+.lecture code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; }
+.lecture p code, .lecture li code {
+  background: #eee8ff; padding: 1px 6px; border-radius: 4px;
+  font-size: .92em; color: #6c3cc0;
+}
+.lecture strong { color: #333; }
+.lecture em { color: #555; }
+.lecture blockquote {
+  border-left: 4px solid #667eea; padding: 8px 16px;
+  margin: 14px 0; background: #f4f4ff; border-radius: 0 8px 8px 0;
+  color: #555;
+}
+.lecture table {
+  border-collapse: collapse; width: 100%; margin: 16px 0;
+  font-size: .92em; background: white; border-radius: 6px; overflow: hidden;
+}
+.lecture table th {
+  background: #667eea; color: white; font-weight: 600;
+  padding: 10px 14px; text-align: left;
+}
+.lecture table td {
+  padding: 9px 14px; border-bottom: 1px solid #e8e8f0;
+}
+.lecture table tr:hover td { background: #f4f4ff; }
+.lecture hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+/* 架构图 / 流程图 — 与代码块相同的 pre 渲染方式 */
+.diagram-label {
+  font-size: .85em; font-weight: 600; color: #8ab4f8;
+  background: linear-gradient(135deg, #2d3a5c 0%, #1e2d4a 100%);
+  padding: 8px 18px; letter-spacing: .5px; margin: 18px 0 0 0;
+  border-radius: 10px 10px 0 0; border: 1px solid #3a4a6a; border-bottom: none;
+}
+.diagram-pre {
+  border-radius: 0 0 10px 10px; margin: 0 0 18px 0;
+  border-top: none; border: 1px solid #2a3045;
+}
+.ascii-art {
+  background: #1a1e2b; color: #c0caf5; border-radius: 0 0 10px 10px;
+  padding: 18px 22px; overflow-x: auto; font-size: .8em;
+  line-height: 1.3; margin: 0;
+  font-family: "JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace;
+  border: none; white-space: pre;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 目标/考点标签 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: .85em; font-weight: 500;
+}
+.tag-goal { background: #e8f5e9; color: #2e7d32; }
+.tag-interview { background: #fff3e0; color: #e65100; }
+
+/* 代码块区域 */
+.code-section { margin-top: 24px; }
+.code-section summary {
+  font-size: 1.1em; font-weight: 600; cursor: pointer;
+  padding: 10px 16px; background: #1e1e2e; color: #cdd6f4;
+  border-radius: 8px 8px 0 0; user-select: none;
+}
+.code-section pre {
+  margin: 0; border-radius: 0 0 8px 8px; max-height: 70vh;
+  overflow-y: auto;
+}
+.code-block {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 0 0 8px 8px;
+  padding: 20px 24px; overflow-x: auto; font-size: .85em;
+  line-height: 1.6; max-height: 70vh; overflow-y: auto;
+}
+
+/* IDE 风格语法高亮颜色 */
+.code-block .k { color: #c586c0; }     /* 关键字 def/class/import */
+.code-block .s { color: #ce9178; }     /* 字符串 */
+.code-block .h { color: #6a9955; }     /* 注释 */
+.code-block .d { color: #dcdcaa; }     /* 装饰器 */
+.code-block .n { color: #b5cea8; }     /* 数字 */
+.code-block .f { color: #4ec9b0; }     /* 函数名 */
+.code-block .b { color: #569cd6; }     /* 内置函数 */
+
+/* 讲义→代码 视觉过渡 */
+.code-bridge {
+  text-align: center; color: #667eea; font-size: .9em;
+  padding: 8px 0 4px; font-weight: 500;
+}
+.code-badges {
+  padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 6px;
+  background: #2a2a3e; border-bottom: 1px solid #444;
+}
+.code-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: .8em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.code-badge-func { background: #1e3a5f; color: #4ec9b0; }
+.code-badge-class { background: #1e3a5f; color: #dcdcaa; }
+.code-badge-const { background: #1e3a5f; color: #b5cea8; }
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main-content { max-width: calc(100vw - 200px); }
+}
+@media (max-width: 768px) {
+  .page-wrapper { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; height: auto; max-height: 45vh;
+    position: static; display: none; }
+  .sidebar.open { display: block; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .main-content { max-width: 100%; padding: 16px 10px 60px; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0; }
+  .hero { padding: 28px 18px; }
+  .hero h1 { font-size: 1.4em; }
+  .lecture { padding: 20px 16px; }
+}
+
+/* 打印 */
+@media print {
+  body { background: white; }
+  .lecture { box-shadow: none; }
+  .code-block { background: #f5f5f5; color: #222; }
+}
+
+/* 上/下章导航 */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 32px 0; gap: 16px;
+}
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 22px; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: .95em; transition: all .2s;
+}
+.nav-prev { background: #f0f0ff; color: #667eea; }
+.nav-prev:hover { background: #e0e0ff; }
+.nav-next { background: #667eea; color: white; }
+.nav-next:hover { background: #5560d8; }
+.nav-disabled { background: #eee; color: #999; cursor: not-allowed; pointer-events: none; }
+.nav-home { background: #f5f5f5; color: #555; }
+.nav-home:hover { background: #e0e0e0; }
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: .88em; color: #888; margin-bottom: 20px;
+}
+.breadcrumb a { color: #667eea; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* 移动端侧边栏开关 */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; background: #667eea;
+  color: white; border: none; font-size: 1.2em; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102,126,234,.4);
+}
+@media (max-width: 768px) { .sidebar-toggle { display: flex; align-items: center; justify-content: center; } }
+
+/* 浏览量统计徽章 */
+
+
+
+</style>
+
+</head>
+<body>
+<div class="page-wrapper">
+<!-- generated-from-sha256:c1b73e839f297cbf5043637bf6b7bf6932c64cd85513604c49c1a2d2a6722eb5 -->
+<div class="sidebar" id="sidebar">
+<div class="sidebar-title"><a href="../index.html">🤖 AI Agent 全栈课程</a></div>
+<div class="sidebar-layer">第1层 理论基础</div>
+<a class="sidebar-link" href="../chapter_00_overview/00_course_overview.html">Ch0 课程概览与环境搭建</a>
+<a class="sidebar-link" href="../chapter_01_fundamentals/01_hello_agent.html">Ch1 第一个 Agent</a>
+<a class="sidebar-link" href="../chapter_02_components/02_agent_components.html">Ch2 Agent 核心组件</a>
+<a class="sidebar-link" href="../chapter_03_types/03_agent_types.html">Ch3 Agent 类型分类</a>
+<div class="sidebar-layer">第2层 工程实践</div>
+<a class="sidebar-link" href="../chapter_04_frameworks/04_frameworks.html">Ch4 主流框架实战</a>
+<a class="sidebar-link" href="../chapter_05_multi_agent/05_multi_agent.html">Ch5 多智能体系统</a>
+<a class="sidebar-link" href="../chapter_06_evaluation/06_evaluation.html">Ch6 评估与测试</a>
+<a class="sidebar-link" href="../chapter_07_interview/07_interview_prep.html">Ch7 求职面试准备</a>
+<div class="sidebar-layer">第3层 深度技术</div>
+<a class="sidebar-link" href="../chapter_08_claude_code/08_claude_code_architecture.html">Ch8 Claude Code 架构</a>
+<a class="sidebar-link" href="../chapter_09_rag_deepdive/09_rag_deepdive.html">Ch9 RAG 深度解析</a>
+<a class="sidebar-link" href="../chapter_10_mcp/10_mcp_deepdive.html">Ch10 MCP 深度解析</a>
+<a class="sidebar-link" href="../chapter_11_tool_calling/11_tool_calling_deepdive.html">Ch11 Tool Calling 底层</a>
+<a class="sidebar-link" href="../chapter_12_infrastructure/12_infrastructure.html">Ch12 Agent 生产基础设施</a>
+<div class="sidebar-layer">第4层 工程化前沿</div>
+<a class="sidebar-link" href="../chapter_13_fastapi/13_fastapi_agent_service.html">Ch13 FastAPI 服务化</a>
+<a class="sidebar-link" href="../chapter_14_sqlite/14_sqlite_agent_storage.html">Ch14 SQLite 持久化</a>
+<a class="sidebar-link" href="../chapter_15_a2a/15_a2a_protocol.html">Ch15 Google A2A 协议</a>
+<a class="sidebar-link" href="../chapter_16_memgpt/16_memgpt_letta.html">Ch16 MemGPT/Letta 记忆</a>
+<a class="sidebar-link" href="../chapter_17_computer_use/17_computer_use.html">Ch17 Computer Use</a>
+<a class="sidebar-link" href="../chapter_18_security/18_agent_security.html">Ch18 Agent 安全与护栏</a>
+<div class="sidebar-layer">第5层 高级架构</div>
+<a class="sidebar-link" href="../chapter_19_workflow_patterns/19_workflow_patterns.html">Ch19 Agentic Workflow 设</a>
+<a class="sidebar-link" href="../chapter_20_context_engineering/20_context_engineering.html">Ch20 Context Engineerin</a>
+<a class="sidebar-link" href="../chapter_21_streaming/21_streaming_architecture.html">Ch21 Streaming & 实时架构</a>
+<a class="sidebar-link" href="../chapter_22_dspy/22_dspy.html">Ch22 DSPy 自动优化</a>
+<a class="sidebar-link" href="../chapter_23_code_agents/23_code_agents.html">Ch23 代码 Agent 架构横评</a>
+<a class="sidebar-link" href="../chapter_24_observability/24_observability.html">Ch24 Agent 可观测性</a>
+<div class="sidebar-layer">第6层 基础补强</div>
+<a class="sidebar-link" href="../chapter_25_vectordb/25_vectordb.html">Ch25 向量数据库选型</a>
+<a class="sidebar-link" href="../chapter_26_model_routing/26_model_routing.html">Ch26 模型路由策略</a>
+<a class="sidebar-link" href="../chapter_27_prompt_eng/27_prompt_engineering.html">Ch27 Agent Prompt 工程</a>
+<a class="sidebar-link" href="../chapter_28_cache/28_cache.html">Ch28 语义缓存与 Token 优化</a>
+<div class="sidebar-layer">第7层 专家进阶</div>
+<a class="sidebar-link" href="../chapter_29_multimodal/29_multimodal.html">Ch29 Multi-Modal Agent</a>
+<a class="sidebar-link" href="../chapter_30_reliability/30_reliability.html">Ch30 Agent 可靠性工程</a>
+<a class="sidebar-link active" href="../chapter_31_benchmarks/31_benchmarks.html">Ch31 Agent 评测体系深度</a>
+<a class="sidebar-link" href="../chapter_32_self_improving/32_self_improving.html">Ch32 Self-Improving Age</a>
+<a class="sidebar-link" href="../chapter_33_prompt_cache/33_prompt_cache.html">Ch33 Prompt Caching & 推</a>
+<a class="sidebar-link" href="../chapter_34_finetune/34_finetune.html">Ch34 模型微调 for Function </a>
+<a class="sidebar-link" href="../chapter_35_data_flywheel/35_data_flywheel.html">Ch35 数据飞轮</a>
+<a class="sidebar-link" href="../chapter_36_defense/36_defense.html">Ch36 Agent 纵深安全</a>
+</div>
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div class="main-content"><div class="container"><div class="breadcrumb"><a href="../index.html">📖 AI Agent 全栈课程</a> &raquo; <strong>第31章 Agent 评测体系深度 — GAIA·AgentBench·WebArena</strong></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_30_reliability/30_reliability.html" title="Agent 可靠性工程 — 熔断器·退避重试·幂等">← 第30章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_32_self_improving/32_self_improving.html" title="Self-Improving Agent — Bad Case 驱动的自动优化">第32章 →</a>
+</div><div class="hero"><h1>第31章 Agent 评测体系深度 —— 不只是「看起来不错」</h1><p class="subtitle">📖 AI Agent 全栈学习课程 · 可运行讲义</p></div><div class="lecture"><div class="tag-row"><span class="tag tag-goal">1. 掌握 GAIA / AgentBench / WebArena / ClawBench / tau-bench / SWE-bench 六大评测</span><span class="tag tag-goal">2. 理解每个评测的设计意图和适用场景</span><span class="tag tag-goal">3. 学会自建 Agent 评测集的方法</span><span class="tag tag-goal">4. 建立生产环境的多维度评测体系</span><span class="tag tag-interview">🎤 「你们怎么评测 Agent 的质量？」</span><span class="tag tag-interview">🎤 「GAIA 和 SWE-bench 有什么区别？」</span><span class="tag tag-interview">🎤 「怎么自建评测集？」</span></div><p>&nbsp;</p>
+<p>内容核对：2026-08-01</p>
+<p>说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>公开 benchmark 的任务、排行榜与 harness 会变化；本章介绍评测意图，</p>
+<p>任何分数都必须从官方榜单/论文读取并附模型、harness、预算和日期。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>31.1 六大评测对比</h2>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">┌────────────────┬──────────────┬──────────────────────┐
+│ 评测名称        │  评测什么     │       特点            │
+├────────────────┼──────────────┼──────────────────────┤
+│ GAIA           │ 通用助理     │ 多步推理+工具使用       │
+│ AgentBench     │ 多环境 Agent  │ 8 个真实环境            │
+│ WebArena       │ Web 操作     │ 真实网站交互             │
+│ ClawBench      │ 日常在线任务  │ 生产网站+提交拦截         │
+│ tau-bench      │ 工具使用精度  │ 函数参数正确率            │
+│ SWE-bench      │ 代码修复     │ 真实 GitHub Issue        │
+└────────────────┴──────────────┴──────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>各评测的任务、环境与成功标准不同，不使用统一星级比较难度。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>31.2 GAIA —— 通用 AI 助手评测</h2>
+<p>&nbsp;</p>
+<p>GAIA 是通用助理能力的一种公开参照，不应单独代表生产 Agent 质量。</p>
+<p>&nbsp;</p>
+<p>评测什么：衡量 Agent 作为「通用助手」的能力——能否像真人助理一样，</p>
+<p>完成需要多步推理 + 工具使用 + Web 浏览的复合任务。</p>
+<p>&nbsp;</p>
+<p>经典例题：</p>
+<p>"2023年诺贝尔物理学奖得主的出生城市，在2023年的人口是多少？"</p>
+<p>&nbsp;</p>
+<p>看起来简单？不——Agent 需要：</p>
+<p>步骤1: 搜索诺贝尔奖 → 找到获奖者姓名</p>
+<p>步骤2: 搜索该人的出生城市</p>
+<p>步骤3: 搜索该城市的人口数据</p>
+<p>步骤4: 组织回答</p>
+<p>&nbsp;</p>
+<p>每一步都可能出错：搜索错了人名 → 整条链全废。</p>
+<p>这就是 GAIA 的核心价值：测的是「信息检索的链式可靠性」。</p>
+<p>&nbsp;</p>
+<p>GAIA 分三级（按人类完成时间）：</p>
+<p>Level 1: 简单（人类平均 1 分钟完成）—— 1-2 步推理</p>
+<p>Level 2: 中等（人类平均 3 分钟）—— 3-5 步推理 + 跨数据源</p>
+<p>Level 3: 困难（人类平均 10 分钟）—— 5+ 步 + 需要推理能力</p>
+<p>&nbsp;</p>
+<p>使用时记录：GAIA 版本、数据访问方式、搜索工具、模型快照、重试/并发策略和</p>
+<p>最大预算；避免把不同 harness 的榜单数字直接归因于模型本身。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>31.3 AgentBench —— 8 环境综合评测</h2>
+<p>&nbsp;</p>
+<p>评测 Agent 在 8 个不同环境中的表现：</p>
+<p>OS / Web / Database / Code / Game / Knowledge / Card / Lateral</p>
+<p>&nbsp;</p>
+<p>目标：测量 Agent 的「环境适应性」。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>31.4 tau-bench —— 工具使用精度</h2>
+<p>&nbsp;</p>
+<p>专门评测 Agent 的 Function Calling 准确性。</p>
+<p>核心指标：工具选择的正确率 + 参数正确率。</p>
+<p>&nbsp;</p>
+<p>报告工具评测时拆分：工具选择、参数 schema、业务约束、多轮一致性、拒绝和</p>
+<p>副作用安全。不同模型/领域的数字不能脱离数据集复用。</p>
+<p>&nbsp;</p>
+<p>SWE-bench 特别提示（2026）：Verified 已被指出存在污染和测试缺陷；对 Pro 的</p>
+<p>进一步审查也发现任务质量问题。公开分数必须配合任务审计和私有未污染回归集。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>31.5 ClawBench —— 真实生产网站上的日常任务评测</h2>
+<p>&nbsp;</p>
+<p>评测什么：衡量浏览器 Agent 能否在真实生产网站上完成日常在线工作流，</p>
+<p>包括跨页面搜索、多步表单、预约、购物和求职等操作。</p>
+<p>&nbsp;</p>
+<p>与使用静态页面或沙箱的 Web 评测相比，ClawBench 的关键设计包括：</p>
+<li>真实生产网站：保留动态内容、布局变化和实际交互复杂性</li>
+<li>提交拦截：按任务规则记录并阻断关键、不可逆的最终 HTTP 请求，</li>
+<p>如结账、表单提交或发送邮件，防止这些请求产生真实副作用。</p>
+<p>该机制依赖请求规则覆盖，不能视为对所有网站操作的安全保证；</p>
+<p>拦截到请求也不等于任务成功，仍需后续评估。</p>
+<li>端到端证据：保存动作、HTTP 请求、截图、会话消息和录像，支持结果审计</li>
+<p>&nbsp;</p>
+<p>规模：论文 v2（2026-07-20）介绍了 153 个日常任务，覆盖 144 个平台和 15 类。</p>
+<p>版本说明（2026-09-05 核对）：官方仓库当前 V1 为 152 个任务、143 个网站；</p>
+<p>这是发布后移除任务的开源语料口径，不能与论文口径混用。</p>
+<p>这类评测关注复杂流程的最终任务完成率，而不只是单步点击准确率。</p>
+<p>报告结果时记录任务集版本、模型、harness、预算与运行日期；网站布局、</p>
+<p>可用性和反自动化机制的变化也会影响结果。</p>
+<p>&nbsp;</p>
+<p>论文：https://arxiv.org/abs/2604.08523v2</p>
+<p>代码：https://github.com/TIGER-AI-Lab/ClawBench</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>31.6 自建评测集方法论</h2>
+<p>&nbsp;</p>
+<p>四步构建法：</p>
+<p>&nbsp;</p>
+<li>1. 收集典型场景（20-50 个）</li>
+<li>高频业务场景 + 边界条件 + Bad Case 回归</li>
+<p>&nbsp;</p>
+<li>2. 定义评测维度</li>
+<li>任务完成率 / 工具选择正确率 / 响应时间 / Token 消耗</li>
+<p>&nbsp;</p>
+<li>3. 自动化评测</li>
+<li>规则检查（精确匹配/关键词）</li>
+<li>LLM-as-Judge（语义质量评分）</li>
+<p>&nbsp;</p>
+<li>4. 持续迭代</li>
+<li>每次模型/prompt/tool/schema/harness 变更跑哨兵集，按风险定期跑全量</li>
+<li>Bad Case → 改进 prompt → 重新评测</li>
+<li>非确定性路径运行多次，报告均值、方差和置信区间</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (148 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">add_case</span><span class="code-badge code-badge-func">evaluate</span><span class="code-badge code-badge-func">demo_benchmarks</span><span class="code-badge code-badge-func">mock_agent</span><span class="code-badge code-badge-class">AgentTestCase</span><span class="code-badge code-badge-class">SimpleAgentBench</span></div><div class="code-block"><pre><span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> hashlib
+<span class="k">from</span> typing <span class="k">import</span> Optional
+
+
+<span class="k">class</span> <span class="f">AgentTestCase</span>:
+    <span class="s">"""Agent 评测用例。"""</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, case_id: <span class="b">str</span>, input_text: <span class="b">str</span>,
+                 expected_tools: <span class="b">list</span>[<span class="b">str</span>],
+                 expected_keywords: <span class="b">list</span>[<span class="b">str</span>],
+                 difficulty: <span class="b">str</span> = <span class="s">"medium"</span>):
+        <span class="k">self</span>.case_id = case_id
+        <span class="k">self</span>.input_text = input_text
+        <span class="k">self</span>.expected_tools = expected_tools
+        <span class="k">self</span>.expected_keywords = expected_keywords
+        <span class="k">self</span>.difficulty = difficulty
+
+
+<span class="k">class</span> <span class="f">SimpleAgentBench</span>:
+    <span class="s">"""自建评测框架 —— 模拟 tau-bench 风格的工具调用评测。"""</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.cases = []
+        <span class="k">self</span>.results = []
+
+    <span class="k">def</span> <span class="f">add_case</span>(<span class="k">self</span>, case: AgentTestCase):
+        <span class="k">self</span>.cases.append(case)
+
+    <span class="k">def</span> <span class="f">evaluate</span>(<span class="k">self</span>, agent_func) -&gt; <span class="b">dict</span>:
+        <span class="s">"""运行评测。
+
+        Args:
+            agent_func: 返回 (tool_calls_list, answer_text) 的函数。
+
+        Returns:
+            评测报告。
+        """</span>
+        <span class="k">for</span> case <span class="k">in</span> <span class="k">self</span>.cases:
+            start = time.time()
+            <span class="k">try</span>:
+                tool_calls, answer = agent_func(case.input_text)
+                success = <span class="k">True</span>
+            <span class="k">except</span> Exception <span class="k">as</span> e:
+                tool_calls = []
+                answer = <span class="b">str</span>(e)
+                success = <span class="k">False</span>
+
+            elapsed = time.time() - start
+
+            <span class="h"># 工具选择评分</span>
+            tools_called = [t.get(<span class="s">"name"</span>, <span class="s">""</span>) <span class="k">for</span> t <span class="k">in</span> tool_calls]
+            tool_score = <span class="b">len</span>(<span class="b">set</span>(tools_called) &amp; <span class="b">set</span>(case.expected_tools))
+            tool_score /= <span class="b">max</span>(<span class="b">len</span>(case.expected_tools), <span class="n">1</span>)
+
+            <span class="h"># 关键词评分</span>
+            kw_score = <span class="b">sum</span>(<span class="n">1</span> <span class="k">for</span> kw <span class="k">in</span> case.expected_keywords
+                          <span class="k">if</span> kw.lower() <span class="k">in</span> answer.lower())
+            kw_score /= <span class="b">max</span>(<span class="b">len</span>(case.expected_keywords), <span class="n">1</span>)
+
+            overall = (tool_score * <span class="n">0.5</span> + kw_score * <span class="n">0.5</span>)
+
+            <span class="k">self</span>.results.append({
+                <span class="s">"case_id"</span>: case.case_id,
+                <span class="s">"difficulty"</span>: case.difficulty,
+                <span class="s">"overall"</span>: <span class="b">round</span>(overall, <span class="n">2</span>),
+                <span class="s">"tool_score"</span>: <span class="b">round</span>(tool_score, <span class="n">2</span>),
+                <span class="s">"kw_score"</span>: <span class="b">round</span>(kw_score, <span class="n">2</span>),
+                <span class="s">"elapsed"</span>: <span class="b">round</span>(elapsed, <span class="n">2</span>),
+                <span class="s">"success"</span>: success,
+            })
+
+        <span class="k">return</span> <span class="k">self</span>._report()
+
+    <span class="k">def</span> <span class="f">_report</span>(<span class="k">self</span>) -&gt; <span class="b">dict</span>:
+        <span class="k">if</span> <span class="k">not</span> <span class="k">self</span>.results:
+            <span class="k">return</span> {<span class="s">"error"</span>: <span class="s">"无评测结果"</span>}
+
+        overall = <span class="b">sum</span>(r[<span class="s">"overall"</span>] <span class="k">for</span> r <span class="k">in</span> <span class="k">self</span>.results) / <span class="b">len</span>(<span class="k">self</span>.results)
+        passed = <span class="b">sum</span>(<span class="n">1</span> <span class="k">for</span> r <span class="k">in</span> <span class="k">self</span>.results <span class="k">if</span> r[<span class="s">"overall"</span>] &gt;= <span class="n">0.7</span>)
+
+        <span class="k">return</span> {
+            <span class="s">"total_cases"</span>: <span class="b">len</span>(<span class="k">self</span>.results),
+            <span class="s">"overall_score"</span>: <span class="b">round</span>(overall, <span class="n">2</span>),
+            <span class="s">"pass_rate"</span>: f<span class="s">"{passed}/{len(self.results)} ({passed/len(self.results):.0%})"</span>,
+            <span class="s">"details"</span>: <span class="k">self</span>.results,
+        }
+
+
+<span class="k">def</span> <span class="f">demo_benchmarks</span>():
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Agent 评测体系演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    bench = SimpleAgentBench()
+    bench.add_case(AgentTestCase(<span class="s">"c1"</span>, <span class="s">"北京天气怎么样？"</span>,
+                                 [<span class="s">"get_weather"</span>], [<span class="s">"天气"</span>, <span class="s">"度"</span>, <span class="s">"晴天"</span>],
+                                 <span class="s">"easy"</span>))
+    bench.add_case(AgentTestCase(<span class="s">"c2"</span>, <span class="s">"搜索AI Agent并计算3+5"</span>,
+                                 [<span class="s">"search"</span>, <span class="s">"calculate"</span>], [<span class="s">"结果"</span>, <span class="s">"8"</span>],
+                                 <span class="s">"medium"</span>))
+    bench.add_case(AgentTestCase(<span class="s">"c3"</span>, <span class="s">"分析销售额趋势并生成报告"</span>,
+                                 [<span class="s">"query_db"</span>, <span class="s">"generate_chart"</span>], [<span class="s">"趋势"</span>, <span class="s">"报告"</span>],
+                                 <span class="s">"hard"</span>))
+
+    <span class="k">def</span> <span class="f">mock_agent</span>(query: <span class="b">str</span>):
+        <span class="k">if</span> <span class="s">"天气"</span> <span class="k">in</span> query:
+            <span class="k">return</span> ([{<span class="s">"name"</span>: <span class="s">"get_weather"</span>, <span class="s">"args"</span>: {}}],
+                    <span class="s">"今天晴天 25°C，湿度 40%"</span>)
+        <span class="k">if</span> <span class="s">"计算"</span> <span class="k">in</span> query:
+            <span class="k">return</span> ([{<span class="s">"name"</span>: <span class="s">"search"</span>, <span class="s">"args"</span>: {}}, {<span class="s">"name"</span>: <span class="s">"calculate"</span>, <span class="s">"args"</span>: {}}],
+                    <span class="s">"搜索结果：AI Agent 是... 计算结果：8"</span>)
+        <span class="k">if</span> <span class="s">"趋势"</span> <span class="k">in</span> query:
+            <span class="k">return</span> ([{<span class="s">"name"</span>: <span class="s">"query_db"</span>, <span class="s">"args"</span>: {}},
+                     {<span class="s">"name"</span>: <span class="s">"generate_chart"</span>, <span class="s">"args"</span>: {}}],
+                    <span class="s">"销售额呈上升趋势，详情见报告"</span>)
+        <span class="k">return</span> ([], <span class="s">"不明白您的问题"</span>)
+
+    report = bench.evaluate(mock_agent)
+    <span class="b">print</span>(f<span class="s">"  总用例: {report['total_cases']}"</span>)
+    <span class="b">print</span>(f<span class="s">"  总分: {report['overall_score']}"</span>)
+    <span class="b">print</span>(f<span class="s">"  通过率: {report['pass_rate']}"</span>)
+    <span class="k">for</span> d <span class="k">in</span> report[<span class="s">"details"</span>]:
+        icon = <span class="s">"✅"</span> <span class="k">if</span> d[<span class="s">"overall"</span>] &gt;= <span class="n">0.7</span> <span class="k">else</span> <span class="s">"❌"</span>
+        <span class="b">print</span>(f<span class="s">"  {icon} {d['case_id']} ({d['difficulty']}): "</span>
+              f<span class="s">"overall={d['overall']} tool={d['tool_score']} "</span>
+              f<span class="s">"kw={d['kw_score']}"</span>)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第31章：Agent 评测体系深度                             ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  六项公开评测：设计意图与适用场景                       ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+    demo_benchmarks()
+    <span class="b">print</span>(<span class="s">"\n▶ 六大评测对比"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    <span class="k">for</span> name, purpose <span class="k">in</span> [
+        (<span class="s">"GAIA"</span>, <span class="s">"通用助理 多步推理+工具"</span>),
+        (<span class="s">"AgentBench"</span>, <span class="s">"8环境综合适应性"</span>),
+        (<span class="s">"WebArena"</span>, <span class="s">"真实 Web 操作"</span>),
+        (<span class="s">"ClawBench"</span>, <span class="s">"真实生产网站日常任务"</span>),
+        (<span class="s">"tau-bench"</span>, <span class="s">"工具调用精度"</span>),
+        (<span class="s">"SWE-bench"</span>, <span class="s">"代码修复"</span>),
+    ]:
+        <span class="b">print</span>(f<span class="s">"  {name:14s} → {purpose}"</span>)
+    <span class="b">print</span>(<span class="s">"\n✅ 第31章完成！"</span>)</pre></div></details></div><hr style="margin:36px 0"><div class="code-section"><details><summary>📦 完整源代码 (285 行)</summary><div class="code-block"><pre><span class="s">"""
+第31章：Agent 评测体系深度 —— 不只是「看起来不错」
+=====================================================
+
+内容核对：2026-08-01
+说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。
+
+📌 本章目标：
+  1. 掌握 GAIA / AgentBench / WebArena / ClawBench / tau-bench / SWE-bench 六大评测
+  2. 理解每个评测的设计意图和适用场景
+  3. 学会自建 Agent 评测集的方法
+  4. 建立生产环境的多维度评测体系
+
+📌 面试高频点：
+  - 「你们怎么评测 Agent 的质量？」
+  - 「GAIA 和 SWE-bench 有什么区别？」
+  - 「怎么自建评测集？」
+
+公开 benchmark 的任务、排行榜与 harness 会变化；本章介绍评测意图，
+任何分数都必须从官方榜单/论文读取并附模型、harness、预算和日期。
+
+
+31.1 六大评测对比
+━━━━━━━━━━━━━━━━
+
+┌────────────────┬──────────────┬──────────────────────┐
+│ 评测名称        │  评测什么     │       特点            │
+├────────────────┼──────────────┼──────────────────────┤
+│ GAIA           │ 通用助理     │ 多步推理+工具使用       │
+│ AgentBench     │ 多环境 Agent  │ 8 个真实环境            │
+│ WebArena       │ Web 操作     │ 真实网站交互             │
+│ ClawBench      │ 日常在线任务  │ 生产网站+提交拦截         │
+│ tau-bench      │ 工具使用精度  │ 函数参数正确率            │
+│ SWE-bench      │ 代码修复     │ 真实 GitHub Issue        │
+└────────────────┴──────────────┴──────────────────────┘
+
+各评测的任务、环境与成功标准不同，不使用统一星级比较难度。
+
+
+31.2 GAIA —— 通用 AI 助手评测
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GAIA 是通用助理能力的一种公开参照，不应单独代表生产 Agent 质量。
+
+评测什么：衡量 Agent 作为「通用助手」的能力——能否像真人助理一样，
+完成需要多步推理 + 工具使用 + Web 浏览的复合任务。
+
+经典例题：
+  "2023年诺贝尔物理学奖得主的出生城市，在2023年的人口是多少？"
+
+看起来简单？不——Agent 需要：
+  步骤1: 搜索诺贝尔奖 → 找到获奖者姓名
+  步骤2: 搜索该人的出生城市
+  步骤3: 搜索该城市的人口数据
+  步骤4: 组织回答
+
+每一步都可能出错：搜索错了人名 → 整条链全废。
+这就是 GAIA 的核心价值：测的是「信息检索的链式可靠性」。
+
+GAIA 分三级（按人类完成时间）：
+  Level 1: 简单（人类平均 1 分钟完成）—— 1-2 步推理
+  Level 2: 中等（人类平均 3 分钟）—— 3-5 步推理 + 跨数据源
+  Level 3: 困难（人类平均 10 分钟）—— 5+ 步 + 需要推理能力
+
+使用时记录：GAIA 版本、数据访问方式、搜索工具、模型快照、重试/并发策略和
+最大预算；避免把不同 harness 的榜单数字直接归因于模型本身。
+
+
+31.3 AgentBench —— 8 环境综合评测
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+评测 Agent 在 8 个不同环境中的表现：
+  OS / Web / Database / Code / Game / Knowledge / Card / Lateral
+
+目标：测量 Agent 的「环境适应性」。
+
+
+31.4 tau-bench —— 工具使用精度
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+专门评测 Agent 的 Function Calling 准确性。
+核心指标：工具选择的正确率 + 参数正确率。
+
+报告工具评测时拆分：工具选择、参数 schema、业务约束、多轮一致性、拒绝和
+副作用安全。不同模型/领域的数字不能脱离数据集复用。
+
+SWE-bench 特别提示（2026）：Verified 已被指出存在污染和测试缺陷；对 Pro 的
+进一步审查也发现任务质量问题。公开分数必须配合任务审计和私有未污染回归集。
+
+
+31.5 ClawBench —— 真实生产网站上的日常任务评测
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+评测什么：衡量浏览器 Agent 能否在真实生产网站上完成日常在线工作流，
+包括跨页面搜索、多步表单、预约、购物和求职等操作。
+
+与使用静态页面或沙箱的 Web 评测相比，ClawBench 的关键设计包括：
+  - 真实生产网站：保留动态内容、布局变化和实际交互复杂性
+  - 提交拦截：按任务规则记录并阻断关键、不可逆的最终 HTTP 请求，
+    如结账、表单提交或发送邮件，防止这些请求产生真实副作用。
+    该机制依赖请求规则覆盖，不能视为对所有网站操作的安全保证；
+    拦截到请求也不等于任务成功，仍需后续评估。
+  - 端到端证据：保存动作、HTTP 请求、截图、会话消息和录像，支持结果审计
+
+规模：论文 v2（2026-07-20）介绍了 153 个日常任务，覆盖 144 个平台和 15 类。
+版本说明（2026-09-05 核对）：官方仓库当前 V1 为 152 个任务、143 个网站；
+这是发布后移除任务的开源语料口径，不能与论文口径混用。
+这类评测关注复杂流程的最终任务完成率，而不只是单步点击准确率。
+报告结果时记录任务集版本、模型、harness、预算与运行日期；网站布局、
+可用性和反自动化机制的变化也会影响结果。
+
+论文：https://arxiv.org/abs/2604.08523v2
+代码：https://github.com/TIGER-AI-Lab/ClawBench
+
+
+31.6 自建评测集方法论
+━━━━━━━━━━━━━━━━━━━━
+
+四步构建法：
+
+  1. 收集典型场景（20-50 个）
+     - 高频业务场景 + 边界条件 + Bad Case 回归
+
+  2. 定义评测维度
+     - 任务完成率 / 工具选择正确率 / 响应时间 / Token 消耗
+
+  3. 自动化评测
+     - 规则检查（精确匹配/关键词）
+     - LLM-as-Judge（语义质量评分）
+
+  4. 持续迭代
+     - 每次模型/prompt/tool/schema/harness 变更跑哨兵集，按风险定期跑全量
+     - Bad Case → 改进 prompt → 重新评测
+     - 非确定性路径运行多次，报告均值、方差和置信区间
+"""</span>
+
+<span class="k">import</span> json
+<span class="k">import</span> time
+<span class="k">import</span> hashlib
+<span class="k">from</span> typing <span class="k">import</span> Optional
+
+
+<span class="k">class</span> <span class="f">AgentTestCase</span>:
+    <span class="s">"""Agent 评测用例。"""</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, case_id: <span class="b">str</span>, input_text: <span class="b">str</span>,
+                 expected_tools: <span class="b">list</span>[<span class="b">str</span>],
+                 expected_keywords: <span class="b">list</span>[<span class="b">str</span>],
+                 difficulty: <span class="b">str</span> = <span class="s">"medium"</span>):
+        <span class="k">self</span>.case_id = case_id
+        <span class="k">self</span>.input_text = input_text
+        <span class="k">self</span>.expected_tools = expected_tools
+        <span class="k">self</span>.expected_keywords = expected_keywords
+        <span class="k">self</span>.difficulty = difficulty
+
+
+<span class="k">class</span> <span class="f">SimpleAgentBench</span>:
+    <span class="s">"""自建评测框架 —— 模拟 tau-bench 风格的工具调用评测。"""</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.cases = []
+        <span class="k">self</span>.results = []
+
+    <span class="k">def</span> <span class="f">add_case</span>(<span class="k">self</span>, case: AgentTestCase):
+        <span class="k">self</span>.cases.append(case)
+
+    <span class="k">def</span> <span class="f">evaluate</span>(<span class="k">self</span>, agent_func) -&gt; <span class="b">dict</span>:
+        <span class="s">"""运行评测。
+
+        Args:
+            agent_func: 返回 (tool_calls_list, answer_text) 的函数。
+
+        Returns:
+            评测报告。
+        """</span>
+        <span class="k">for</span> case <span class="k">in</span> <span class="k">self</span>.cases:
+            start = time.time()
+            <span class="k">try</span>:
+                tool_calls, answer = agent_func(case.input_text)
+                success = <span class="k">True</span>
+            <span class="k">except</span> Exception <span class="k">as</span> e:
+                tool_calls = []
+                answer = <span class="b">str</span>(e)
+                success = <span class="k">False</span>
+
+            elapsed = time.time() - start
+
+            <span class="h"># 工具选择评分</span>
+            tools_called = [t.get(<span class="s">"name"</span>, <span class="s">""</span>) <span class="k">for</span> t <span class="k">in</span> tool_calls]
+            tool_score = <span class="b">len</span>(<span class="b">set</span>(tools_called) &amp; <span class="b">set</span>(case.expected_tools))
+            tool_score /= <span class="b">max</span>(<span class="b">len</span>(case.expected_tools), <span class="n">1</span>)
+
+            <span class="h"># 关键词评分</span>
+            kw_score = <span class="b">sum</span>(<span class="n">1</span> <span class="k">for</span> kw <span class="k">in</span> case.expected_keywords
+                          <span class="k">if</span> kw.lower() <span class="k">in</span> answer.lower())
+            kw_score /= <span class="b">max</span>(<span class="b">len</span>(case.expected_keywords), <span class="n">1</span>)
+
+            overall = (tool_score * <span class="n">0.5</span> + kw_score * <span class="n">0.5</span>)
+
+            <span class="k">self</span>.results.append({
+                <span class="s">"case_id"</span>: case.case_id,
+                <span class="s">"difficulty"</span>: case.difficulty,
+                <span class="s">"overall"</span>: <span class="b">round</span>(overall, <span class="n">2</span>),
+                <span class="s">"tool_score"</span>: <span class="b">round</span>(tool_score, <span class="n">2</span>),
+                <span class="s">"kw_score"</span>: <span class="b">round</span>(kw_score, <span class="n">2</span>),
+                <span class="s">"elapsed"</span>: <span class="b">round</span>(elapsed, <span class="n">2</span>),
+                <span class="s">"success"</span>: success,
+            })
+
+        <span class="k">return</span> <span class="k">self</span>._report()
+
+    <span class="k">def</span> <span class="f">_report</span>(<span class="k">self</span>) -&gt; <span class="b">dict</span>:
+        <span class="k">if</span> <span class="k">not</span> <span class="k">self</span>.results:
+            <span class="k">return</span> {<span class="s">"error"</span>: <span class="s">"无评测结果"</span>}
+
+        overall = <span class="b">sum</span>(r[<span class="s">"overall"</span>] <span class="k">for</span> r <span class="k">in</span> <span class="k">self</span>.results) / <span class="b">len</span>(<span class="k">self</span>.results)
+        passed = <span class="b">sum</span>(<span class="n">1</span> <span class="k">for</span> r <span class="k">in</span> <span class="k">self</span>.results <span class="k">if</span> r[<span class="s">"overall"</span>] &gt;= <span class="n">0.7</span>)
+
+        <span class="k">return</span> {
+            <span class="s">"total_cases"</span>: <span class="b">len</span>(<span class="k">self</span>.results),
+            <span class="s">"overall_score"</span>: <span class="b">round</span>(overall, <span class="n">2</span>),
+            <span class="s">"pass_rate"</span>: f<span class="s">"{passed}/{len(self.results)} ({passed/len(self.results):.0%})"</span>,
+            <span class="s">"details"</span>: <span class="k">self</span>.results,
+        }
+
+
+<span class="k">def</span> <span class="f">demo_benchmarks</span>():
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Agent 评测体系演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    bench = SimpleAgentBench()
+    bench.add_case(AgentTestCase(<span class="s">"c1"</span>, <span class="s">"北京天气怎么样？"</span>,
+                                 [<span class="s">"get_weather"</span>], [<span class="s">"天气"</span>, <span class="s">"度"</span>, <span class="s">"晴天"</span>],
+                                 <span class="s">"easy"</span>))
+    bench.add_case(AgentTestCase(<span class="s">"c2"</span>, <span class="s">"搜索AI Agent并计算3+5"</span>,
+                                 [<span class="s">"search"</span>, <span class="s">"calculate"</span>], [<span class="s">"结果"</span>, <span class="s">"8"</span>],
+                                 <span class="s">"medium"</span>))
+    bench.add_case(AgentTestCase(<span class="s">"c3"</span>, <span class="s">"分析销售额趋势并生成报告"</span>,
+                                 [<span class="s">"query_db"</span>, <span class="s">"generate_chart"</span>], [<span class="s">"趋势"</span>, <span class="s">"报告"</span>],
+                                 <span class="s">"hard"</span>))
+
+    <span class="k">def</span> <span class="f">mock_agent</span>(query: <span class="b">str</span>):
+        <span class="k">if</span> <span class="s">"天气"</span> <span class="k">in</span> query:
+            <span class="k">return</span> ([{<span class="s">"name"</span>: <span class="s">"get_weather"</span>, <span class="s">"args"</span>: {}}],
+                    <span class="s">"今天晴天 25°C，湿度 40%"</span>)
+        <span class="k">if</span> <span class="s">"计算"</span> <span class="k">in</span> query:
+            <span class="k">return</span> ([{<span class="s">"name"</span>: <span class="s">"search"</span>, <span class="s">"args"</span>: {}}, {<span class="s">"name"</span>: <span class="s">"calculate"</span>, <span class="s">"args"</span>: {}}],
+                    <span class="s">"搜索结果：AI Agent 是... 计算结果：8"</span>)
+        <span class="k">if</span> <span class="s">"趋势"</span> <span class="k">in</span> query:
+            <span class="k">return</span> ([{<span class="s">"name"</span>: <span class="s">"query_db"</span>, <span class="s">"args"</span>: {}},
+                     {<span class="s">"name"</span>: <span class="s">"generate_chart"</span>, <span class="s">"args"</span>: {}}],
+                    <span class="s">"销售额呈上升趋势，详情见报告"</span>)
+        <span class="k">return</span> ([], <span class="s">"不明白您的问题"</span>)
+
+    report = bench.evaluate(mock_agent)
+    <span class="b">print</span>(f<span class="s">"  总用例: {report['total_cases']}"</span>)
+    <span class="b">print</span>(f<span class="s">"  总分: {report['overall_score']}"</span>)
+    <span class="b">print</span>(f<span class="s">"  通过率: {report['pass_rate']}"</span>)
+    <span class="k">for</span> d <span class="k">in</span> report[<span class="s">"details"</span>]:
+        icon = <span class="s">"✅"</span> <span class="k">if</span> d[<span class="s">"overall"</span>] &gt;= <span class="n">0.7</span> <span class="k">else</span> <span class="s">"❌"</span>
+        <span class="b">print</span>(f<span class="s">"  {icon} {d['case_id']} ({d['difficulty']}): "</span>
+              f<span class="s">"overall={d['overall']} tool={d['tool_score']} "</span>
+              f<span class="s">"kw={d['kw_score']}"</span>)
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第31章：Agent 评测体系深度                             ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  六项公开评测：设计意图与适用场景                       ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+    demo_benchmarks()
+    <span class="b">print</span>(<span class="s">"\n▶ 六大评测对比"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    <span class="k">for</span> name, purpose <span class="k">in</span> [
+        (<span class="s">"GAIA"</span>, <span class="s">"通用助理 多步推理+工具"</span>),
+        (<span class="s">"AgentBench"</span>, <span class="s">"8环境综合适应性"</span>),
+        (<span class="s">"WebArena"</span>, <span class="s">"真实 Web 操作"</span>),
+        (<span class="s">"ClawBench"</span>, <span class="s">"真实生产网站日常任务"</span>),
+        (<span class="s">"tau-bench"</span>, <span class="s">"工具调用精度"</span>),
+        (<span class="s">"SWE-bench"</span>, <span class="s">"代码修复"</span>),
+    ]:
+        <span class="b">print</span>(f<span class="s">"  {name:14s} → {purpose}"</span>)
+    <span class="b">print</span>(<span class="s">"\n✅ 第31章完成！"</span>)
+</pre></div></details></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_30_reliability/30_reliability.html" title="Agent 可靠性工程 — 熔断器·退避重试·幂等">← 第30章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_32_self_improving/32_self_improving.html" title="Self-Improving Agent — Bad Case 驱动的自动优化">第32章 →</a>
+</div></div></div></div></body></html>

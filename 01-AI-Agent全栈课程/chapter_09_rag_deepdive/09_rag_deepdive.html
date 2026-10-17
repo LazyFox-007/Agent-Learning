@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第9章：RAG 深度解析 —— 从 Naive 到生产级，面试到工程全覆盖 — AI Agent 全栈课程</title>
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+  background: #f8f9fa; color: #1a1a2e; line-height: 1.8;
+}
+.page-wrapper { display: flex; min-height: 100vh; }
+
+/* 侧边栏 TOC */
+.sidebar {
+  width: 240px; min-width: 240px; background: #0f172a; color: #e2e8f0;
+  padding: 24px 0; position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; font-size: .85em; border-right: 1px solid #1e293b;
+}
+.sidebar-title {
+  font-weight: 700; font-size: 1.05em; padding: 0 18px 16px;
+  border-bottom: 1px solid #1e293b; margin-bottom: 12px; color: white;
+}
+.sidebar-title a { color: #8ab4f8; text-decoration: none; }
+.sidebar-title a:hover { text-decoration: underline; }
+.sidebar-layer {
+  padding: 6px 18px; margin-top: 8px; color: #64748b;
+  font-size: .78em; text-transform: uppercase; letter-spacing: .5px;
+}
+.sidebar-link {
+  display: block; padding: 5px 18px 5px 18px; color: #94a3b8;
+  text-decoration: none; border-left: 2px solid transparent;
+  transition: all .15s; font-size: .88em;
+}
+.sidebar-link:hover { color: #e2e8f0; background: rgba(255,255,255,.04); }
+.sidebar-link.active {
+  color: #60a5fa; background: rgba(96,165,250,.1);
+  border-left-color: #60a5fa; font-weight: 600;
+}
+
+/* 主内容区 */
+.main-content {
+  flex: 1; min-width: 0; padding: 40px 24px 80px;
+  max-width: calc(100vw - 240px);
+}
+.container { max-width: 900px; margin: 0 auto; }
+
+/* 标题 */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white; padding: 48px 32px; border-radius: 12px; margin-bottom: 36px;
+}
+.hero h1 { font-size: 2em; margin-bottom: 8px; letter-spacing: -0.5px; }
+.hero .subtitle { opacity: 0.9; font-size: 1.05em; }
+
+/* 讲义标题层级 */
+.lecture { background: white; border-radius: 10px; padding: 36px 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 32px; }
+.lecture h2 {
+  font-size: 1.25em; color: #667eea; margin: 28px 0 12px;
+  padding-bottom: 6px; border-bottom: 2px solid #e8e8ff;
+}
+.lecture h3 {
+  font-size: 1.08em; color: #555; margin: 22px 0 8px;
+  padding-left: 10px; border-left: 3px solid #667eea;
+}
+.lecture p { margin: 10px 0; }
+.lecture ul, .lecture ol { margin: 8px 0 8px 24px; }
+.lecture li { margin: 4px 0; }
+.lecture pre {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+  padding: 18px 22px; overflow-x: auto; font-size: .88em;
+  line-height: 1.55; margin: 14px 0;
+}
+.lecture code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace; }
+.lecture p code, .lecture li code {
+  background: #eee8ff; padding: 1px 6px; border-radius: 4px;
+  font-size: .92em; color: #6c3cc0;
+}
+.lecture strong { color: #333; }
+.lecture em { color: #555; }
+.lecture blockquote {
+  border-left: 4px solid #667eea; padding: 8px 16px;
+  margin: 14px 0; background: #f4f4ff; border-radius: 0 8px 8px 0;
+  color: #555;
+}
+.lecture table {
+  border-collapse: collapse; width: 100%; margin: 16px 0;
+  font-size: .92em; background: white; border-radius: 6px; overflow: hidden;
+}
+.lecture table th {
+  background: #667eea; color: white; font-weight: 600;
+  padding: 10px 14px; text-align: left;
+}
+.lecture table td {
+  padding: 9px 14px; border-bottom: 1px solid #e8e8f0;
+}
+.lecture table tr:hover td { background: #f4f4ff; }
+.lecture hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+/* 架构图 / 流程图 — 与代码块相同的 pre 渲染方式 */
+.diagram-label {
+  font-size: .85em; font-weight: 600; color: #8ab4f8;
+  background: linear-gradient(135deg, #2d3a5c 0%, #1e2d4a 100%);
+  padding: 8px 18px; letter-spacing: .5px; margin: 18px 0 0 0;
+  border-radius: 10px 10px 0 0; border: 1px solid #3a4a6a; border-bottom: none;
+}
+.diagram-pre {
+  border-radius: 0 0 10px 10px; margin: 0 0 18px 0;
+  border-top: none; border: 1px solid #2a3045;
+}
+.ascii-art {
+  background: #1a1e2b; color: #c0caf5; border-radius: 0 0 10px 10px;
+  padding: 18px 22px; overflow-x: auto; font-size: .8em;
+  line-height: 1.3; margin: 0;
+  font-family: "JetBrains Mono","Fira Code","Cascadia Code","Consolas",monospace;
+  border: none; white-space: pre;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 目标/考点标签 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: .85em; font-weight: 500;
+}
+.tag-goal { background: #e8f5e9; color: #2e7d32; }
+.tag-interview { background: #fff3e0; color: #e65100; }
+
+/* 代码块区域 */
+.code-section { margin-top: 24px; }
+.code-section summary {
+  font-size: 1.1em; font-weight: 600; cursor: pointer;
+  padding: 10px 16px; background: #1e1e2e; color: #cdd6f4;
+  border-radius: 8px 8px 0 0; user-select: none;
+}
+.code-section pre {
+  margin: 0; border-radius: 0 0 8px 8px; max-height: 70vh;
+  overflow-y: auto;
+}
+.code-block {
+  background: #1e1e2e; color: #cdd6f4; border-radius: 0 0 8px 8px;
+  padding: 20px 24px; overflow-x: auto; font-size: .85em;
+  line-height: 1.6; max-height: 70vh; overflow-y: auto;
+}
+
+/* IDE 风格语法高亮颜色 */
+.code-block .k { color: #c586c0; }     /* 关键字 def/class/import */
+.code-block .s { color: #ce9178; }     /* 字符串 */
+.code-block .h { color: #6a9955; }     /* 注释 */
+.code-block .d { color: #dcdcaa; }     /* 装饰器 */
+.code-block .n { color: #b5cea8; }     /* 数字 */
+.code-block .f { color: #4ec9b0; }     /* 函数名 */
+.code-block .b { color: #569cd6; }     /* 内置函数 */
+
+/* 讲义→代码 视觉过渡 */
+.code-bridge {
+  text-align: center; color: #667eea; font-size: .9em;
+  padding: 8px 0 4px; font-weight: 500;
+}
+.code-badges {
+  padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 6px;
+  background: #2a2a3e; border-bottom: 1px solid #444;
+}
+.code-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: .8em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.code-badge-func { background: #1e3a5f; color: #4ec9b0; }
+.code-badge-class { background: #1e3a5f; color: #dcdcaa; }
+.code-badge-const { background: #1e3a5f; color: #b5cea8; }
+
+/* 响应式 */
+@media (max-width: 960px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main-content { max-width: calc(100vw - 200px); }
+}
+@media (max-width: 768px) {
+  .page-wrapper { flex-direction: column; }
+  .sidebar { width: 100%; min-width: auto; height: auto; max-height: 45vh;
+    position: static; display: none; }
+  .sidebar.open { display: block; }
+  .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+  .main-content { max-width: 100%; padding: 16px 10px 60px; }
+}
+@media (max-width: 640px) {
+  .container { padding: 0; }
+  .hero { padding: 28px 18px; }
+  .hero h1 { font-size: 1.4em; }
+  .lecture { padding: 20px 16px; }
+}
+
+/* 打印 */
+@media print {
+  body { background: white; }
+  .lecture { box-shadow: none; }
+  .code-block { background: #f5f5f5; color: #222; }
+}
+
+/* 上/下章导航 */
+.nav-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 32px 0; gap: 16px;
+}
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 22px; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: .95em; transition: all .2s;
+}
+.nav-prev { background: #f0f0ff; color: #667eea; }
+.nav-prev:hover { background: #e0e0ff; }
+.nav-next { background: #667eea; color: white; }
+.nav-next:hover { background: #5560d8; }
+.nav-disabled { background: #eee; color: #999; cursor: not-allowed; pointer-events: none; }
+.nav-home { background: #f5f5f5; color: #555; }
+.nav-home:hover { background: #e0e0e0; }
+
+/* 面包屑 */
+.breadcrumb {
+  font-size: .88em; color: #888; margin-bottom: 20px;
+}
+.breadcrumb a { color: #667eea; text-decoration: none; }
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* 移动端侧边栏开关 */
+.sidebar-toggle {
+  display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%; background: #667eea;
+  color: white; border: none; font-size: 1.2em; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(102,126,234,.4);
+}
+@media (max-width: 768px) { .sidebar-toggle { display: flex; align-items: center; justify-content: center; } }
+
+/* 浏览量统计徽章 */
+
+
+
+</style>
+
+</head>
+<body>
+<div class="page-wrapper">
+<!-- generated-from-sha256:663e5f2df5bc87785cfcfc7a00095f1c62d6e6f0d1cb8595bc69f557ad14df63 -->
+<div class="sidebar" id="sidebar">
+<div class="sidebar-title"><a href="../index.html">🤖 AI Agent 全栈课程</a></div>
+<div class="sidebar-layer">第1层 理论基础</div>
+<a class="sidebar-link" href="../chapter_00_overview/00_course_overview.html">Ch0 课程概览与环境搭建</a>
+<a class="sidebar-link" href="../chapter_01_fundamentals/01_hello_agent.html">Ch1 第一个 Agent</a>
+<a class="sidebar-link" href="../chapter_02_components/02_agent_components.html">Ch2 Agent 核心组件</a>
+<a class="sidebar-link" href="../chapter_03_types/03_agent_types.html">Ch3 Agent 类型分类</a>
+<div class="sidebar-layer">第2层 工程实践</div>
+<a class="sidebar-link" href="../chapter_04_frameworks/04_frameworks.html">Ch4 主流框架实战</a>
+<a class="sidebar-link" href="../chapter_05_multi_agent/05_multi_agent.html">Ch5 多智能体系统</a>
+<a class="sidebar-link" href="../chapter_06_evaluation/06_evaluation.html">Ch6 评估与测试</a>
+<a class="sidebar-link" href="../chapter_07_interview/07_interview_prep.html">Ch7 求职面试准备</a>
+<div class="sidebar-layer">第3层 深度技术</div>
+<a class="sidebar-link" href="../chapter_08_claude_code/08_claude_code_architecture.html">Ch8 Claude Code 架构</a>
+<a class="sidebar-link active" href="../chapter_09_rag_deepdive/09_rag_deepdive.html">Ch9 RAG 深度解析</a>
+<a class="sidebar-link" href="../chapter_10_mcp/10_mcp_deepdive.html">Ch10 MCP 深度解析</a>
+<a class="sidebar-link" href="../chapter_11_tool_calling/11_tool_calling_deepdive.html">Ch11 Tool Calling 底层</a>
+<a class="sidebar-link" href="../chapter_12_infrastructure/12_infrastructure.html">Ch12 Agent 生产基础设施</a>
+<div class="sidebar-layer">第4层 工程化前沿</div>
+<a class="sidebar-link" href="../chapter_13_fastapi/13_fastapi_agent_service.html">Ch13 FastAPI 服务化</a>
+<a class="sidebar-link" href="../chapter_14_sqlite/14_sqlite_agent_storage.html">Ch14 SQLite 持久化</a>
+<a class="sidebar-link" href="../chapter_15_a2a/15_a2a_protocol.html">Ch15 Google A2A 协议</a>
+<a class="sidebar-link" href="../chapter_16_memgpt/16_memgpt_letta.html">Ch16 MemGPT/Letta 记忆</a>
+<a class="sidebar-link" href="../chapter_17_computer_use/17_computer_use.html">Ch17 Computer Use</a>
+<a class="sidebar-link" href="../chapter_18_security/18_agent_security.html">Ch18 Agent 安全与护栏</a>
+<div class="sidebar-layer">第5层 高级架构</div>
+<a class="sidebar-link" href="../chapter_19_workflow_patterns/19_workflow_patterns.html">Ch19 Agentic Workflow 设</a>
+<a class="sidebar-link" href="../chapter_20_context_engineering/20_context_engineering.html">Ch20 Context Engineerin</a>
+<a class="sidebar-link" href="../chapter_21_streaming/21_streaming_architecture.html">Ch21 Streaming & 实时架构</a>
+<a class="sidebar-link" href="../chapter_22_dspy/22_dspy.html">Ch22 DSPy 自动优化</a>
+<a class="sidebar-link" href="../chapter_23_code_agents/23_code_agents.html">Ch23 代码 Agent 架构横评</a>
+<a class="sidebar-link" href="../chapter_24_observability/24_observability.html">Ch24 Agent 可观测性</a>
+<div class="sidebar-layer">第6层 基础补强</div>
+<a class="sidebar-link" href="../chapter_25_vectordb/25_vectordb.html">Ch25 向量数据库选型</a>
+<a class="sidebar-link" href="../chapter_26_model_routing/26_model_routing.html">Ch26 模型路由策略</a>
+<a class="sidebar-link" href="../chapter_27_prompt_eng/27_prompt_engineering.html">Ch27 Agent Prompt 工程</a>
+<a class="sidebar-link" href="../chapter_28_cache/28_cache.html">Ch28 语义缓存与 Token 优化</a>
+<div class="sidebar-layer">第7层 专家进阶</div>
+<a class="sidebar-link" href="../chapter_29_multimodal/29_multimodal.html">Ch29 Multi-Modal Agent</a>
+<a class="sidebar-link" href="../chapter_30_reliability/30_reliability.html">Ch30 Agent 可靠性工程</a>
+<a class="sidebar-link" href="../chapter_31_benchmarks/31_benchmarks.html">Ch31 Agent 评测体系深度</a>
+<a class="sidebar-link" href="../chapter_32_self_improving/32_self_improving.html">Ch32 Self-Improving Age</a>
+<a class="sidebar-link" href="../chapter_33_prompt_cache/33_prompt_cache.html">Ch33 Prompt Caching & 推</a>
+<a class="sidebar-link" href="../chapter_34_finetune/34_finetune.html">Ch34 模型微调 for Function </a>
+<a class="sidebar-link" href="../chapter_35_data_flywheel/35_data_flywheel.html">Ch35 数据飞轮</a>
+<a class="sidebar-link" href="../chapter_36_defense/36_defense.html">Ch36 Agent 纵深安全</a>
+</div>
+<button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button><div class="main-content"><div class="container"><div class="breadcrumb"><a href="../index.html">📖 AI Agent 全栈课程</a> &raquo; <strong>第9章 RAG 深度解析 — 从Naive到生产级·面试到工程全覆盖</strong></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_08_claude_code/08_claude_code_architecture.html" title="Claude Code 架构 — nO·h2A·压缩·SubAgent">← 第8章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_10_mcp/10_mcp_deepdive.html" title="MCP 深度解析 — 设计哲学·JSON-RPC·传输层选型·三协议对比">第10章 →</a>
+</div><div class="hero"><h1>第9章 RAG 深度解析 —— 从 Naive 到生产级，面试到工程全覆盖</h1><p class="subtitle">📖 AI Agent 全栈学习课程 · 可运行讲义</p></div><div class="lecture"><div class="tag-row"><span class="tag tag-goal">1. 理解 RAG 的完整技术演进路线（Naive → Advanced → GraphRAG → Agentic）</span><span class="tag tag-goal">2. 掌握 Chunk 切分策略的工程选型（固定/语义/递归 + 评测驱动调参）</span><span class="tag tag-goal">3. 掌握 Embedding 模型与维度的评测方法</span><span class="tag tag-goal">4. 深入理解混合检索 RRF 融合算法和 Cross-Encoder 重排序原理</span><span class="tag tag-goal">5. 实现可运行的 Advanced RAG 和 GraphRAG 系统</span><span class="tag tag-goal">6. 掌握 RAGAS 评估体系和 4 种生产失败模式的应对策略</span><span class="tag tag-interview">🎤 Chunk 怎么切分？为什么这个大小？（本章核心深度！）</span><span class="tag tag-interview">🎤 Embedding 模型怎么选？维度怎么定？</span><span class="tag tag-interview">🎤 为什么混合检索比纯向量好？RRF 怎么做？</span><span class="tag tag-interview">🎤 Bi-Encoder 和 Cross-Encoder 的本质区别？</span><span class="tag tag-interview">🎤 GraphRAG 解决了什么纯向量 RAG 解决不了的问题？</span><span class="tag tag-interview">🎤 Agentic RAG 和传统 RAG 的本质区别</span><span class="tag tag-interview">🎤 RAG 上线后最常见的 4 种失败模式及对策</span></div><p>&nbsp;</p>
+<p>内容核对：2026-08-01</p>
+<p>说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>9.1 RAG 技术演进全景图</h2>
+<p>&nbsp;</p>
+<p>RAG 从 2020 年到 2025 年经历了三个重要阶段：</p>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌──────────────────────────────────────────────────────┐
+  │                                                        │
+  │  2020-2022: Naive RAG                                 │
+  │  「问 → 检索 → 生成」三步走                              │
+  │  代表: Facebook RAG 论文、LangChain 基础 QA Chain        │
+  │                                                        │
+  │  2023-2024: Advanced RAG                              │
+  │  加入查询重写、混合检索、重排序、纠错等优化                │
+  │  代表: HyDE、Multi-Query、Self-RAG、CRAG               │
+  │                                                        │
+  │  2024-2025: Next-Gen RAG                              │
+  │  知识图谱、Agent 协作、多模态、长文本                     │
+  │  代表: GraphRAG (微软)、Agentic RAG、Multimodal RAG     │
+  │                                                        │
+  └──────────────────────────────────────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>Naive RAG 的问题（面试常问！）:</p>
+<li>1. 检索不准：语义相似 ≠ 问题相关</li>
+<li>2. 上下文丢失：大块文本导致 LLM 忽略关键信息</li>
+<li>3. 无法处理复杂关系：「A影响了B，B又影响了C」需要多跳推理</li>
+<li>4. 无自检能力：检索到无关内容也不知道</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>9.1.1 Chunk 切分策略深度 —— RAG 最被低估的环节</h3>
+<p>&nbsp;</p>
+<p>面试官问「chunk 怎么切分？为什么这样切？」——这是在考察你是否真正</p>
+<p>做过生产级 RAG，而不仅仅是跑过 LangChain 的 demo。</p>
+<p>&nbsp;</p>
+<p>Chunk 切分是 RAG Pipeline 的<strong>第一步</strong>，也是<strong>最致命的瓶颈</strong>。</p>
+<p>切错了 chunk，后面的检索、重排序、LLM 生成全都会受影响——就像</p>
+<p>地基歪了大楼必然歪。</p>
+<p>&nbsp;</p>
+<p>▍ 三种主流切分策略</p>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">┌─────────────────┬────────────────────────┬──────────────────────┐
+│ 策略              │        原理             │       适用场景        │
+├─────────────────┼────────────────────────┼──────────────────────┤
+│ 固定大小切分      │ 按字符/token 等长切     │ 通用文档、入门级       │
+│ 语义切分          │ 按段落/句子边界 + 相似度  │ 技术文档、论文         │
+│ 递归字符切分      │ 先按分隔符层级切          │ LangChain 默认方案     │
+└─────────────────┴────────────────────────┴──────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>▍ chunk_size 选择的工程经验（面试高分点）</p>
+<p>&nbsp;</p>
+<p>太小（100-200 字符）:</p>
+<p>优点 → 检索精度高，向量信号集中</p>
+<p>致命问题 → 丢失上下文！「Python 在...之后发布了...」只剩半句话</p>
+<p>&nbsp;</p>
+<p>中等（500-1000 字符）:</p>
+<p>RAG 的「甜点区」—— 保持语义完整性的同时控制噪声</p>
+<p>一个 chunk ≈ 一段话，正好是一个完整语义单元</p>
+<p>&nbsp;</p>
+<p>太大（2000+ 字符）:</p>
+<p>优点 → 上下文丰富，LLM 生成质量高</p>
+<p>致命问题 → 检索信噪比低，Embedding 向量被稀释</p>
+<p>「大海捞针」现象：关键词匹配到了，但淹没在 2000 字中</p>
+<p>&nbsp;</p>
+<p>可作为首轮实验的候选值（不是跨项目结论）:</p>
+<p>技术文档 → 先按标题、段落和完整代码块切分</p>
+<p>客服知识库 → 优先保持一组问答完整</p>
+<p>法律合同 → 优先保持条款及其引用关系完整</p>
+<p>通用语料 → 同时测试多个 chunk_size，再按端到端指标选择</p>
+<p>&nbsp;</p>
+<p>▍ chunk_overlap 不是「加越多越好」</p>
+<p>&nbsp;</p>
+<p>overlap = chunk 之间的重叠字符/Token 数。</p>
+<p>&nbsp;</p>
+<p>它的真正作用：防止关键信息恰好落在两个 chunk 的边界处。</p>
+<p>比如「Python 是 Guido van Rossum 在 CWI 工作时创建的」被切成：</p>
+<p>Chunk A: 「Python 是 Guido van Rossum 在」</p>
+<p>Chunk B: 「CWI 工作时创建的」</p>
+<p>→ 两个 chunk 都丢失了完整语义！</p>
+<p>&nbsp;</p>
+<p>正确做法：把 overlap 当作待评测参数，而不是固定百分比。</p>
+<p>过大 → 存储膨胀、检索重复；过小 → 边界信息丢失。</p>
+<p>记录切分器版本，并同时比较检索召回、重复率、延迟和最终答案质量。</p>
+<p>&nbsp;</p>
+<p>▍ 语义切分（Semantic Chunking）—— 面试中的进阶话题</p>
+<p>&nbsp;</p>
+<p>固定大小切分的根本缺陷：完全无视文档的<strong>自然语义边界</strong>。</p>
+<p>&nbsp;</p>
+<p>语义切分的工作原理：</p>
+<li>1. 把文档按句子拆分</li>
+<li>2. 计算相邻句子的 Embedding 相似度</li>
+<li>3. 在相似度「骤降」处切分 —— 这通常是段落/话题的自然边界</li>
+<p>&nbsp;</p>
+<p>为什么更好？因为 Embedding 模型在「同一话题的句子」上相似度高，</p>
+<p>在「话题切换」处相似度骤降。利用这个特性，切出来的每个 chunk</p>
+<p>天然是语义自洽的，不需要人工调 chunk_size。</p>
+<p>&nbsp;</p>
+<p>语义切分的代价：</p>
+<li>需要对每个句子做 Embedding（增加预处理成本）</li>
+<li>Chunk 大小不均（有的 150 字，有的 800 字）</li>
+<li>不符合 LLM 的「固定 Token 预算」预期</li>
+<p>&nbsp;</p>
+<p>工程上的折中：先语义切分确定段落边界 + 再在边界内做固定大小切分。</p>
+<p>这也是 LangChain SemanticChunker 的实现方式。</p>
+<p>&nbsp;</p>
+<p>▍ 特殊场景的切分策略</p>
+<p>&nbsp;</p>
+<p>代码文档 → 按函数/类切分（AST 解析），不是按行</p>
+<p>表格数据 → 保留完整表格在一个 chunk 中，不要横向切</p>
+<p>多语言混合 → 按语言检测 + 独立切分，避免中英文混在一个 chunk</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>9.2 Naive RAG 实现 —— 理解基础再谈优化</h2></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (112 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">add_documents</span><span class="code-badge code-badge-func">search</span><span class="code-badge code-badge-func">demo_naive_rag</span><span class="code-badge code-badge-class">NaiveVectorStore</span></div><div class="code-block"><pre><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> typing <span class="k">import</span> Optional
+
+
+<span class="k">class</span> <span class="f">NaiveVectorStore</span>:
+    <span class="s">"""最小化的向量存储 —— 帮助理解向量检索的本质。
+
+    面试中常被问「向量检索的原理是什么」，
+    这个实现展示了答案：将查询和文档都转为向量，
+    通过余弦相似度找到最相似的 Top-K 个。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.documents = []         <span class="h"># 原始文档列表</span>
+        <span class="k">self</span>.embeddings = []        <span class="h"># 对应的向量列表</span>
+        <span class="k">self</span>.chunks = []            <span class="h"># 分块信息</span>
+
+    <span class="k">def</span> <span class="f">add_documents</span>(<span class="k">self</span>, docs: <span class="b">list</span>[<span class="b">str</span>],
+                      chunk_size: <span class="b">int</span> = <span class="n">200</span>,
+                      chunk_overlap: <span class="b">int</span> = <span class="n">50</span>):
+        <span class="s">"""添加文档：先分块，再「嵌入」（这里用简化模拟表示）。
+
+        Args:
+            docs: 文档列表。
+            chunk_size: 分块大小（字符数）。
+            chunk_overlap: 块间重叠大小。
+        """</span>
+        <span class="k">for</span> doc <span class="k">in</span> docs:
+            <span class="k">for</span> i <span class="k">in</span> <span class="b">range</span>(<span class="n">0</span>, <span class="b">len</span>(doc), chunk_size - chunk_overlap):
+                chunk = doc[i:i + chunk_size]
+                <span class="k">self</span>.chunks.append(chunk)
+                <span class="h"># 用 TF-IDF 启发式模拟向量（实际用 embedding 模型）</span>
+                embedding = <span class="k">self</span>._simple_hash_embed(chunk)
+                <span class="k">self</span>.embeddings.append(embedding)
+
+        <span class="b">print</span>(f<span class="s">"  已添加 {len(self.chunks)} 个文本块"</span>)
+
+    <span class="k">def</span> <span class="f">_simple_hash_embed</span>(<span class="k">self</span>, text: <span class="b">str</span>, dim: <span class="b">int</span> = <span class="n">64</span>) -&gt; np.ndarray:
+        <span class="s">"""简化版的文本向量化（仅用于理解原理）。
+
+        实际项目用 sentence-transformers / OpenAI Embeddings API。
+        """</span>
+        <span class="h"># 基于字符哈希的简单向量表示</span>
+        vec = np.zeros(dim)
+        <span class="k">for</span> i, ch <span class="k">in</span> <span class="b">enumerate</span>(text):
+            vec[<span class="b">hash</span>(ch) % dim] += <span class="n">1</span>
+        <span class="h"># L2 归一化</span>
+        norm = np.linalg.norm(vec)
+        <span class="k">if</span> norm &gt; <span class="n">0</span>:
+            vec = vec / norm
+        <span class="k">return</span> vec
+
+    <span class="k">def</span> <span class="f">search</span>(<span class="k">self</span>, query: <span class="b">str</span>, top_k: <span class="b">int</span> = <span class="n">5</span>) -&gt; <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">float</span>]]:
+        <span class="s">"""检索最相似的 Top-K 个文本块。
+
+        Args:
+            query: 查询文本。
+            top_k: 返回数量。
+
+        Returns:
+            (文本块, 相似度分数) 的列表。
+        """</span>
+        query_vec = <span class="k">self</span>._simple_hash_embed(query)
+        scores = []
+        <span class="k">for</span> i, emb <span class="k">in</span> <span class="b">enumerate</span>(<span class="k">self</span>.embeddings):
+            <span class="h"># 余弦相似度 = 点积（因为已归一化）</span>
+            score = <span class="b">float</span>(np.dot(query_vec, emb))
+            scores.append((i, score))
+
+        scores.sort(key=<span class="k">lambda</span> x: x[<span class="n">1</span>], reverse=<span class="k">True</span>)
+        results = []
+        <span class="k">for</span> idx, score <span class="k">in</span> scores[:top_k]:
+            results.append((<span class="k">self</span>.chunks[idx], score))
+        <span class="k">return</span> results
+
+
+<span class="k">def</span> <span class="f">demo_naive_rag</span>():
+    <span class="s">"""演示 Naive RAG 的基本流程。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Naive RAG 流程演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    store = NaiveVectorStore()
+    docs = [
+        <span class="s">"Python是一种解释型、面向对象的高级编程语言。"</span>
+        <span class="s">"它由 Guido van Rossum 于 1991 年首次发布。"</span>
+        <span class="s">"Python 以简洁的语法和强大的标准库而闻名。"</span>,
+
+        <span class="s">"AI Agent 是一种能够自主感知环境、做出决策并执行行动的智能系统。"</span>
+        <span class="s">"它由 LLM、规划器、记忆系统和工具组成。"</span>
+        <span class="s">"LangChain 是构建 Agent 的最流行框架之一。"</span>,
+
+        <span class="s">"RAG（检索增强生成）是一种将外部知识检索与 LLM 生成结合的技术。"</span>
+        <span class="s">"它通过从知识库中检索相关信息来减少大模型的幻觉问题。"</span>
+        <span class="s">"GraphRAG 是 RAG 的最新演进，加入了知识图谱。"</span>,
+
+        <span class="s">"PyTorch 是 Facebook 开发的开源深度学习框架。"</span>
+        <span class="s">"TensorFlow 是 Google 开发的机器学习平台。"</span>
+        <span class="s">"两者都是业界最广泛使用的深度学习工具。"</span>,
+    ]
+    store.add_documents(docs)
+
+    queries = [
+        <span class="s">"Python 是谁创建的？"</span>,
+        <span class="s">"什么是 AI Agent？"</span>,
+        <span class="s">"RAG 如何减少幻觉？"</span>,
+    ]
+    <span class="k">for</span> q <span class="k">in</span> queries:
+        <span class="b">print</span>(f<span class="s">"\n  🔍 查询: {q}"</span>)
+        results = store.search(q, top_k=<span class="n">2</span>)
+        <span class="k">for</span> chunk, score <span class="k">in</span> results:
+            <span class="b">print</span>(f<span class="s">"    [{score:.3f}] {chunk[:80]}..."</span>)</pre></div></details></div><div class="lecture"><h3>9.2.1 Embedding 模型选型 —— 选错模型比选错数据库更致命</h3>
+<p>&nbsp;</p>
+<p>很多工程师花大量时间纠结「用 Chroma 还是 Pinecone」，但真正的精度瓶颈</p>
+<p>在 Embedding 模型上。数据库只是存储，Embedding 模型决定了检索的「视力」。</p>
+<p>&nbsp;</p>
+<p>▍ OpenAI vs 开源 Embedding：到底怎么选？</p>
+<p>&nbsp;</p>
+<p>text-embedding-3-small（OpenAI）:</p>
+<p>维度: 1536（默认），可通过 dimensions 参数缩短</p>
+<p>费用: 按输入 token 计费，运行前查看官方价格页</p>
+<p>优势: 调试方便、无需部署、中文效果好</p>
+<p>权衡: 维度主要影响向量存储、索引内存和检索质量，不直接改变输入 token 数</p>
+<p>&nbsp;</p>
+<p>bge-large-zh-v1.5（智源，开源）:</p>
+<p>维度: 1024</p>
+<p>费用: 无 API 单价，但需要计算、部署和运维资源</p>
+<p>优势: 中文专用、可微调、无网络依赖</p>
+<p>陷阱: 需要 GPU（4GB VRAM）、部署运维成本</p>
+<p>&nbsp;</p>
+<p>multilingual-e5-large（微软）:</p>
+<p>维度: 1024</p>
+<p>特点: 多语言检索基线之一；是否适用需在本领域语料上评测</p>
+<p>特殊要求: 查询前必须加 "query: " 前缀，文档前加 "passage: "</p>
+<p>&nbsp;</p>
+<p>▍ 维度选择的工程方法</p>
+<p>&nbsp;</p>
+<p>在同一模型、同一语料和同一索引参数下，对候选维度测量：</p>
+<li>Recall@k / nDCG@k：是否找到正确文档</li>
+<li>p50 / p95 延迟：索引与网络开销</li>
+<li>索引体积和常驻内存</li>
+<li>生成答案的端到端正确率</li>
+<p>&nbsp;</p>
+<p>不存在跨领域通用的「最佳维度」。先确定可接受的质量下限，再选择满足</p>
+<p>下限的最小维度；任何固定 Recall 数字都必须附数据集、切分和随机种子。</p>
+<p>&nbsp;</p>
+<p>▍ 什么时候需要微调 Embedding 模型？</p>
+<p>&nbsp;</p>
+<p>如果你做的是垂直领域 RAG（医疗、法律、金融），先建立领域评测集，</p>
+<p>只有通用模型未达标时再比较领域模型或微调方案。</p>
+<p>&nbsp;</p>
+<p>原因：通用 Embedding 模型在垂直术语上的表现很差。</p>
+<p>比如 text-embedding-3 对「心梗」和「心肌梗死」算出的相似度可能</p>
+<p>只有 0.6，但对人类来说这是同一个意思。</p>
+<p>&nbsp;</p>
+<p>微调数据准备：</p>
+<li>正例对：(query, 正确文档 chunk) × 500-2000 条</li>
+<li>负例对：(query, 随机文档 chunk) × 同数量</li>
+<li>训练方式：对比学习（Contrastive Learning），不是普通微调</li>
+<p>&nbsp;</p>
+<p>效果必须在留出的领域测试集上报告，并与更换模型、混合检索和重排基线比较。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>9.3 Advanced RAG —— 三板斧优化</h2>
+<p>&nbsp;</p>
+<p>Advanced RAG 在 Naive RAG 的基础上加入三大优化：</p>
+<li>1. 查询重写 (Query Rewriting)</li>
+<li>2. 混合检索 (Hybrid Search)</li>
+<li>3. 重排序 (Reranking)</li></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (145 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">query_rewrite</span><span class="code-badge code-badge-func">add_documents</span><span class="code-badge code-badge-func">hybrid_search</span><span class="code-badge code-badge-func">rerank</span><span class="code-badge code-badge-class">AdvancedRAG</span></div><div class="code-block"><pre><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> typing <span class="k">import</span> Optional
+
+<span class="k">class</span> <span class="f">AdvancedRAG</span>:
+    <span class="s">"""Advanced RAG 系统 —— 包含查询重写、混合检索、重排序。
+
+    架构流程：
+      用户查询
+         │
+         ▼
+    ┌──────────────┐
+    │ 查询重写       │ ← 用 LLM 扩展/改写查询
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ 混合检索       │ ← BM25 + 向量搜索
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ 重排序         │ ← Cross-Encoder 精细排序
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ LLM 生成       │ ← 注入检索上下文
+    └──────────────┘
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, llm=<span class="k">None</span>):
+        <span class="s">"""
+        Args:
+            llm: LLM 调用函数（可选）。
+        """</span>
+        <span class="k">self</span>.llm = llm
+        <span class="k">self</span>.store = NaiveVectorStore()
+        <span class="k">self</span>.bm25_index = {}  <span class="h"># 简化版 BM25 索引</span>
+
+    <span class="k">def</span> <span class="f">query_rewrite</span>(<span class="k">self</span>, query: <span class="b">str</span>) -&gt; <span class="b">list</span>[<span class="b">str</span>]:
+        <span class="s">"""查询重写：将一个查询扩展为多个变体。
+
+        策略：
+          1. 原始查询
+          2. 关键词提取版本
+          3. 同义词扩展版本
+
+        在真实项目中，这一步用 LLM 完成。
+        比如用 prompt：「将以下查询改写为 3 个不同角度的搜索查询」
+        """</span>
+        variations = [query]
+
+        <span class="h"># 简单模拟：如果查询中有「怎么」，增加「方法」「教程」</span>
+        <span class="k">if</span> <span class="s">"怎么"</span> <span class="k">in</span> query <span class="k">or</span> <span class="s">"如何"</span> <span class="k">in</span> query:
+            variations.append(query.replace(<span class="s">"怎么"</span>, <span class="s">"的方法"</span>).replace(<span class="s">"如何"</span>, <span class="s">"的方法"</span>))
+
+        <span class="h"># 简单模拟：拆分长查询为多个关键词查询</span>
+        keywords = [w <span class="k">for</span> w <span class="k">in</span> query.replace(<span class="s">"？"</span>, <span class="s">""</span>).replace(<span class="s">"?"</span>, <span class="s">""</span>).split()
+                     <span class="k">if</span> <span class="b">len</span>(w) &gt; <span class="n">1</span>]
+        <span class="k">if</span> <span class="b">len</span>(keywords) &gt; <span class="n">2</span>:
+            variations.append(<span class="s">" "</span>.join(keywords[:<span class="n">3</span>]))
+
+        <span class="k">return</span> variations
+
+    <span class="k">def</span> <span class="f">add_documents</span>(<span class="k">self</span>, docs: <span class="b">list</span>[<span class="b">str</span>]):
+        <span class="s">"""添加文档到混合索引。"""</span>
+        <span class="k">self</span>.store.add_documents(docs)
+        <span class="h"># 构建简化的 BM25 索引</span>
+        <span class="k">for</span> i, chunk <span class="k">in</span> <span class="b">enumerate</span>(<span class="k">self</span>.store.chunks):
+            words = chunk.lower().split()
+            <span class="k">for</span> word <span class="k">in</span> <span class="b">set</span>(words):
+                <span class="k">if</span> word <span class="k">not</span> <span class="k">in</span> <span class="k">self</span>.bm25_index:
+                    <span class="k">self</span>.bm25_index[word] = []
+                <span class="k">self</span>.bm25_index[word].append(i)
+
+    <span class="k">def</span> <span class="f">hybrid_search</span>(<span class="k">self</span>, query: <span class="b">str</span>, top_k: <span class="b">int</span> = <span class="n">5</span>) -&gt; <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">float</span>]]:
+        <span class="s">"""混合检索：融合向量搜索和关键词搜索的结果。
+
+        Args:
+            query: 查询文本。
+            top_k: 返回数量。
+
+        Returns:
+            融合后的检索结果。
+        """</span>
+        <span class="h"># 向量搜索结果</span>
+        vector_results = <span class="k">self</span>.store.search(query, top_k=top_k)
+        vector_scores = {chunk: score <span class="k">for</span> chunk, score <span class="k">in</span> vector_results}
+
+        <span class="h"># 关键词搜索结果（简化版 BM25）</span>
+        kw_scores = {}
+        <span class="k">for</span> word <span class="k">in</span> query.lower().split():
+            <span class="k">if</span> word <span class="k">in</span> <span class="k">self</span>.bm25_index:
+                <span class="k">for</span> doc_id <span class="k">in</span> <span class="k">self</span>.bm25_index[word]:
+                    chunk = <span class="k">self</span>.store.chunks[doc_id]
+                    kw_scores[chunk] = kw_scores.get(chunk, <span class="n">0</span>) + <span class="n">1</span>
+
+        <span class="h"># 混合打分：向量分数 * 0.6 + 关键词分数 * 0.4</span>
+        all_chunks = <span class="b">set</span>(vector_scores.keys()) | <span class="b">set</span>(kw_scores.keys())
+        fused = []
+        <span class="k">for</span> chunk <span class="k">in</span> all_chunks:
+            v_score = vector_scores.get(chunk, <span class="n">0</span>)
+            k_score = kw_scores.get(chunk, <span class="n">0</span>)
+            <span class="h"># 归一化关键词分数</span>
+            max_k = <span class="b">max</span>(kw_scores.values()) <span class="k">if</span> kw_scores <span class="k">else</span> <span class="n">1</span>
+            k_score_norm = k_score / max_k
+            final_score = v_score * <span class="n">0.6</span> + k_score_norm * <span class="n">0.4</span>
+            fused.append((chunk, final_score))
+
+        fused.sort(key=<span class="k">lambda</span> x: x[<span class="n">1</span>], reverse=<span class="k">True</span>)
+        <span class="k">return</span> fused[:top_k]
+
+    <span class="k">def</span> <span class="f">rerank</span>(<span class="k">self</span>, query: <span class="b">str</span>, candidates: <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">float</span>]],
+               top_k: <span class="b">int</span> = <span class="n">3</span>) -&gt; <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">float</span>]]:
+        <span class="s">"""重排序：对候选结果进行精细排序。
+
+        在真实项目中，这一步用 Cross-Encoder 模型（如 BGE-reranker）：
+          - 对每个 (query, chunk) 对打分
+          - 与向量搜索的「分别打分」不同，Cross-Encoder 同时看两边
+
+        这里用简化的规则模拟：
+          - 查询关键词在块中出现得越早，分数越高
+          - 块越短（越聚焦），分数越高
+        """</span>
+        query_lower = query.lower()
+        reranked = []
+        <span class="k">for</span> chunk, orig_score <span class="k">in</span> candidates:
+            chunk_lower = chunk.lower()
+
+            <span class="h"># 规则1: 关键词位置分（越靠前越好）</span>
+            position_score = <span class="n">0.0</span>
+            <span class="k">for</span> word <span class="k">in</span> query_lower.split():
+                pos = chunk_lower.find(word)
+                <span class="k">if</span> pos &gt;= <span class="n">0</span>:
+                    position_score += <span class="b">max</span>(<span class="n">0</span>, <span class="n">1.0</span> - pos / <span class="b">len</span>(chunk_lower))
+
+            <span class="h"># 规则2: 长度分（越短越聚焦）</span>
+            length_score = <span class="b">max</span>(<span class="n">0</span>, <span class="n">1.0</span> - <span class="b">len</span>(chunk) / <span class="n">1000</span>)
+
+            <span class="h"># 综合分（在真实项目中由 Cross-Encoder 输出）</span>
+            final = orig_score * <span class="n">0.5</span> + position_score * <span class="n">0.3</span> + length_score * <span class="n">0.2</span>
+            reranked.append((chunk, final))
+
+        reranked.sort(key=<span class="k">lambda</span> x: x[<span class="n">1</span>], reverse=<span class="k">True</span>)
+        <span class="k">return</span> reranked[:top_k]</pre></div></details></div><div class="lecture"><h3>9.3.1 混合检索的数学 —— RRF 为什么比加权求和好</h3>
+<p>&nbsp;</p>
+<p>上面 AdvancedRAG.hybrid_search 用的是简单的加权求和（向量分×0.6 +</p>
+<p>关键词分×0.4）。这在 demo 中能跑，但在生产中有严重问题：</p>
+<p>&nbsp;</p>
+<p>问题 1：两个打分器的分数范围不同</p>
+<p>向量相似度范围 [0, 1]，BM25 分数范围 [0, +∞)（可以到 20、50）</p>
+<p>直接加权 → BM25 分数会「淹没」向量分数</p>
+<p>&nbsp;</p>
+<p>问题 2：无法确定最佳权重</p>
+<p>0.6/0.4 是拍脑袋的权重。换一个数据集/Embedding 模型，最优权重</p>
+<p>可能变成 0.3/0.7。每次都要重新调参 → 不可维护</p>
+<p>&nbsp;</p>
+<p>▍ RRF (Reciprocal Rank Fusion) —— 工业界标准方案</p>
+<p>&nbsp;</p>
+<p>RRF 不融合「分数」，而是融合「排名」。公式：</p>
+<p>&nbsp;</p>
+<p>RRF_score(d) = Σ 1/(k + rank_i(d))</p>
+<p>&nbsp;</p>
+<p>其中 rank_i(d) 是文档 d 在第 i 个检索器中的排名，</p>
+<p>k 是平滑常数；60 是常见起始值，但仍应在自己的验证集上确认。</p>
+<p>&nbsp;</p>
+<p>为什么比加权求和好？</p>
+<li>1. 与分数量纲无关 —— 不管 BM25 返回 0.3 还是 50，只看排名</li>
+<li>2. 自动均衡 —— 排名靠前的文档贡献大（1/61 ≈ 0.016 vs 1/90 ≈ 0.011）</li>
+<li>3. 无需调权重 —— 唯一的超参数 k 对结果不敏感（30-100 都可以）</li>
+<li>4. 可扩展 —— 3 个、5 个检索器随便加，不需要重新配权重</li>
+<p>&nbsp;</p>
+<p>RRF 的一个关键细节：k 值越大，排名的「边际差异」越小。</p>
+<p>k=0 时，排名 1 贡献 1.0，排名 10 贡献 0.1（差异 10 倍）</p>
+<p>k=60 时，排名 1 贡献 0.016，排名 10 贡献 0.014（差异只有 15%）</p>
+<p>→ 较大的 k 会让融合更「民主」，不只关注第 1 名</p>
+<p>&nbsp;</p>
+<p>▍ 什么时候混合检索最有价值？</p>
+<p>&nbsp;</p>
+<p>混合检索不是银弹。它的最大价值在于处理「语义相近但关键词不同」和</p>
+<p>「关键词相同但语义不同」两种矛盾场景。</p>
+<p>&nbsp;</p>
+<p>必用混合检索的场景：</p>
+<p>法律合同 → 「不可抗力」和「天灾」语义相同但词不同 → 向量检索救命</p>
+<p>技术文档 → 「API」在不同上下文含义完全不同 → 关键词检索救命</p>
+<p>&nbsp;</p>
+<p>可以只用向量的场景：</p>
+<p>科普文章 → 语义检索已经足够</p>
+<p>纯 FAQ → 用户问法高度集中在 200 个模板 → 关键词就够了</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>9.3.2 重排序 (Reranking) 深度 —— Cross-Encoder 到底做了什么</h3>
+<p>&nbsp;</p>
+<p>重排序经常是值得优先验证的一步，但收益与成本取决于候选集、reranker、</p>
+<p>硬件和数据集。不要引用跨项目固定百分比；用消融实验比较是否启用重排序。</p>
+<p>&nbsp;</p>
+<p>▍ Bi-Encoder vs Cross-Encoder —— 面试必问</p>
+<p>&nbsp;</p>
+<p>Bi-Encoder（向量检索用的就是这种）:</p>
+<p>原理: 分别对 query 和 document 编码 → 然后算相似度</p>
+<p>速度: 快（document 向量可以预计算、缓存）</p>
+<p>精度: 中等（query 和 document 在编码阶段「没见过」对方）</p>
+<p>用途: 初筛（从 100 万文档中找前 100 个候选）</p>
+<p>&nbsp;</p>
+<p>Cross-Encoder:</p>
+<p>原理: 把 query 和 document 拼接在一起 → 联合编码 → 输出一个分数</p>
+<p>速度: 慢（每个 (query, doc) 对都要完整推理一次）</p>
+<p>精度: 高（query 和 document 在编码阶段「互相感知」）</p>
+<p>用途: 精排（从 100 个候选中找前 5 个）</p>
+<p>&nbsp;</p>
+<p>类比：</p>
+<p>Bi-Encoder = 分别看两个人的简历 → 猜他们合不合适</p>
+<p>Cross-Encoder = 让两个人坐下来聊 → 真实判断合不合适</p>
+<p>&nbsp;</p>
+<p>Cross-Encoder 能捕捉到的 Bi-Encoder 捕捉不到的东西：</p>
+<p>« 精确匹配 » "Python" 和 "Python语言" → Bi-Encoder 相似度可能只有 0.5</p>
+<p>→ Cross-Encoder 看到完整上下文后直接打 0.95</p>
+<p>« 否定/反转 » "不是Python" → Bi-Encoder 看不出否定语义</p>
+<p>→ Cross-Encoder 能识别否定词降低了相关性</p>
+<p>&nbsp;</p>
+<p>▍ 重排序的成本收益计算</p>
+<p>&nbsp;</p>
+<p>假设 RAG pipeline 中有大量文档：</p>
+<p>Stage 1 (Bi-Encoder): 全库 → 一批候选（可预计算向量）</p>
+<p>Stage 2 (Cross-Encoder): 候选 → 少量最终结果（逐对联合编码）</p>
+<p>Stage 3 (LLM 生成): 将最终文档作为上下文 → 回答</p>
+<p>&nbsp;</p>
+<p>如果不加重排序，直接把 Stage 1 的 top-5 喂给 LLM：</p>
+<p>会省掉重排序计算，但可能把排序靠前却不真正相关的文档交给 LLM。</p>
+<p>是否影响最终答案、影响多大，只能通过本领域评测集确认。</p>
+<p>&nbsp;</p>
+<p>结论：同时报告无重排序/有重排序的 Recall@k、答案正确率、p95 延迟与成本，</p>
+<p>达到预先定义的质量门槛后再决定是否上线。</p>
+<p>&nbsp;</p>
+<p>▍ 主流 Reranker 模型选择</p>
+<p>&nbsp;</p>
+<p>BGE-Reranker-v2-m3（智源）:</p>
+<p>特点: 多语言，中文效果好，免费</p>
+<p>适合: 通用中文 RAG</p>
+<p>&nbsp;</p>
+<p>托管 Rerank API:</p>
+<p>特点: 无需自建推理服务，模型和价格会随版本变化</p>
+<p>适合: 希望快速验证重排序价值的团队</p>
+<p>选型: 查看当前官方模型卡和价格，并在私有验证集上比较</p>
+<p>&nbsp;</p>
+<p>cross-encoder/ms-marco-MiniLM-L-6-v2:</p>
+<p>特点: 可本地部署的经典轻量基线</p>
+<p>适合: 需要可控部署或建立延迟基线的场景</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>9.4 GraphRAG —— 知识图谱 + RAG</h2>
+<p>&nbsp;</p>
+<p>为什么需要 GraphRAG？</p>
+<p>&nbsp;</p>
+<p>Naive RAG 的场景：「Python 是什么？」</p>
+<p>→ 检索到「Python是一种编程语言」的文本块</p>
+<p>→ 回答正确 ✓</p>
+<p>&nbsp;</p>
+<p>Naive RAG 失败的场景：「Python 的设计者还参与了哪些项目？」</p>
+<p>→ 检索到「Python是由Guido创建的」和「Dropbox使用Python」</p>
+<p>→ 但这些块之间没有关联，无法回答「Guido还做过什么」</p>
+<p>→ 回答失败 ✗</p>
+<p>&nbsp;</p>
+<p>GraphRAG 的优势：</p>
+<p>→ 知识图谱中存储了「Guido → 创建 → Python」</p>
+<p>→ 以及「Guido → 工作于 → Google → 参与 → Dropbox」</p>
+<p>→ 可以沿着图谱的边（关系）进行多跳推理</p>
+<p>→ 回答正确 ✓</p>
+<p>&nbsp;</p>
+<p>GraphRAG 的核心原理：</p>
+<p>&nbsp;</p>
+<li>1. 图构建 (Graph Construction)</li>
+<p>从文档中抽取实体和关系，构建知识图谱</p>
+<p>&nbsp;</p>
+<li>2. 混合检索 (Hybrid Retrieval)</li>
+<p>同时使用向量搜索和图遍历</p>
+<p>&nbsp;</p>
+<li>3. 多跳推理 (Multi-hop Reasoning)</li>
+<p>沿着图谱的边寻找推理路径</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (120 行)</summary><div class="code-badges"><span class="code-badge code-badge-func">add_relation</span><span class="code-badge code-badge-func">traverse</span><span class="code-badge code-badge-func">find_path</span><span class="code-badge code-badge-func">demo_graphrag</span><span class="code-badge code-badge-class">SimpleKnowledgeGraph</span></div><div class="code-block"><pre><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> typing <span class="k">import</span> Optional
+
+<span class="k">class</span> <span class="f">SimpleKnowledgeGraph</span>:
+    <span class="s">"""简化的知识图谱 —— 演示 GraphRAG 的核心概念。
+
+    节点: 实体（人、组织、概念）
+    边: 关系（创建、工作于、属于）
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.graph = {}  <span class="h"># {entity: {relation: [target_entities]}}</span>
+
+    <span class="k">def</span> <span class="f">add_relation</span>(<span class="k">self</span>, subject: <span class="b">str</span>, relation: <span class="b">str</span>, obj: <span class="b">str</span>):
+        <span class="s">"""添加三元组：主语-关系-宾语。
+
+        Args:
+            subject: 主语实体。
+            relation: 关系类型。
+            obj: 宾语实体。
+        """</span>
+        <span class="k">if</span> subject <span class="k">not</span> <span class="k">in</span> <span class="k">self</span>.graph:
+            <span class="k">self</span>.graph[subject] = {}
+        <span class="k">if</span> relation <span class="k">not</span> <span class="k">in</span> <span class="k">self</span>.graph[subject]:
+            <span class="k">self</span>.graph[subject][relation] = []
+        <span class="k">self</span>.graph[subject][relation].append(obj)
+
+    <span class="k">def</span> <span class="f">traverse</span>(<span class="k">self</span>, start: <span class="b">str</span>, max_depth: <span class="b">int</span> = <span class="n">2</span>) -&gt; <span class="b">list</span>[<span class="b">str</span>]:
+        <span class="s">"""从起始节点出发进行图遍历。
+
+        Args:
+            start: 起始实体。
+            max_depth: 最大遍历深度。
+
+        Returns:
+            到达的所有实体列表。
+        """</span>
+        visited = <span class="b">set</span>()
+        to_visit = [(start, <span class="n">0</span>)]
+        <span class="k">while</span> to_visit:
+            node, depth = to_visit.pop(<span class="n">0</span>)
+            <span class="k">if</span> node <span class="k">in</span> visited <span class="k">or</span> depth &gt; max_depth:
+                <span class="k">continue</span>
+            visited.add(node)
+            <span class="k">if</span> node <span class="k">in</span> <span class="k">self</span>.graph:
+                <span class="k">for</span> relation, targets <span class="k">in</span> <span class="k">self</span>.graph[node].items():
+                    <span class="k">for</span> target <span class="k">in</span> targets:
+                        to_visit.append((target, depth + <span class="n">1</span>))
+        <span class="k">return</span> <span class="b">list</span>(visited)
+
+    <span class="k">def</span> <span class="f">find_path</span>(<span class="k">self</span>, start: <span class="b">str</span>, end: <span class="b">str</span>, max_depth: <span class="b">int</span> = <span class="n">3</span>) -&gt; Optional[<span class="b">list</span>]:
+        <span class="s">"""寻找两个实体之间的路径（简化版 BFS）。
+
+        Args:
+            start: 起始实体。
+            end: 目标实体。
+            max_depth: 最大搜索深度。
+
+        Returns:
+            路径列表，未找到返回 None。
+        """</span>
+        queue = [(start, [start])]
+        visited = {start}
+        <span class="k">while</span> queue:
+            node, path = queue.pop(<span class="n">0</span>)
+            <span class="k">if</span> <span class="b">len</span>(path) &gt; max_depth + <span class="n">1</span>:
+                <span class="k">continue</span>
+            <span class="k">if</span> node == end <span class="k">and</span> <span class="b">len</span>(path) &gt; <span class="n">1</span>:
+                <span class="k">return</span> path
+            <span class="k">if</span> node <span class="k">in</span> <span class="k">self</span>.graph:
+                <span class="k">for</span> relation, targets <span class="k">in</span> <span class="k">self</span>.graph[node].items():
+                    <span class="k">for</span> target <span class="k">in</span> targets:
+                        <span class="k">if</span> target <span class="k">not</span> <span class="k">in</span> visited:
+                            visited.add(target)
+                            queue.append((target, path + [target]))
+        <span class="k">return</span> <span class="k">None</span>
+
+
+<span class="k">def</span> <span class="f">demo_graphrag</span>():
+    <span class="s">"""演示 GraphRAG 的多跳推理能力。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  GraphRAG 多跳推理演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    kg = SimpleKnowledgeGraph()
+
+    <span class="h"># 构建知识图谱</span>
+    kg.add_relation(<span class="s">"Guido van Rossum"</span>, <span class="s">"创建"</span>, <span class="s">"Python"</span>)
+    kg.add_relation(<span class="s">"Guido van Rossum"</span>, <span class="s">"工作于"</span>, <span class="s">"Google"</span>)
+    kg.add_relation(<span class="s">"Guido van Rossum"</span>, <span class="s">"工作于"</span>, <span class="s">"Dropbox"</span>)
+    kg.add_relation(<span class="s">"Guido van Rossum"</span>, <span class="s">"工作于"</span>, <span class="s">"Microsoft"</span>)
+    kg.add_relation(<span class="s">"Python"</span>, <span class="s">"用于"</span>, <span class="s">"AI Agent"</span>)
+    kg.add_relation(<span class="s">"Python"</span>, <span class="s">"用于"</span>, <span class="s">"数据分析"</span>)
+    kg.add_relation(<span class="s">"AI Agent"</span>, <span class="s">"依赖"</span>, <span class="s">"LLM"</span>)
+    kg.add_relation(<span class="s">"LLM"</span>, <span class="s">"包括"</span>, <span class="s">"GPT-4"</span>)
+    kg.add_relation(<span class="s">"LLM"</span>, <span class="s">"包括"</span>, <span class="s">"Claude"</span>)
+    kg.add_relation(<span class="s">"Google"</span>, <span class="s">"开发"</span>, <span class="s">"TensorFlow"</span>)
+    kg.add_relation(<span class="s">"Microsoft"</span>, <span class="s">"投资"</span>, <span class="s">"OpenAI"</span>)
+    kg.add_relation(<span class="s">"OpenAI"</span>, <span class="s">"开发"</span>, <span class="s">"GPT-4"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n  知识图谱已构建:"</span>)
+    <span class="k">for</span> subj, relations <span class="k">in</span> kg.graph.items():
+        <span class="k">for</span> rel, objs <span class="k">in</span> relations.items():
+            <span class="k">for</span> obj <span class="k">in</span> objs:
+                <span class="b">print</span>(f<span class="s">"    {subj} --[{rel}]--&gt; {obj}"</span>)
+
+    <span class="h"># 多跳推理示例</span>
+    queries = [
+        (<span class="s">"Guido van Rossum"</span>, <span class="s">"TensorFlow"</span>),  <span class="h"># Guido → Google → TensorFlow</span>
+        (<span class="s">"Python"</span>, <span class="s">"GPT-4"</span>),                 <span class="h"># Python → AI Agent → LLM → GPT-4</span>
+        (<span class="s">"Guido van Rossum"</span>, <span class="s">"OpenAI"</span>),      <span class="h"># Guido → Microsoft → OpenAI</span>
+    ]
+
+    <span class="b">print</span>(<span class="s">"\n  多跳推理测试:"</span>)
+    <span class="k">for</span> start, end <span class="k">in</span> queries:
+        path = kg.find_path(start, end)
+        <span class="k">if</span> path:
+            <span class="b">print</span>(f<span class="s">"    {start} → {end}: {' → '.join(path)}"</span>)
+        <span class="k">else</span>:
+            <span class="b">print</span>(f<span class="s">"    {start} → {end}: 未找到路径"</span>)</pre></div></details></div><div class="lecture"><h2>9.5 Agentic RAG —— 让 RAG 自己思考</h2>
+<p>&nbsp;</p>
+<p>传统 RAG 是固定流水线：</p>
+<p>「不管什么问题，都走 检索→生成 两步」</p>
+<p>&nbsp;</p>
+<p>Agentic RAG 是有判断力的系统：</p>
+<p>「先想想这个问题需要什么，再决定怎么做」</p>
+<p>&nbsp;</p>
+<p>核心能力升级：</p>
+<p>&nbsp;</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌──────────────┬──────────────────────┬──────────────────────┐
+  │     能力      │      传统 RAG         │     Agentic RAG      │
+  ├──────────────┼──────────────────────┼──────────────────────┤
+  │ 查询处理      │ 单次检索              │ 多轮自适应检索         │
+  │ 检索策略      │ 固定（总是向量搜索）   │ 动态选择（向量/图谱/API）│
+  │ 结果判断      │ 无（直接用检索结果）   │ 自检 + 补充检索         │
+  │ 工具使用      │ 只有检索              │ 检索 + 计算 + API     │
+  │ 错误处理      │ 无                    │ 多轮重试 + 纠错        │
+  └──────────────┴──────────────────────┴──────────────────────┘</pre>
+<p>&nbsp;</p>
+<p>Agentic RAG 的工作流程:</p>
+<p>&nbsp;</p>
+<p>用户: "某公司2024年营收比2023年增长了百分之多少？"</p>
+<p>&nbsp;</p>
+<p>传统 RAG:</p>
+<p>→ 检索「公司营收」→ 可能找到 2023 和 2024 的数据</p>
+<p>→ 但 RAG 不会算百分比，直接给了用户两段数字</p>
+<p>→ 用户还需要自己算</p>
+<p>&nbsp;</p>
+<p>Agentic RAG:</p>
+<p>→ Step 1: 分析问题 → 需要「2023营收」「2024营收」「百分比计算」</p>
+<p>→ Step 2: 搜索「公司 2023年营收」 → 假设得到 1.6B</p>
+<p>→ Step 3: 搜索「公司 2024年营收」 → 假设得到 3.7B</p>
+<p>→ Step 4: 计算 (3.7-1.6)/1.6 = 131.25%</p>
+<p>→ Step 5: 回答「增长约 131%」</p>
+<p>&nbsp;</p>
+<p>Agentic RAG 包含了一个 Agent 循环：</p>
+<p>思考需要什么信息 → 检索/计算 → 不满足就继续 → 满足则输出</p>
+<p>&nbsp;</p>
+<p>工程结论：</p>
+<li>Agentic RAG 可能改善需要多步检索、验证或计算的任务</li>
+<li>它也会增加调用次数、延迟和错误路径，不应默认替代固定检索流水线</li>
+<li>用同一测试集比较准确率、总 token、p95 延迟和失败率后再决定是否采用</li></div><div class="lecture"><h2>9.6 RAG 评估体系 —— 如何衡量 RAG 质量？</h2>
+<p>&nbsp;</p>
+<p>RAGAS (RAG Assessment) 是最流行的 RAG 评估框架，但你不需要把所有</p>
+<p>指标都用上。面试时关键是说出「什么场景重点关注哪个指标」。</p>
+<p>&nbsp;</p>
+<p>核心指标及使用优先级：</p>
+<p class="diagram-label">📊 架构示意</p><pre class="ascii-art diagram-pre">  ┌──────────────────┬────────────────────────────────────┬──────────┐
+  │      指标         │              含义                   │  使用频率 │
+  ├──────────────────┼────────────────────────────────────┼──────────┤
+  │ Faithfulness     │ 回答是否完全基于检索到的上下文？       │ ⭐⭐⭐⭐⭐ │
+  │ Answer Relevance │ 回答是否直接回应了问题？              │ ⭐⭐⭐⭐   │
+  │ Context Recall   │ 检索到的内容覆盖了回答所需的全部信息？ │ ⭐⭐⭐⭐   │
+  │ Context Precision│ 检索到的内容有多少是真正相关的？       │ ⭐⭐⭐     │
+  │ Answer Correctness│ 答案的事实准确性                     │ ⭐⭐⭐     │
+  └──────────────────┴────────────────────────────────────┴──────────┘</pre>
+<p>&nbsp;</p>
+<p>实战中的优先级逻辑：</p>
+<p>如果你的 RAG 还处于「经常胡说」阶段 → 先优化 Faithfulness</p>
+<p>如果你发现「回答偏题了」→ 重点看 Answer Relevance</p>
+<p>如果「检索结果质量不稳定」→ 查 Context Recall 和 Precision</p>
+<p>&nbsp;</p>
+<p>▍ RAGAS 的实际工程经验</p>
+<p>&nbsp;</p>
+<li>1. LLM-as-Judge 会产生调用费用与评审偏差</li>
+<p>在 CI 中运行小型哨兵集，完整评测按计划或模型/提示词变更触发</p>
+<p>&nbsp;</p>
+<li>2. 人工标注 Ground Truth 是必须的 —— LLM 自己评自己会过拟合</li>
+<p>对覆盖关键风险和典型流量的样本做人工标注，作为「锚点」校准 LLM 评分；</p>
+<p>样本量由误差预算和分层覆盖决定，不使用固定百分比</p>
+<p>&nbsp;</p>
+<li>3. 单次高分不代表上线稳 —— 按文档、模型和提示词的变更风险触发回溯评测，</li>
+<p>因为你的文档在变、Embedding 模型在更新、用户问法在迁移</p>
+<p>&nbsp;</p>
+<p>截至 2026-08-01 的评估重点：</p>
+<li>LLM-as-Judge 需要用人工锚点校准，并报告模型与 rubric 版本</li>
+<li>RAGAS 支持在线评估（用户反馈 → 实时指标更新）</li>
+<li>多轮对话评估成为新方向（不只是单轮 QA）</li>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>9.6.1 RAG 在生产中的常见失败模式与对策</h3>
+<p>&nbsp;</p>
+<p>面试官问你「RAG 上线后遇到过什么问题？」——这是在考察你是否真的</p>
+<p>把 RAG 部署到了生产环境。</p>
+<p>&nbsp;</p>
+<p>▍ 失败模式 1：检索到无关内容，LLM 照单全收</p>
+<p>&nbsp;</p>
+<p>现象：用户问「Python 的创始人是谁」，检索到了「Python 是一种编程语言...</p>
+<p>Python 的语法简洁...」，LLM 回答「Python 的创始人是语法简洁的...」← 胡编</p>
+<p>&nbsp;</p>
+<p>根因：缺乏「拒答机制」——LLM 默认相信检索结果</p>
+<p>&nbsp;</p>
+<p>对策：</p>
+<p>a) 添加 Faithfulness 检查，阈值由人工标注集校准</p>
+<p>b) 在 System Prompt 中明确指示「如果检索到的信息不包含答案，请直接说不知道」</p>
+<p>c) 设置检索分数阈值，低于阈值的 chunk 不传给 LLM</p>
+<p>&nbsp;</p>
+<p>▍ 失败模式 2：关键信息分散在多个 chunk 中</p>
+<p>&nbsp;</p>
+<p>现象：一个完整答案被切成 3 个 chunk：「Python 于 1991 年发布」「由 Guido</p>
+<p>van Rossum 创建」「受 ABC 语言影响」。每个 chunk 单独看都不完整。</p>
+<p>&nbsp;</p>
+<p>根因：chunk 太小或 overlap 不足</p>
+<p>&nbsp;</p>
+<p>对策：</p>
+<p>a) 在验证集上比较更大的 chunk 或结构化切分</p>
+<p>b) 使用父文档检索策略（检索小块 → 返回大块邻居）</p>
+<p>c) 调整 overlap，并监控边界遗漏与重复检索</p>
+<p>&nbsp;</p>
+<p>▍ 失败模式 3：RAG 成本失控</p>
+<p>&nbsp;</p>
+<p>现象：一段时间后发现 Embedding 与索引成本高于生成调用</p>
+<p>&nbsp;</p>
+<p>根因：预处理时对全量文档做了 Embedding + 线上每次查询都从头调 Embedding API</p>
+<p>&nbsp;</p>
+<p>对策：</p>
+<p>a) 按 provider 当前批处理限制批量化，不逐条调用 API</p>
+<p>b) Embedding 结果缓存到本地（S3 / 本地文件 / 向量库自带的持久化）</p>
+<p>c) 热查询缓存（记录命中率、陈旧率和失效策略）</p>
+<p>d) 比较托管与自部署 Embedding 的总拥有成本，而不只看 API 单价</p>
+<p>&nbsp;</p>
+<p>▍ 失败模式 4：向量库索引腐烂</p>
+<p>&nbsp;</p>
+<p>现象：上线一段时间后质量持续下降</p>
+<p>&nbsp;</p>
+<p>根因：知识库更新了，但向量索引没有重建 → 部分 chunk 指向已过时的内容</p>
+<p>&nbsp;</p>
+<p>对策：</p>
+<p>a) 建立文档变更 Hook → 自动重建受影响 chunk 的 Embedding</p>
+<p>b) 给每个 chunk 加版本号和过期时间戳</p>
+<p>c) 根据变更量、索引一致性和恢复目标安排全量校验或重建</p></div><div class="lecture"><h2>9.7 本章总结</h2>
+<p>&nbsp;</p>
+<p>核心要点回顾：</p>
+<p>&nbsp;</p>
+<li>1. Naive RAG = 问 → 检索 → 生成</li>
+<p>问题：检索不准、无自检、无法多跳推理</p>
+<p>&nbsp;</p>
+<li>2. Chunk 切分（面试高频！）</li>
+<p>核心认知：没有「万能 chunk_size」，根据文档类型选择</p>
+<p>面试标准回答：「按文档结构保留语义单元，用验证集比较多个候选大小」</p>
+<p>进阶：语义切分 + 固定大小切分的混合策略</p>
+<p>overlap 与 chunk_size 都是需要通过检索和端到端评测确定的参数</p>
+<p>&nbsp;</p>
+<li>3. Embedding 模型选型</li>
+<p>托管基线 → 当前可用的 Embedding API（记录模型快照和 dimensions）</p>
+<p>中文/本地基线 → 在目标语料上评测合适的开源多语言或中文模型</p>
+<p>垂直领域 → 只有基线达不到质量门槛时再考虑微调</p>
+<p>维度选择：在质量下限内选择存储、延迟和成本合适的最小维度</p>
+<p>&nbsp;</p>
+<li>4. Advanced RAG = Naive + 查询重写 + 混合检索(RRF) + 重排序(Cross-Encoder)</li>
+<p>面试重点：为什么混合检索比纯向量好？</p>
+<p>→ 向量擅长语义但不擅长关键词精确匹配</p>
+<p>→ 法律/金融领域两者的互补性尤其明显</p>
+<p>→ RRF 避免直接混合异构分数，k=60 可作起点但仍要验证</p>
+<p>&nbsp;</p>
+<li>5. 重排序是应优先做消融实验的优化</li>
+<p>Cross-Encoder 的质量收益和额外延迟必须在目标数据与硬件上测量</p>
+<p>面试答法：「我使用 Bi-Encoder 做初筛 + Cross-Encoder 做精排的两阶段检索」</p>
+<p>&nbsp;</p>
+<li>6. GraphRAG = RAG + 知识图谱</li>
+<p>核心价值：多跳推理能力</p>
+<p>适用场景：关系密集型问题（「A影响了B，B又影响了C」）</p>
+<p>&nbsp;</p>
+<li>7. Agentic RAG = RAG + Agent 循环</li>
+<p>核心价值：动态决策 → 自主判断需要什么信息</p>
+<p>注意：增加调用、延迟和错误路径 — 从简单基线开始，逐步迭代</p>
+<p>&nbsp;</p>
+<li>8. RAG 生产 Checklist</li>
+<p>✅ 检索分数阈值 → 拒绝低质量 chunk</p>
+<p>✅ 用人工锚点校准 Faithfulness 阈值</p>
+<p>✅ Embedding 批量预处理 + 持久化缓存</p>
+<p>✅ 文档变更 Hook → 自动增量更新索引</p>
+<p>✅ 热查询缓存 → 记录命中率、陈旧率和真实成本变化</p>
+<p>✅ 按知识库/模型/提示词变更风险触发回溯评测</p>
+<p>&nbsp;</p>
+<p>面试速记（完整版）:</p>
+<p>"RAG 核心技术栈？"</p>
+<p>→ 切分策略(固定/语义) → Embedding 模型(text-embedding/bge/e5)</p>
+<p>→ 混合检索(RRF融合BM25+向量) → 重排序(Cross-Encoder精排)</p>
+<p>→ 查询重写(HyDE/Multi-Query) → GraphRAG(知识图谱)</p>
+<p>→ Agentic RAG(Agent循环) → 评估(RAGAS) → 生产监控</p>
+<p>"不要盲目叠加技术，每个技术解决一个具体痛点"</p></div><div class="code-bridge">📝 对应的代码实现</div><div class="code-section"><details open><summary>💻 代码 (68 行)</summary><div class="code-block"><pre><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> typing <span class="k">import</span> Optional
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第9章：RAG 原理与实现详解                             ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  Naive RAG → Advanced → GraphRAG → Agentic RAG      ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.2 Naive RAG 演示"</span>)
+    demo_naive_rag()
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.3 Advanced RAG 演示"</span>)
+    rag = AdvancedRAG()
+    docs = [
+        <span class="s">"Python是一种由Guido van Rossum创建的编程语言，"</span>
+        <span class="s">"首次发布于1991年。它以简洁的语法风格著称。"</span>,
+
+        <span class="s">"AI Agent能自主感知环境、做出决策并执行行动。"</span>
+        <span class="s">"它集成了LLM、规划器、记忆系统和工具调用。"</span>,
+
+        <span class="s">"RAG通过从知识库检索相关信息来增强LLM的生成能力，"</span>
+        <span class="s">"有效减少模型的幻觉问题。GraphRAG加入了知识图谱。"</span>,
+    ]
+    rag.add_documents(docs)
+
+    query = <span class="s">"如何用Python构建AI Agent？"</span>
+    <span class="b">print</span>(f<span class="s">"\n  🔍 原始查询: {query}"</span>)
+
+    variations = rag.query_rewrite(query)
+    <span class="b">print</span>(f<span class="s">"  ✏️ 查询变体: {variations}"</span>)
+
+    <span class="k">for</span> v <span class="k">in</span> variations:
+        results = rag.hybrid_search(v, top_k=<span class="n">2</span>)
+        <span class="b">print</span>(f<span class="s">"\n  查询变体「{v}」的混合检索结果:"</span>)
+        <span class="k">for</span> chunk, score <span class="k">in</span> results:
+            <span class="b">print</span>(f<span class="s">"    [{score:.3f}] {chunk[:100]}..."</span>)
+
+        reranked = rag.rerank(v, results, top_k=<span class="n">2</span>)
+        <span class="b">print</span>(f<span class="s">"  重排序后:"</span>)
+        <span class="k">for</span> chunk, score <span class="k">in</span> reranked:
+            <span class="b">print</span>(f<span class="s">"    [{score:.3f}] {chunk[:100]}..."</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.4 GraphRAG 演示"</span>)
+    demo_graphrag()
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.5 Agentic RAG 概念"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    <span class="b">print</span>(<span class="s">"核心区别："</span>)
+    <span class="b">print</span>(<span class="s">"  传统RAG: 固定流水线「检索→生成」"</span>)
+    <span class="b">print</span>(<span class="s">"  Agentic RAG: 动态决策 「思考→检索→判断→再检索→...」"</span>)
+    <span class="b">print</span>(<span class="s">""</span>)
+    <span class="b">print</span>(<span class="s">"工程建议："</span>)
+    <span class="b">print</span>(<span class="s">"  用同一评测集比较固定 RAG 与 Agentic RAG 的质量、成本和延迟"</span>)
+    <span class="b">print</span>(<span class="s">"  从简单流水线开始，只有证据支持时才增加 Agent 循环"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.6 RAGAS 评估体系"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    metrics = [
+        (<span class="s">"Faithfulness"</span>, <span class="s">"回答是否基于检索到的内容？"</span>),
+        (<span class="s">"Answer Relevance"</span>, <span class="s">"回答是否直接回应了问题？"</span>),
+        (<span class="s">"Context Recall"</span>, <span class="s">"检索是否覆盖了所有必要信息？"</span>),
+        (<span class="s">"Context Precision"</span>, <span class="s">"检索到的内容有多少是相关的？"</span>),
+    ]
+    <span class="k">for</span> name, desc <span class="k">in</span> metrics:
+        <span class="b">print</span>(f<span class="s">"  {name}: {desc}"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n✅ 第9章完成！"</span>)</pre></div></details></div><hr style="margin:36px 0"><div class="code-section"><details><summary>📦 完整源代码 (1000 行)</summary><div class="code-block"><pre><span class="s">"""
+第9章：RAG 深度解析 —— 从 Naive 到生产级，面试到工程全覆盖
+===========================================================
+
+内容核对：2026-08-01
+说明：标注为模拟的实现与数值用于讲解概念，不代表真实 SDK、协议或基准结果。
+
+📌 本章目标：
+  1. 理解 RAG 的完整技术演进路线（Naive → Advanced → GraphRAG → Agentic）
+  2. 掌握 Chunk 切分策略的工程选型（固定/语义/递归 + 评测驱动调参）
+  3. 掌握 Embedding 模型与维度的评测方法
+  4. 深入理解混合检索 RRF 融合算法和 Cross-Encoder 重排序原理
+  5. 实现可运行的 Advanced RAG 和 GraphRAG 系统
+  6. 掌握 RAGAS 评估体系和 4 种生产失败模式的应对策略
+
+📌 面试高频点：
+  - Chunk 怎么切分？为什么这个大小？（本章核心深度！）
+  - Embedding 模型怎么选？维度怎么定？
+  - 为什么混合检索比纯向量好？RRF 怎么做？
+  - Bi-Encoder 和 Cross-Encoder 的本质区别？
+  - GraphRAG 解决了什么纯向量 RAG 解决不了的问题？
+  - Agentic RAG 和传统 RAG 的本质区别
+  - RAG 上线后最常见的 4 种失败模式及对策
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.1 RAG 技术演进全景图
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RAG 从 2020 年到 2025 年经历了三个重要阶段：
+
+  ┌──────────────────────────────────────────────────────┐
+  │                                                        │
+  │  2020-2022: Naive RAG                                 │
+  │  「问 → 检索 → 生成」三步走                              │
+  │  代表: Facebook RAG 论文、LangChain 基础 QA Chain        │
+  │                                                        │
+  │  2023-2024: Advanced RAG                              │
+  │  加入查询重写、混合检索、重排序、纠错等优化                │
+  │  代表: HyDE、Multi-Query、Self-RAG、CRAG               │
+  │                                                        │
+  │  2024-2025: Next-Gen RAG                              │
+  │  知识图谱、Agent 协作、多模态、长文本                     │
+  │  代表: GraphRAG (微软)、Agentic RAG、Multimodal RAG     │
+  │                                                        │
+  └──────────────────────────────────────────────────────┘
+
+  Naive RAG 的问题（面试常问！）:
+    1. 检索不准：语义相似 ≠ 问题相关
+    2. 上下文丢失：大块文本导致 LLM 忽略关键信息
+    3. 无法处理复杂关系：「A影响了B，B又影响了C」需要多跳推理
+    4. 无自检能力：检索到无关内容也不知道
+
+
+9.1.1 Chunk 切分策略深度 —— RAG 最被低估的环节
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+面试官问「chunk 怎么切分？为什么这样切？」——这是在考察你是否真正
+做过生产级 RAG，而不仅仅是跑过 LangChain 的 demo。
+
+Chunk 切分是 RAG Pipeline 的**第一步**，也是**最致命的瓶颈**。
+切错了 chunk，后面的检索、重排序、LLM 生成全都会受影响——就像
+地基歪了大楼必然歪。
+
+▍ 三种主流切分策略
+
+┌─────────────────┬────────────────────────┬──────────────────────┐
+│ 策略              │        原理             │       适用场景        │
+├─────────────────┼────────────────────────┼──────────────────────┤
+│ 固定大小切分      │ 按字符/token 等长切     │ 通用文档、入门级       │
+│ 语义切分          │ 按段落/句子边界 + 相似度  │ 技术文档、论文         │
+│ 递归字符切分      │ 先按分隔符层级切          │ LangChain 默认方案     │
+└─────────────────┴────────────────────────┴──────────────────────┘
+
+▍ chunk_size 选择的工程经验（面试高分点）
+
+  太小（100-200 字符）:
+    优点 → 检索精度高，向量信号集中
+    致命问题 → 丢失上下文！「Python 在...之后发布了...」只剩半句话
+
+  中等（500-1000 字符）:
+    RAG 的「甜点区」—— 保持语义完整性的同时控制噪声
+    一个 chunk ≈ 一段话，正好是一个完整语义单元
+
+  太大（2000+ 字符）:
+    优点 → 上下文丰富，LLM 生成质量高
+    致命问题 → 检索信噪比低，Embedding 向量被稀释
+    「大海捞针」现象：关键词匹配到了，但淹没在 2000 字中
+
+  可作为首轮实验的候选值（不是跨项目结论）:
+    技术文档 → 先按标题、段落和完整代码块切分
+    客服知识库 → 优先保持一组问答完整
+    法律合同 → 优先保持条款及其引用关系完整
+    通用语料 → 同时测试多个 chunk_size，再按端到端指标选择
+
+▍ chunk_overlap 不是「加越多越好」
+
+  overlap = chunk 之间的重叠字符/Token 数。
+
+  它的真正作用：防止关键信息恰好落在两个 chunk 的边界处。
+  比如「Python 是 Guido van Rossum 在 CWI 工作时创建的」被切成：
+    Chunk A: 「Python 是 Guido van Rossum 在」
+    Chunk B: 「CWI 工作时创建的」
+    → 两个 chunk 都丢失了完整语义！
+
+  正确做法：把 overlap 当作待评测参数，而不是固定百分比。
+  过大 → 存储膨胀、检索重复；过小 → 边界信息丢失。
+  记录切分器版本，并同时比较检索召回、重复率、延迟和最终答案质量。
+
+▍ 语义切分（Semantic Chunking）—— 面试中的进阶话题
+
+  固定大小切分的根本缺陷：完全无视文档的**自然语义边界**。
+
+  语义切分的工作原理：
+    1. 把文档按句子拆分
+    2. 计算相邻句子的 Embedding 相似度
+    3. 在相似度「骤降」处切分 —— 这通常是段落/话题的自然边界
+
+  为什么更好？因为 Embedding 模型在「同一话题的句子」上相似度高，
+  在「话题切换」处相似度骤降。利用这个特性，切出来的每个 chunk
+  天然是语义自洽的，不需要人工调 chunk_size。
+
+  语义切分的代价：
+    - 需要对每个句子做 Embedding（增加预处理成本）
+    - Chunk 大小不均（有的 150 字，有的 800 字）
+    - 不符合 LLM 的「固定 Token 预算」预期
+
+  工程上的折中：先语义切分确定段落边界 + 再在边界内做固定大小切分。
+  这也是 LangChain SemanticChunker 的实现方式。
+
+▍ 特殊场景的切分策略
+
+  代码文档 → 按函数/类切分（AST 解析），不是按行
+  表格数据 → 保留完整表格在一个 chunk 中，不要横向切
+  多语言混合 → 按语言检测 + 独立切分，避免中英文混在一个 chunk
+
+
+9.2 Naive RAG 实现 —— 理解基础再谈优化
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""</span>
+
+<span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> typing <span class="k">import</span> Optional
+
+
+<span class="k">class</span> <span class="f">NaiveVectorStore</span>:
+    <span class="s">"""最小化的向量存储 —— 帮助理解向量检索的本质。
+
+    面试中常被问「向量检索的原理是什么」，
+    这个实现展示了答案：将查询和文档都转为向量，
+    通过余弦相似度找到最相似的 Top-K 个。
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.documents = []         <span class="h"># 原始文档列表</span>
+        <span class="k">self</span>.embeddings = []        <span class="h"># 对应的向量列表</span>
+        <span class="k">self</span>.chunks = []            <span class="h"># 分块信息</span>
+
+    <span class="k">def</span> <span class="f">add_documents</span>(<span class="k">self</span>, docs: <span class="b">list</span>[<span class="b">str</span>],
+                      chunk_size: <span class="b">int</span> = <span class="n">200</span>,
+                      chunk_overlap: <span class="b">int</span> = <span class="n">50</span>):
+        <span class="s">"""添加文档：先分块，再「嵌入」（这里用简化模拟表示）。
+
+        Args:
+            docs: 文档列表。
+            chunk_size: 分块大小（字符数）。
+            chunk_overlap: 块间重叠大小。
+        """</span>
+        <span class="k">for</span> doc <span class="k">in</span> docs:
+            <span class="k">for</span> i <span class="k">in</span> <span class="b">range</span>(<span class="n">0</span>, <span class="b">len</span>(doc), chunk_size - chunk_overlap):
+                chunk = doc[i:i + chunk_size]
+                <span class="k">self</span>.chunks.append(chunk)
+                <span class="h"># 用 TF-IDF 启发式模拟向量（实际用 embedding 模型）</span>
+                embedding = <span class="k">self</span>._simple_hash_embed(chunk)
+                <span class="k">self</span>.embeddings.append(embedding)
+
+        <span class="b">print</span>(f<span class="s">"  已添加 {len(self.chunks)} 个文本块"</span>)
+
+    <span class="k">def</span> <span class="f">_simple_hash_embed</span>(<span class="k">self</span>, text: <span class="b">str</span>, dim: <span class="b">int</span> = <span class="n">64</span>) -&gt; np.ndarray:
+        <span class="s">"""简化版的文本向量化（仅用于理解原理）。
+
+        实际项目用 sentence-transformers / OpenAI Embeddings API。
+        """</span>
+        <span class="h"># 基于字符哈希的简单向量表示</span>
+        vec = np.zeros(dim)
+        <span class="k">for</span> i, ch <span class="k">in</span> <span class="b">enumerate</span>(text):
+            vec[<span class="b">hash</span>(ch) % dim] += <span class="n">1</span>
+        <span class="h"># L2 归一化</span>
+        norm = np.linalg.norm(vec)
+        <span class="k">if</span> norm &gt; <span class="n">0</span>:
+            vec = vec / norm
+        <span class="k">return</span> vec
+
+    <span class="k">def</span> <span class="f">search</span>(<span class="k">self</span>, query: <span class="b">str</span>, top_k: <span class="b">int</span> = <span class="n">5</span>) -&gt; <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">float</span>]]:
+        <span class="s">"""检索最相似的 Top-K 个文本块。
+
+        Args:
+            query: 查询文本。
+            top_k: 返回数量。
+
+        Returns:
+            (文本块, 相似度分数) 的列表。
+        """</span>
+        query_vec = <span class="k">self</span>._simple_hash_embed(query)
+        scores = []
+        <span class="k">for</span> i, emb <span class="k">in</span> <span class="b">enumerate</span>(<span class="k">self</span>.embeddings):
+            <span class="h"># 余弦相似度 = 点积（因为已归一化）</span>
+            score = <span class="b">float</span>(np.dot(query_vec, emb))
+            scores.append((i, score))
+
+        scores.sort(key=<span class="k">lambda</span> x: x[<span class="n">1</span>], reverse=<span class="k">True</span>)
+        results = []
+        <span class="k">for</span> idx, score <span class="k">in</span> scores[:top_k]:
+            results.append((<span class="k">self</span>.chunks[idx], score))
+        <span class="k">return</span> results
+
+
+<span class="k">def</span> <span class="f">demo_naive_rag</span>():
+    <span class="s">"""演示 Naive RAG 的基本流程。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  Naive RAG 流程演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    store = NaiveVectorStore()
+    docs = [
+        <span class="s">"Python是一种解释型、面向对象的高级编程语言。"</span>
+        <span class="s">"它由 Guido van Rossum 于 1991 年首次发布。"</span>
+        <span class="s">"Python 以简洁的语法和强大的标准库而闻名。"</span>,
+
+        <span class="s">"AI Agent 是一种能够自主感知环境、做出决策并执行行动的智能系统。"</span>
+        <span class="s">"它由 LLM、规划器、记忆系统和工具组成。"</span>
+        <span class="s">"LangChain 是构建 Agent 的最流行框架之一。"</span>,
+
+        <span class="s">"RAG（检索增强生成）是一种将外部知识检索与 LLM 生成结合的技术。"</span>
+        <span class="s">"它通过从知识库中检索相关信息来减少大模型的幻觉问题。"</span>
+        <span class="s">"GraphRAG 是 RAG 的最新演进，加入了知识图谱。"</span>,
+
+        <span class="s">"PyTorch 是 Facebook 开发的开源深度学习框架。"</span>
+        <span class="s">"TensorFlow 是 Google 开发的机器学习平台。"</span>
+        <span class="s">"两者都是业界最广泛使用的深度学习工具。"</span>,
+    ]
+    store.add_documents(docs)
+
+    queries = [
+        <span class="s">"Python 是谁创建的？"</span>,
+        <span class="s">"什么是 AI Agent？"</span>,
+        <span class="s">"RAG 如何减少幻觉？"</span>,
+    ]
+    <span class="k">for</span> q <span class="k">in</span> queries:
+        <span class="b">print</span>(f<span class="s">"\n  🔍 查询: {q}"</span>)
+        results = store.search(q, top_k=<span class="n">2</span>)
+        <span class="k">for</span> chunk, score <span class="k">in</span> results:
+            <span class="b">print</span>(f<span class="s">"    [{score:.3f}] {chunk[:80]}..."</span>)
+
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.2.1 Embedding 模型选型 —— 选错模型比选错数据库更致命
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+很多工程师花大量时间纠结「用 Chroma 还是 Pinecone」，但真正的精度瓶颈
+在 Embedding 模型上。数据库只是存储，Embedding 模型决定了检索的「视力」。
+
+▍ OpenAI vs 开源 Embedding：到底怎么选？
+
+  text-embedding-3-small（OpenAI）:
+    维度: 1536（默认），可通过 dimensions 参数缩短
+    费用: 按输入 token 计费，运行前查看官方价格页
+    优势: 调试方便、无需部署、中文效果好
+    权衡: 维度主要影响向量存储、索引内存和检索质量，不直接改变输入 token 数
+
+  bge-large-zh-v1.5（智源，开源）:
+    维度: 1024
+    费用: 无 API 单价，但需要计算、部署和运维资源
+    优势: 中文专用、可微调、无网络依赖
+    陷阱: 需要 GPU（4GB VRAM）、部署运维成本
+
+  multilingual-e5-large（微软）:
+    维度: 1024
+    特点: 多语言检索基线之一；是否适用需在本领域语料上评测
+    特殊要求: 查询前必须加 "query: " 前缀，文档前加 "passage: "
+
+▍ 维度选择的工程方法
+
+  在同一模型、同一语料和同一索引参数下，对候选维度测量：
+    - Recall@k / nDCG@k：是否找到正确文档
+    - p50 / p95 延迟：索引与网络开销
+    - 索引体积和常驻内存
+    - 生成答案的端到端正确率
+
+  不存在跨领域通用的「最佳维度」。先确定可接受的质量下限，再选择满足
+  下限的最小维度；任何固定 Recall 数字都必须附数据集、切分和随机种子。
+
+▍ 什么时候需要微调 Embedding 模型？
+
+  如果你做的是垂直领域 RAG（医疗、法律、金融），先建立领域评测集，
+  只有通用模型未达标时再比较领域模型或微调方案。
+
+  原因：通用 Embedding 模型在垂直术语上的表现很差。
+  比如 text-embedding-3 对「心梗」和「心肌梗死」算出的相似度可能
+  只有 0.6，但对人类来说这是同一个意思。
+
+  微调数据准备：
+    - 正例对：(query, 正确文档 chunk) × 500-2000 条
+    - 负例对：(query, 随机文档 chunk) × 同数量
+    - 训练方式：对比学习（Contrastive Learning），不是普通微调
+
+  效果必须在留出的领域测试集上报告，并与更换模型、混合检索和重排基线比较。
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.3 Advanced RAG —— 三板斧优化
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Advanced RAG 在 Naive RAG 的基础上加入三大优化：
+  1. 查询重写 (Query Rewriting)
+  2. 混合检索 (Hybrid Search)
+  3. 重排序 (Reranking)
+"""</span>
+
+
+<span class="k">class</span> <span class="f">AdvancedRAG</span>:
+    <span class="s">"""Advanced RAG 系统 —— 包含查询重写、混合检索、重排序。
+
+    架构流程：
+      用户查询
+         │
+         ▼
+    ┌──────────────┐
+    │ 查询重写       │ ← 用 LLM 扩展/改写查询
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ 混合检索       │ ← BM25 + 向量搜索
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ 重排序         │ ← Cross-Encoder 精细排序
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │ LLM 生成       │ ← 注入检索上下文
+    └──────────────┘
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>, llm=<span class="k">None</span>):
+        <span class="s">"""
+        Args:
+            llm: LLM 调用函数（可选）。
+        """</span>
+        <span class="k">self</span>.llm = llm
+        <span class="k">self</span>.store = NaiveVectorStore()
+        <span class="k">self</span>.bm25_index = {}  <span class="h"># 简化版 BM25 索引</span>
+
+    <span class="k">def</span> <span class="f">query_rewrite</span>(<span class="k">self</span>, query: <span class="b">str</span>) -&gt; <span class="b">list</span>[<span class="b">str</span>]:
+        <span class="s">"""查询重写：将一个查询扩展为多个变体。
+
+        策略：
+          1. 原始查询
+          2. 关键词提取版本
+          3. 同义词扩展版本
+
+        在真实项目中，这一步用 LLM 完成。
+        比如用 prompt：「将以下查询改写为 3 个不同角度的搜索查询」
+        """</span>
+        variations = [query]
+
+        <span class="h"># 简单模拟：如果查询中有「怎么」，增加「方法」「教程」</span>
+        <span class="k">if</span> <span class="s">"怎么"</span> <span class="k">in</span> query <span class="k">or</span> <span class="s">"如何"</span> <span class="k">in</span> query:
+            variations.append(query.replace(<span class="s">"怎么"</span>, <span class="s">"的方法"</span>).replace(<span class="s">"如何"</span>, <span class="s">"的方法"</span>))
+
+        <span class="h"># 简单模拟：拆分长查询为多个关键词查询</span>
+        keywords = [w <span class="k">for</span> w <span class="k">in</span> query.replace(<span class="s">"？"</span>, <span class="s">""</span>).replace(<span class="s">"?"</span>, <span class="s">""</span>).split()
+                     <span class="k">if</span> <span class="b">len</span>(w) &gt; <span class="n">1</span>]
+        <span class="k">if</span> <span class="b">len</span>(keywords) &gt; <span class="n">2</span>:
+            variations.append(<span class="s">" "</span>.join(keywords[:<span class="n">3</span>]))
+
+        <span class="k">return</span> variations
+
+    <span class="k">def</span> <span class="f">add_documents</span>(<span class="k">self</span>, docs: <span class="b">list</span>[<span class="b">str</span>]):
+        <span class="s">"""添加文档到混合索引。"""</span>
+        <span class="k">self</span>.store.add_documents(docs)
+        <span class="h"># 构建简化的 BM25 索引</span>
+        <span class="k">for</span> i, chunk <span class="k">in</span> <span class="b">enumerate</span>(<span class="k">self</span>.store.chunks):
+            words = chunk.lower().split()
+            <span class="k">for</span> word <span class="k">in</span> <span class="b">set</span>(words):
+                <span class="k">if</span> word <span class="k">not</span> <span class="k">in</span> <span class="k">self</span>.bm25_index:
+                    <span class="k">self</span>.bm25_index[word] = []
+                <span class="k">self</span>.bm25_index[word].append(i)
+
+    <span class="k">def</span> <span class="f">hybrid_search</span>(<span class="k">self</span>, query: <span class="b">str</span>, top_k: <span class="b">int</span> = <span class="n">5</span>) -&gt; <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">float</span>]]:
+        <span class="s">"""混合检索：融合向量搜索和关键词搜索的结果。
+
+        Args:
+            query: 查询文本。
+            top_k: 返回数量。
+
+        Returns:
+            融合后的检索结果。
+        """</span>
+        <span class="h"># 向量搜索结果</span>
+        vector_results = <span class="k">self</span>.store.search(query, top_k=top_k)
+        vector_scores = {chunk: score <span class="k">for</span> chunk, score <span class="k">in</span> vector_results}
+
+        <span class="h"># 关键词搜索结果（简化版 BM25）</span>
+        kw_scores = {}
+        <span class="k">for</span> word <span class="k">in</span> query.lower().split():
+            <span class="k">if</span> word <span class="k">in</span> <span class="k">self</span>.bm25_index:
+                <span class="k">for</span> doc_id <span class="k">in</span> <span class="k">self</span>.bm25_index[word]:
+                    chunk = <span class="k">self</span>.store.chunks[doc_id]
+                    kw_scores[chunk] = kw_scores.get(chunk, <span class="n">0</span>) + <span class="n">1</span>
+
+        <span class="h"># 混合打分：向量分数 * 0.6 + 关键词分数 * 0.4</span>
+        all_chunks = <span class="b">set</span>(vector_scores.keys()) | <span class="b">set</span>(kw_scores.keys())
+        fused = []
+        <span class="k">for</span> chunk <span class="k">in</span> all_chunks:
+            v_score = vector_scores.get(chunk, <span class="n">0</span>)
+            k_score = kw_scores.get(chunk, <span class="n">0</span>)
+            <span class="h"># 归一化关键词分数</span>
+            max_k = <span class="b">max</span>(kw_scores.values()) <span class="k">if</span> kw_scores <span class="k">else</span> <span class="n">1</span>
+            k_score_norm = k_score / max_k
+            final_score = v_score * <span class="n">0.6</span> + k_score_norm * <span class="n">0.4</span>
+            fused.append((chunk, final_score))
+
+        fused.sort(key=<span class="k">lambda</span> x: x[<span class="n">1</span>], reverse=<span class="k">True</span>)
+        <span class="k">return</span> fused[:top_k]
+
+    <span class="k">def</span> <span class="f">rerank</span>(<span class="k">self</span>, query: <span class="b">str</span>, candidates: <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">float</span>]],
+               top_k: <span class="b">int</span> = <span class="n">3</span>) -&gt; <span class="b">list</span>[<span class="b">tuple</span>[<span class="b">str</span>, <span class="b">float</span>]]:
+        <span class="s">"""重排序：对候选结果进行精细排序。
+
+        在真实项目中，这一步用 Cross-Encoder 模型（如 BGE-reranker）：
+          - 对每个 (query, chunk) 对打分
+          - 与向量搜索的「分别打分」不同，Cross-Encoder 同时看两边
+
+        这里用简化的规则模拟：
+          - 查询关键词在块中出现得越早，分数越高
+          - 块越短（越聚焦），分数越高
+        """</span>
+        query_lower = query.lower()
+        reranked = []
+        <span class="k">for</span> chunk, orig_score <span class="k">in</span> candidates:
+            chunk_lower = chunk.lower()
+
+            <span class="h"># 规则1: 关键词位置分（越靠前越好）</span>
+            position_score = <span class="n">0.0</span>
+            <span class="k">for</span> word <span class="k">in</span> query_lower.split():
+                pos = chunk_lower.find(word)
+                <span class="k">if</span> pos &gt;= <span class="n">0</span>:
+                    position_score += <span class="b">max</span>(<span class="n">0</span>, <span class="n">1.0</span> - pos / <span class="b">len</span>(chunk_lower))
+
+            <span class="h"># 规则2: 长度分（越短越聚焦）</span>
+            length_score = <span class="b">max</span>(<span class="n">0</span>, <span class="n">1.0</span> - <span class="b">len</span>(chunk) / <span class="n">1000</span>)
+
+            <span class="h"># 综合分（在真实项目中由 Cross-Encoder 输出）</span>
+            final = orig_score * <span class="n">0.5</span> + position_score * <span class="n">0.3</span> + length_score * <span class="n">0.2</span>
+            reranked.append((chunk, final))
+
+        reranked.sort(key=<span class="k">lambda</span> x: x[<span class="n">1</span>], reverse=<span class="k">True</span>)
+        <span class="k">return</span> reranked[:top_k]
+
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.3.1 混合检索的数学 —— RRF 为什么比加权求和好
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+上面 AdvancedRAG.hybrid_search 用的是简单的加权求和（向量分×0.6 +
+关键词分×0.4）。这在 demo 中能跑，但在生产中有严重问题：
+
+  问题 1：两个打分器的分数范围不同
+    向量相似度范围 [0, 1]，BM25 分数范围 [0, +∞)（可以到 20、50）
+    直接加权 → BM25 分数会「淹没」向量分数
+
+  问题 2：无法确定最佳权重
+    0.6/0.4 是拍脑袋的权重。换一个数据集/Embedding 模型，最优权重
+    可能变成 0.3/0.7。每次都要重新调参 → 不可维护
+
+▍ RRF (Reciprocal Rank Fusion) —— 工业界标准方案
+
+  RRF 不融合「分数」，而是融合「排名」。公式：
+
+    RRF_score(d) = Σ 1/(k + rank_i(d))
+
+    其中 rank_i(d) 是文档 d 在第 i 个检索器中的排名，
+    k 是平滑常数；60 是常见起始值，但仍应在自己的验证集上确认。
+
+  为什么比加权求和好？
+    1. 与分数量纲无关 —— 不管 BM25 返回 0.3 还是 50，只看排名
+    2. 自动均衡 —— 排名靠前的文档贡献大（1/61 ≈ 0.016 vs 1/90 ≈ 0.011）
+    3. 无需调权重 —— 唯一的超参数 k 对结果不敏感（30-100 都可以）
+    4. 可扩展 —— 3 个、5 个检索器随便加，不需要重新配权重
+
+  RRF 的一个关键细节：k 值越大，排名的「边际差异」越小。
+  k=0 时，排名 1 贡献 1.0，排名 10 贡献 0.1（差异 10 倍）
+  k=60 时，排名 1 贡献 0.016，排名 10 贡献 0.014（差异只有 15%）
+  → 较大的 k 会让融合更「民主」，不只关注第 1 名
+
+▍ 什么时候混合检索最有价值？
+
+  混合检索不是银弹。它的最大价值在于处理「语义相近但关键词不同」和
+  「关键词相同但语义不同」两种矛盾场景。
+
+  必用混合检索的场景：
+    法律合同 → 「不可抗力」和「天灾」语义相同但词不同 → 向量检索救命
+    技术文档 → 「API」在不同上下文含义完全不同 → 关键词检索救命
+
+  可以只用向量的场景：
+    科普文章 → 语义检索已经足够
+    纯 FAQ → 用户问法高度集中在 200 个模板 → 关键词就够了
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.3.2 重排序 (Reranking) 深度 —— Cross-Encoder 到底做了什么
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+重排序经常是值得优先验证的一步，但收益与成本取决于候选集、reranker、
+硬件和数据集。不要引用跨项目固定百分比；用消融实验比较是否启用重排序。
+
+▍ Bi-Encoder vs Cross-Encoder —— 面试必问
+
+  Bi-Encoder（向量检索用的就是这种）:
+    原理: 分别对 query 和 document 编码 → 然后算相似度
+    速度: 快（document 向量可以预计算、缓存）
+    精度: 中等（query 和 document 在编码阶段「没见过」对方）
+    用途: 初筛（从 100 万文档中找前 100 个候选）
+
+  Cross-Encoder:
+    原理: 把 query 和 document 拼接在一起 → 联合编码 → 输出一个分数
+    速度: 慢（每个 (query, doc) 对都要完整推理一次）
+    精度: 高（query 和 document 在编码阶段「互相感知」）
+    用途: 精排（从 100 个候选中找前 5 个）
+
+  类比：
+    Bi-Encoder = 分别看两个人的简历 → 猜他们合不合适
+    Cross-Encoder = 让两个人坐下来聊 → 真实判断合不合适
+
+  Cross-Encoder 能捕捉到的 Bi-Encoder 捕捉不到的东西：
+    « 精确匹配 » "Python" 和 "Python语言" → Bi-Encoder 相似度可能只有 0.5
+    → Cross-Encoder 看到完整上下文后直接打 0.95
+    « 否定/反转 » "不是Python" → Bi-Encoder 看不出否定语义
+    → Cross-Encoder 能识别否定词降低了相关性
+
+▍ 重排序的成本收益计算
+
+  假设 RAG pipeline 中有大量文档：
+    Stage 1 (Bi-Encoder): 全库 → 一批候选（可预计算向量）
+    Stage 2 (Cross-Encoder): 候选 → 少量最终结果（逐对联合编码）
+    Stage 3 (LLM 生成): 将最终文档作为上下文 → 回答
+
+  如果不加重排序，直接把 Stage 1 的 top-5 喂给 LLM：
+    会省掉重排序计算，但可能把排序靠前却不真正相关的文档交给 LLM。
+    是否影响最终答案、影响多大，只能通过本领域评测集确认。
+
+  结论：同时报告无重排序/有重排序的 Recall@k、答案正确率、p95 延迟与成本，
+  达到预先定义的质量门槛后再决定是否上线。
+
+▍ 主流 Reranker 模型选择
+
+  BGE-Reranker-v2-m3（智源）:
+    特点: 多语言，中文效果好，免费
+    适合: 通用中文 RAG
+
+  托管 Rerank API:
+    特点: 无需自建推理服务，模型和价格会随版本变化
+    适合: 希望快速验证重排序价值的团队
+    选型: 查看当前官方模型卡和价格，并在私有验证集上比较
+
+  cross-encoder/ms-marco-MiniLM-L-6-v2:
+    特点: 可本地部署的经典轻量基线
+    适合: 需要可控部署或建立延迟基线的场景
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.4 GraphRAG —— 知识图谱 + RAG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+为什么需要 GraphRAG？
+
+  Naive RAG 的场景：「Python 是什么？」
+    → 检索到「Python是一种编程语言」的文本块
+    → 回答正确 ✓
+
+  Naive RAG 失败的场景：「Python 的设计者还参与了哪些项目？」
+    → 检索到「Python是由Guido创建的」和「Dropbox使用Python」
+    → 但这些块之间没有关联，无法回答「Guido还做过什么」
+    → 回答失败 ✗
+
+  GraphRAG 的优势：
+    → 知识图谱中存储了「Guido → 创建 → Python」
+    → 以及「Guido → 工作于 → Google → 参与 → Dropbox」
+    → 可以沿着图谱的边（关系）进行多跳推理
+    → 回答正确 ✓
+
+GraphRAG 的核心原理：
+
+  1. 图构建 (Graph Construction)
+     从文档中抽取实体和关系，构建知识图谱
+
+  2. 混合检索 (Hybrid Retrieval)
+     同时使用向量搜索和图遍历
+
+  3. 多跳推理 (Multi-hop Reasoning)
+     沿着图谱的边寻找推理路径
+"""</span>
+
+
+<span class="k">class</span> <span class="f">SimpleKnowledgeGraph</span>:
+    <span class="s">"""简化的知识图谱 —— 演示 GraphRAG 的核心概念。
+
+    节点: 实体（人、组织、概念）
+    边: 关系（创建、工作于、属于）
+    """</span>
+
+    <span class="k">def</span> <span class="f">__init__</span>(<span class="k">self</span>):
+        <span class="k">self</span>.graph = {}  <span class="h"># {entity: {relation: [target_entities]}}</span>
+
+    <span class="k">def</span> <span class="f">add_relation</span>(<span class="k">self</span>, subject: <span class="b">str</span>, relation: <span class="b">str</span>, obj: <span class="b">str</span>):
+        <span class="s">"""添加三元组：主语-关系-宾语。
+
+        Args:
+            subject: 主语实体。
+            relation: 关系类型。
+            obj: 宾语实体。
+        """</span>
+        <span class="k">if</span> subject <span class="k">not</span> <span class="k">in</span> <span class="k">self</span>.graph:
+            <span class="k">self</span>.graph[subject] = {}
+        <span class="k">if</span> relation <span class="k">not</span> <span class="k">in</span> <span class="k">self</span>.graph[subject]:
+            <span class="k">self</span>.graph[subject][relation] = []
+        <span class="k">self</span>.graph[subject][relation].append(obj)
+
+    <span class="k">def</span> <span class="f">traverse</span>(<span class="k">self</span>, start: <span class="b">str</span>, max_depth: <span class="b">int</span> = <span class="n">2</span>) -&gt; <span class="b">list</span>[<span class="b">str</span>]:
+        <span class="s">"""从起始节点出发进行图遍历。
+
+        Args:
+            start: 起始实体。
+            max_depth: 最大遍历深度。
+
+        Returns:
+            到达的所有实体列表。
+        """</span>
+        visited = <span class="b">set</span>()
+        to_visit = [(start, <span class="n">0</span>)]
+        <span class="k">while</span> to_visit:
+            node, depth = to_visit.pop(<span class="n">0</span>)
+            <span class="k">if</span> node <span class="k">in</span> visited <span class="k">or</span> depth &gt; max_depth:
+                <span class="k">continue</span>
+            visited.add(node)
+            <span class="k">if</span> node <span class="k">in</span> <span class="k">self</span>.graph:
+                <span class="k">for</span> relation, targets <span class="k">in</span> <span class="k">self</span>.graph[node].items():
+                    <span class="k">for</span> target <span class="k">in</span> targets:
+                        to_visit.append((target, depth + <span class="n">1</span>))
+        <span class="k">return</span> <span class="b">list</span>(visited)
+
+    <span class="k">def</span> <span class="f">find_path</span>(<span class="k">self</span>, start: <span class="b">str</span>, end: <span class="b">str</span>, max_depth: <span class="b">int</span> = <span class="n">3</span>) -&gt; Optional[<span class="b">list</span>]:
+        <span class="s">"""寻找两个实体之间的路径（简化版 BFS）。
+
+        Args:
+            start: 起始实体。
+            end: 目标实体。
+            max_depth: 最大搜索深度。
+
+        Returns:
+            路径列表，未找到返回 None。
+        """</span>
+        queue = [(start, [start])]
+        visited = {start}
+        <span class="k">while</span> queue:
+            node, path = queue.pop(<span class="n">0</span>)
+            <span class="k">if</span> <span class="b">len</span>(path) &gt; max_depth + <span class="n">1</span>:
+                <span class="k">continue</span>
+            <span class="k">if</span> node == end <span class="k">and</span> <span class="b">len</span>(path) &gt; <span class="n">1</span>:
+                <span class="k">return</span> path
+            <span class="k">if</span> node <span class="k">in</span> <span class="k">self</span>.graph:
+                <span class="k">for</span> relation, targets <span class="k">in</span> <span class="k">self</span>.graph[node].items():
+                    <span class="k">for</span> target <span class="k">in</span> targets:
+                        <span class="k">if</span> target <span class="k">not</span> <span class="k">in</span> visited:
+                            visited.add(target)
+                            queue.append((target, path + [target]))
+        <span class="k">return</span> <span class="k">None</span>
+
+
+<span class="k">def</span> <span class="f">demo_graphrag</span>():
+    <span class="s">"""演示 GraphRAG 的多跳推理能力。"""</span>
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+    <span class="b">print</span>(<span class="s">"  GraphRAG 多跳推理演示"</span>)
+    <span class="b">print</span>(<span class="s">"="</span> * <span class="n">60</span>)
+
+    kg = SimpleKnowledgeGraph()
+
+    <span class="h"># 构建知识图谱</span>
+    kg.add_relation(<span class="s">"Guido van Rossum"</span>, <span class="s">"创建"</span>, <span class="s">"Python"</span>)
+    kg.add_relation(<span class="s">"Guido van Rossum"</span>, <span class="s">"工作于"</span>, <span class="s">"Google"</span>)
+    kg.add_relation(<span class="s">"Guido van Rossum"</span>, <span class="s">"工作于"</span>, <span class="s">"Dropbox"</span>)
+    kg.add_relation(<span class="s">"Guido van Rossum"</span>, <span class="s">"工作于"</span>, <span class="s">"Microsoft"</span>)
+    kg.add_relation(<span class="s">"Python"</span>, <span class="s">"用于"</span>, <span class="s">"AI Agent"</span>)
+    kg.add_relation(<span class="s">"Python"</span>, <span class="s">"用于"</span>, <span class="s">"数据分析"</span>)
+    kg.add_relation(<span class="s">"AI Agent"</span>, <span class="s">"依赖"</span>, <span class="s">"LLM"</span>)
+    kg.add_relation(<span class="s">"LLM"</span>, <span class="s">"包括"</span>, <span class="s">"GPT-4"</span>)
+    kg.add_relation(<span class="s">"LLM"</span>, <span class="s">"包括"</span>, <span class="s">"Claude"</span>)
+    kg.add_relation(<span class="s">"Google"</span>, <span class="s">"开发"</span>, <span class="s">"TensorFlow"</span>)
+    kg.add_relation(<span class="s">"Microsoft"</span>, <span class="s">"投资"</span>, <span class="s">"OpenAI"</span>)
+    kg.add_relation(<span class="s">"OpenAI"</span>, <span class="s">"开发"</span>, <span class="s">"GPT-4"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n  知识图谱已构建:"</span>)
+    <span class="k">for</span> subj, relations <span class="k">in</span> kg.graph.items():
+        <span class="k">for</span> rel, objs <span class="k">in</span> relations.items():
+            <span class="k">for</span> obj <span class="k">in</span> objs:
+                <span class="b">print</span>(f<span class="s">"    {subj} --[{rel}]--&gt; {obj}"</span>)
+
+    <span class="h"># 多跳推理示例</span>
+    queries = [
+        (<span class="s">"Guido van Rossum"</span>, <span class="s">"TensorFlow"</span>),  <span class="h"># Guido → Google → TensorFlow</span>
+        (<span class="s">"Python"</span>, <span class="s">"GPT-4"</span>),                 <span class="h"># Python → AI Agent → LLM → GPT-4</span>
+        (<span class="s">"Guido van Rossum"</span>, <span class="s">"OpenAI"</span>),      <span class="h"># Guido → Microsoft → OpenAI</span>
+    ]
+
+    <span class="b">print</span>(<span class="s">"\n  多跳推理测试:"</span>)
+    <span class="k">for</span> start, end <span class="k">in</span> queries:
+        path = kg.find_path(start, end)
+        <span class="k">if</span> path:
+            <span class="b">print</span>(f<span class="s">"    {start} → {end}: {' → '.join(path)}"</span>)
+        <span class="k">else</span>:
+            <span class="b">print</span>(f<span class="s">"    {start} → {end}: 未找到路径"</span>)
+
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.5 Agentic RAG —— 让 RAG 自己思考
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+传统 RAG 是固定流水线：
+  「不管什么问题，都走 检索→生成 两步」
+
+Agentic RAG 是有判断力的系统：
+  「先想想这个问题需要什么，再决定怎么做」
+
+核心能力升级：
+
+  ┌──────────────┬──────────────────────┬──────────────────────┐
+  │     能力      │      传统 RAG         │     Agentic RAG      │
+  ├──────────────┼──────────────────────┼──────────────────────┤
+  │ 查询处理      │ 单次检索              │ 多轮自适应检索         │
+  │ 检索策略      │ 固定（总是向量搜索）   │ 动态选择（向量/图谱/API）│
+  │ 结果判断      │ 无（直接用检索结果）   │ 自检 + 补充检索         │
+  │ 工具使用      │ 只有检索              │ 检索 + 计算 + API     │
+  │ 错误处理      │ 无                    │ 多轮重试 + 纠错        │
+  └──────────────┴──────────────────────┴──────────────────────┘
+
+Agentic RAG 的工作流程:
+
+  用户: "某公司2024年营收比2023年增长了百分之多少？"
+
+  传统 RAG:
+    → 检索「公司营收」→ 可能找到 2023 和 2024 的数据
+    → 但 RAG 不会算百分比，直接给了用户两段数字
+    → 用户还需要自己算
+
+  Agentic RAG:
+    → Step 1: 分析问题 → 需要「2023营收」「2024营收」「百分比计算」
+    → Step 2: 搜索「公司 2023年营收」 → 假设得到 1.6B
+    → Step 3: 搜索「公司 2024年营收」 → 假设得到 3.7B
+    → Step 4: 计算 (3.7-1.6)/1.6 = 131.25%
+    → Step 5: 回答「增长约 131%」
+
+  Agentic RAG 包含了一个 Agent 循环：
+    思考需要什么信息 → 检索/计算 → 不满足就继续 → 满足则输出
+
+工程结论：
+  - Agentic RAG 可能改善需要多步检索、验证或计算的任务
+  - 它也会增加调用次数、延迟和错误路径，不应默认替代固定检索流水线
+  - 用同一测试集比较准确率、总 token、p95 延迟和失败率后再决定是否采用
+"""</span>
+
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.6 RAG 评估体系 —— 如何衡量 RAG 质量？
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RAGAS (RAG Assessment) 是最流行的 RAG 评估框架，但你不需要把所有
+指标都用上。面试时关键是说出「什么场景重点关注哪个指标」。
+
+核心指标及使用优先级：
+  ┌──────────────────┬────────────────────────────────────┬──────────┐
+  │      指标         │              含义                   │  使用频率 │
+  ├──────────────────┼────────────────────────────────────┼──────────┤
+  │ Faithfulness     │ 回答是否完全基于检索到的上下文？       │ ⭐⭐⭐⭐⭐ │
+  │ Answer Relevance │ 回答是否直接回应了问题？              │ ⭐⭐⭐⭐   │
+  │ Context Recall   │ 检索到的内容覆盖了回答所需的全部信息？ │ ⭐⭐⭐⭐   │
+  │ Context Precision│ 检索到的内容有多少是真正相关的？       │ ⭐⭐⭐     │
+  │ Answer Correctness│ 答案的事实准确性                     │ ⭐⭐⭐     │
+  └──────────────────┴────────────────────────────────────┴──────────┘
+
+实战中的优先级逻辑：
+  如果你的 RAG 还处于「经常胡说」阶段 → 先优化 Faithfulness
+  如果你发现「回答偏题了」→ 重点看 Answer Relevance
+  如果「检索结果质量不稳定」→ 查 Context Recall 和 Precision
+
+▍ RAGAS 的实际工程经验
+
+  1. LLM-as-Judge 会产生调用费用与评审偏差
+     在 CI 中运行小型哨兵集，完整评测按计划或模型/提示词变更触发
+
+  2. 人工标注 Ground Truth 是必须的 —— LLM 自己评自己会过拟合
+     对覆盖关键风险和典型流量的样本做人工标注，作为「锚点」校准 LLM 评分；
+     样本量由误差预算和分层覆盖决定，不使用固定百分比
+
+  3. 单次高分不代表上线稳 —— 按文档、模型和提示词的变更风险触发回溯评测，
+     因为你的文档在变、Embedding 模型在更新、用户问法在迁移
+
+截至 2026-08-01 的评估重点：
+  - LLM-as-Judge 需要用人工锚点校准，并报告模型与 rubric 版本
+  - RAGAS 支持在线评估（用户反馈 → 实时指标更新）
+  - 多轮对话评估成为新方向（不只是单轮 QA）
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.6.1 RAG 在生产中的常见失败模式与对策
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+面试官问你「RAG 上线后遇到过什么问题？」——这是在考察你是否真的
+把 RAG 部署到了生产环境。
+
+▍ 失败模式 1：检索到无关内容，LLM 照单全收
+
+  现象：用户问「Python 的创始人是谁」，检索到了「Python 是一种编程语言...
+  Python 的语法简洁...」，LLM 回答「Python 的创始人是语法简洁的...」← 胡编
+
+  根因：缺乏「拒答机制」——LLM 默认相信检索结果
+
+  对策：
+    a) 添加 Faithfulness 检查，阈值由人工标注集校准
+    b) 在 System Prompt 中明确指示「如果检索到的信息不包含答案，请直接说不知道」
+    c) 设置检索分数阈值，低于阈值的 chunk 不传给 LLM
+
+▍ 失败模式 2：关键信息分散在多个 chunk 中
+
+  现象：一个完整答案被切成 3 个 chunk：「Python 于 1991 年发布」「由 Guido
+  van Rossum 创建」「受 ABC 语言影响」。每个 chunk 单独看都不完整。
+
+  根因：chunk 太小或 overlap 不足
+
+  对策：
+    a) 在验证集上比较更大的 chunk 或结构化切分
+    b) 使用父文档检索策略（检索小块 → 返回大块邻居）
+    c) 调整 overlap，并监控边界遗漏与重复检索
+
+▍ 失败模式 3：RAG 成本失控
+
+  现象：一段时间后发现 Embedding 与索引成本高于生成调用
+
+  根因：预处理时对全量文档做了 Embedding + 线上每次查询都从头调 Embedding API
+
+  对策：
+    a) 按 provider 当前批处理限制批量化，不逐条调用 API
+    b) Embedding 结果缓存到本地（S3 / 本地文件 / 向量库自带的持久化）
+    c) 热查询缓存（记录命中率、陈旧率和失效策略）
+    d) 比较托管与自部署 Embedding 的总拥有成本，而不只看 API 单价
+
+▍ 失败模式 4：向量库索引腐烂
+
+  现象：上线一段时间后质量持续下降
+
+  根因：知识库更新了，但向量索引没有重建 → 部分 chunk 指向已过时的内容
+
+  对策：
+    a) 建立文档变更 Hook → 自动重建受影响 chunk 的 Embedding
+    b) 给每个 chunk 加版本号和过期时间戳
+    c) 根据变更量、索引一致性和恢复目标安排全量校验或重建
+"""</span>
+
+
+<span class="s">"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9.7 本章总结
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+核心要点回顾：
+
+1. Naive RAG = 问 → 检索 → 生成
+   问题：检索不准、无自检、无法多跳推理
+
+2. Chunk 切分（面试高频！）
+   核心认知：没有「万能 chunk_size」，根据文档类型选择
+   面试标准回答：「按文档结构保留语义单元，用验证集比较多个候选大小」
+   进阶：语义切分 + 固定大小切分的混合策略
+   overlap 与 chunk_size 都是需要通过检索和端到端评测确定的参数
+
+3. Embedding 模型选型
+   托管基线 → 当前可用的 Embedding API（记录模型快照和 dimensions）
+   中文/本地基线 → 在目标语料上评测合适的开源多语言或中文模型
+   垂直领域 → 只有基线达不到质量门槛时再考虑微调
+   维度选择：在质量下限内选择存储、延迟和成本合适的最小维度
+
+4. Advanced RAG = Naive + 查询重写 + 混合检索(RRF) + 重排序(Cross-Encoder)
+   面试重点：为什么混合检索比纯向量好？
+   → 向量擅长语义但不擅长关键词精确匹配
+   → 法律/金融领域两者的互补性尤其明显
+   → RRF 避免直接混合异构分数，k=60 可作起点但仍要验证
+
+5. 重排序是应优先做消融实验的优化
+   Cross-Encoder 的质量收益和额外延迟必须在目标数据与硬件上测量
+   面试答法：「我使用 Bi-Encoder 做初筛 + Cross-Encoder 做精排的两阶段检索」
+
+6. GraphRAG = RAG + 知识图谱
+   核心价值：多跳推理能力
+   适用场景：关系密集型问题（「A影响了B，B又影响了C」）
+
+7. Agentic RAG = RAG + Agent 循环
+   核心价值：动态决策 → 自主判断需要什么信息
+   注意：增加调用、延迟和错误路径 — 从简单基线开始，逐步迭代
+
+8. RAG 生产 Checklist
+   ✅ 检索分数阈值 → 拒绝低质量 chunk
+   ✅ 用人工锚点校准 Faithfulness 阈值
+   ✅ Embedding 批量预处理 + 持久化缓存
+   ✅ 文档变更 Hook → 自动增量更新索引
+   ✅ 热查询缓存 → 记录命中率、陈旧率和真实成本变化
+   ✅ 按知识库/模型/提示词变更风险触发回溯评测
+
+面试速记（完整版）:
+  "RAG 核心技术栈？"
+  → 切分策略(固定/语义) → Embedding 模型(text-embedding/bge/e5)
+  → 混合检索(RRF融合BM25+向量) → 重排序(Cross-Encoder精排)
+  → 查询重写(HyDE/Multi-Query) → GraphRAG(知识图谱)
+  → Agentic RAG(Agent循环) → 评估(RAGAS) → 生产监控
+  "不要盲目叠加技术，每个技术解决一个具体痛点"
+"""</span>
+
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="b">print</span>(<span class="s">"╔══════════════════════════════════════════════════════╗"</span>)
+    <span class="b">print</span>(<span class="s">"║  第9章：RAG 原理与实现详解                             ║"</span>)
+    <span class="b">print</span>(<span class="s">"║  Naive RAG → Advanced → GraphRAG → Agentic RAG      ║"</span>)
+    <span class="b">print</span>(<span class="s">"╚══════════════════════════════════════════════════════╝"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.2 Naive RAG 演示"</span>)
+    demo_naive_rag()
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.3 Advanced RAG 演示"</span>)
+    rag = AdvancedRAG()
+    docs = [
+        <span class="s">"Python是一种由Guido van Rossum创建的编程语言，"</span>
+        <span class="s">"首次发布于1991年。它以简洁的语法风格著称。"</span>,
+
+        <span class="s">"AI Agent能自主感知环境、做出决策并执行行动。"</span>
+        <span class="s">"它集成了LLM、规划器、记忆系统和工具调用。"</span>,
+
+        <span class="s">"RAG通过从知识库检索相关信息来增强LLM的生成能力，"</span>
+        <span class="s">"有效减少模型的幻觉问题。GraphRAG加入了知识图谱。"</span>,
+    ]
+    rag.add_documents(docs)
+
+    query = <span class="s">"如何用Python构建AI Agent？"</span>
+    <span class="b">print</span>(f<span class="s">"\n  🔍 原始查询: {query}"</span>)
+
+    variations = rag.query_rewrite(query)
+    <span class="b">print</span>(f<span class="s">"  ✏️ 查询变体: {variations}"</span>)
+
+    <span class="k">for</span> v <span class="k">in</span> variations:
+        results = rag.hybrid_search(v, top_k=<span class="n">2</span>)
+        <span class="b">print</span>(f<span class="s">"\n  查询变体「{v}」的混合检索结果:"</span>)
+        <span class="k">for</span> chunk, score <span class="k">in</span> results:
+            <span class="b">print</span>(f<span class="s">"    [{score:.3f}] {chunk[:100]}..."</span>)
+
+        reranked = rag.rerank(v, results, top_k=<span class="n">2</span>)
+        <span class="b">print</span>(f<span class="s">"  重排序后:"</span>)
+        <span class="k">for</span> chunk, score <span class="k">in</span> reranked:
+            <span class="b">print</span>(f<span class="s">"    [{score:.3f}] {chunk[:100]}..."</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.4 GraphRAG 演示"</span>)
+    demo_graphrag()
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.5 Agentic RAG 概念"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    <span class="b">print</span>(<span class="s">"核心区别："</span>)
+    <span class="b">print</span>(<span class="s">"  传统RAG: 固定流水线「检索→生成」"</span>)
+    <span class="b">print</span>(<span class="s">"  Agentic RAG: 动态决策 「思考→检索→判断→再检索→...」"</span>)
+    <span class="b">print</span>(<span class="s">""</span>)
+    <span class="b">print</span>(<span class="s">"工程建议："</span>)
+    <span class="b">print</span>(<span class="s">"  用同一评测集比较固定 RAG 与 Agentic RAG 的质量、成本和延迟"</span>)
+    <span class="b">print</span>(<span class="s">"  从简单流水线开始，只有证据支持时才增加 Agent 循环"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n▶ 9.6 RAGAS 评估体系"</span>)
+    <span class="b">print</span>(<span class="s">"-"</span> * <span class="n">50</span>)
+    metrics = [
+        (<span class="s">"Faithfulness"</span>, <span class="s">"回答是否基于检索到的内容？"</span>),
+        (<span class="s">"Answer Relevance"</span>, <span class="s">"回答是否直接回应了问题？"</span>),
+        (<span class="s">"Context Recall"</span>, <span class="s">"检索是否覆盖了所有必要信息？"</span>),
+        (<span class="s">"Context Precision"</span>, <span class="s">"检索到的内容有多少是相关的？"</span>),
+    ]
+    <span class="k">for</span> name, desc <span class="k">in</span> metrics:
+        <span class="b">print</span>(f<span class="s">"  {name}: {desc}"</span>)
+
+    <span class="b">print</span>(<span class="s">"\n✅ 第9章完成！"</span>)
+</pre></div></details></div><div class="nav-bar">
+<a class="nav-link nav-prev" href="../chapter_08_claude_code/08_claude_code_architecture.html" title="Claude Code 架构 — nO·h2A·压缩·SubAgent">← 第8章</a>
+<a class="nav-link nav-home" href="../index.html">📖 课程主页</a>
+<a class="nav-link nav-next" href="../chapter_10_mcp/10_mcp_deepdive.html" title="MCP 深度解析 — 设计哲学·JSON-RPC·传输层选型·三协议对比">第10章 →</a>
+</div></div></div></div></body></html>

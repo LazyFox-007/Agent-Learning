@@ -88,23 +88,30 @@ git clone https://gitee.com/haveink/agent-learning-platform.git
 
 cd agent-learning-platform
 
-# 2) 一键安装（拉取课程 + 生成索引与路线数据）
-powershell -ExecutionPolicy Bypass -File setup.ps1
-
-# 3) 启动
+# 2) 直接启动 —— 课程已随仓库提供，不需要联网，不需要额外安装
 cd _webapp
 python server.py
 ```
 
 浏览器会自动打开 **http://127.0.0.1:8777/**
 
+就这两步。**37 章课程正文已在仓库里**，克隆完断网也能读。
+
 > 端口被占用时会自动往后找（8777~8796），不会冲突。
 
 **没有 Node.js 也能用。** Node 只在重新生成课程索引时才用到，首页数据已随仓库提供。
 
-> ⚠️ `setup.ps1` 会从 GitHub 拉课程。如果 GitHub 连不上，
-> 用 [Watt Toolkit](https://steampp.net/) 之类工具加速，或手动改
-> `_scripts/import-agent-course.ps1` 里的 `$Upstream` 地址。
+### setup.ps1 是干什么的
+
+只在**想更新课程**的时候才需要：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File setup.ps1
+```
+
+它会从 [上游仓库](https://github.com/callous-0923/agent-study) 重新拉一份最新课程，
+做本地化转换（链接改写、移除统计脚本），再重新生成索引。
+课程目录已经存在时它会自动跳过，不会覆盖你的东西。
 
 ---
 
@@ -112,9 +119,16 @@ python server.py
 
 ```
 Agent-Learning/
-├── setup.ps1                    一键安装
+├── setup.ps1                    更新课程用（可选，日常启动不需要）
 ├── LICENSE                      MIT
 ├── THIRD-PARTY-NOTICES.md       课程来源与前端依赖声明
+│
+├── 01-AI-Agent全栈课程/          ⬅ 37 章课程正文 + 源码，随仓库提供
+│   ├── index.html               课程主页
+│   ├── chapter_00_overview/     每章：讲义 .html + 源码 .py
+│   ├── ...
+│   ├── chapter_36_defense/
+│   └── LICENSE                  上游课程授权
 │
 ├── _webapp/                     学习平台
 │   ├── server.py                HTTP 服务（纯标准库）+ AI 流式代理
@@ -128,22 +142,32 @@ Agent-Learning/
 │   │   ├── roadmap.js           首页数据（由 gen-roadmap.js 生成）
 │   │   ├── style.css            主题变量都在 :root 里
 │   │   └── vendor/              marked · KaTeX · highlight.js
-│   ├── assets/                  吉祥物图标
+│   ├── assets/                  吉祥物图标与图标生成脚本
 │   └── _build/                  开发工具（生成器 + 渲染测试）
 │
 ├── _scripts/
-│   └── import-agent-course.ps1  拉取课程 + 本地化转换
+│   └── import-agent-course.ps1  重新拉取课程 + 本地化转换
 │
-├── docs/                        README 截图 + 陪读设计 + 维护笔记
-└── 01-AI-Agent全栈课程/          ⬅ 由 setup.ps1 生成，不纳入版本控制
+└── docs/                        README 截图 + 陪读设计 + 维护笔记
 ```
 
 ---
 
 ## 关于课程内容
 
-**本仓库不包含课程正文。** 版权归原作者 [callous-0923](https://github.com/callous-0923) 所有，
-遵循 MIT License。`setup.ps1` 会用 `git clone` 从上游拉取，并做三处**本地化转换**：
+**课程正文随本仓库一起分发**，克隆下来就能读，**不需要联网**。
+
+| 项 | 值 |
+|---|---|
+| 原作者 | [callous-0923](https://github.com/callous-0923) |
+| 协议 | MIT License（可自由使用、修改、分发） |
+| 规模 | 37 章 · 38 份讲义 · 37 个可运行 Python |
+| 上游 | https://github.com/callous-0923/agent-study |
+
+版权归原作者所有。其原始 `LICENSE` 与署名保留在
+[`01-AI-Agent全栈课程/LICENSE`](01-AI-Agent全栈课程/LICENSE)，**课程实质内容未做任何改动**。
+
+引入时做了三处**只关乎离线可用的本地化转换**：
 
 | 转换 | 规模 | 为什么必须做 |
 |---|---|---|
