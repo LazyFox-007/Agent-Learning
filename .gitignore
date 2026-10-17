@@ -55,3 +55,7 @@ $RECYCLE.BIN/
 
 # 本机 git 配置备份（机器专属，不发布）
 docs/git-config-backup.txt
+
+# AI 陪读密钥（绝不提交）
+_webapp/.ai-config.json
+_webapp/.ai-config.tmp

@@ -38,6 +38,184 @@ MAX_RAW       = 64 * 1024 * 1024      # 原始字节流上限 64 MB
 SEARCH_LIMIT  = 200                   # 搜索最大结果数
 SEARCH_MAXSIZE= 2  * 1024 * 1024      # 单文件搜索上限
 
+# ---------------------------------------------------------------------
+# AI 陪读配置
+# ---------------------------------------------------------------------
+# 密钥只存在本机这个文件里，不进版本控制，也从不回传给浏览器（只返回掩码）。
+AI_CONFIG_FILE = WEBAPP / ".ai-config.json"
+
+# 预设服务商（全部走 OpenAI 兼容协议）
+AI_PRESETS = {
+    "deepseek": {"name": "DeepSeek",     "base_url": "https://api.deepseek.com/v1",                         "model": "deepseek-chat"},
+    "qwen":     {"name": "通义千问",      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",  "model": "qwen-plus"},
+    "moonshot": {"name": "Kimi",         "base_url": "https://api.moonshot.cn/v1",                          "model": "moonshot-v1-8k"},
+    "openai":   {"name": "OpenAI",       "base_url": "https://api.openai.com/v1",                            "model": "gpt-4o-mini"},
+    "ollama":   {"name": "Ollama 本地",  "base_url": "http://127.0.0.1:11434/v1",                            "model": "qwen2.5:7b"},
+    "mock":     {"name": "演示模式（无需密钥）", "base_url": "mock://demo",                                    "model": "mock-fish"},
+}
+
+AI_CONFIG_DEFAULT = {
+    "preset": "deepseek",
+    "base_url": AI_PRESETS["deepseek"]["base_url"],
+    "model": AI_PRESETS["deepseek"]["model"],
+    "api_key": "",
+    "temperature": 0.7,
+    "max_tokens": 1600,
+}
+
+_ai_lock = threading.Lock()
+
+
+def load_ai_config():
+    """读取 AI 配置；文件不存在则返回默认值。"""
+    cfg = dict(AI_CONFIG_DEFAULT)
+    try:
+        if AI_CONFIG_FILE.is_file():
+            with open(AI_CONFIG_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+            if isinstance(saved, dict):
+                cfg.update({k: v for k, v in saved.items() if k in AI_CONFIG_DEFAULT})
+    except Exception:
+        pass
+    return cfg
+
+
+def save_ai_config(cfg):
+    """原子写入配置，并尽量收紧文件权限。"""
+    AI_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = AI_CONFIG_FILE.with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, AI_CONFIG_FILE)
+    try:
+        os.chmod(AI_CONFIG_FILE, 0o600)
+    except Exception:
+        pass
+
+
+def mask_key(key):
+    """密钥只回显卡号，绝不回显完整内容。"""
+    if not key:
+        return ""
+    key = str(key)
+    if len(key) <= 10:
+        return "****"
+    return key[:6] + "…" + key[-4:]
+
+
+def build_system_prompt(ctx):
+    """把「你正在读什么」编织进系统提示词 —— 这是陪读和普通聊天机器人的区别。"""
+    ctx = ctx or {}
+    lines = [
+        "你是「大肥鱼」，一只陪学生读书的助教鱼。你的学生正在读《AI Agent 全栈课程》。",
+        "",
+        "【当前阅读上下文】",
+    ]
+    if ctx.get("chapter"):
+        lines.append("· 章节：" + str(ctx["chapter"]))
+    if ctx.get("path"):
+        lines.append("· 文件：" + str(ctx["path"]))
+    if ctx.get("heading"):
+        lines.append("· 所在小节：" + str(ctx["heading"]))
+    if ctx.get("progress"):
+        lines.append("· 阅读进度：" + str(ctx["progress"]))
+
+    sel = (ctx.get("selection") or "").strip()
+    if sel:
+        lines += ["", "【学生刚选中的原文】", sel[:3000]]
+
+    excerpt = (ctx.get("excerpt") or "").strip()
+    if excerpt:
+        lines += ["", "【本章正文节选】", excerpt[:9000]]
+
+    lines += [
+        "",
+        "【陪读原则】",
+        "1. 回答要紧贴当前章节的内容，不要泛泛而谈。",
+        "2. 讲抽象概念一定配具体例子；能用代码说明就用代码。",
+        "3. 学生问「为什么」时，先给结论，再讲原因。",
+        "4. 不确定的地方直说不知道，绝不编造 API、论文或数据。",
+        "5. 回答简洁，多用小标题、列表、代码块，不要复述学生的问题。",
+        "6. 超出本章范围的问题，简要回答并指出哪一章会深入。",
+        "7. 中文回答。语气像个耐心的师兄，不要油腻，少用表情符号。",
+    ]
+    return "\n".join(lines)
+
+
+def mock_stream_reply(messages, ctx):
+    """演示模式：不联网，返回固定样例，用来验证界面与流式链路是否打通。"""
+    last = ""
+    for m in reversed(messages or []):
+        if m.get("role") == "user":
+            last = (m.get("content") or "").strip()
+            break
+    sel = (ctx.get("selection") or "").strip()
+    chap = (ctx.get("chapter") or "当前章节")
+
+    if sel:
+        return (
+            "**（演示模式，未连接真实模型）**\n\n"
+            "你选中的这段是：\n\n> " + sel[:200].replace("\n", "\n> ") + "\n\n"
+            "**这段话在讲什么** —— 它属于《" + chap + "》的核心论证部分。\n\n"
+            "**为什么重要** —— 它把抽象的设计原则落到了可执行的动作上。\n\n"
+            "**举个例子** —— 假设你要让 Agent 完成「查天气」：\n\n"
+            "```python\n"
+            "tools = [{\"name\": \"get_weather\", \"description\": \"查询指定城市的实时天气\"}]\n"
+            "```\n\n"
+            "配置真实模型后，这里会变成针对你选中内容的、贴合上下文的讲解。"
+        )
+    if last:
+        return (
+            "**（演示模式，未连接真实模型）**\n\n"
+            "你问的是：「" + last[:80] + "」\n\n"
+            "**先给结论** —— 这是个好问题，它正好卡在《" + chap + "》的关键处。\n\n"
+            "**为什么** —— Agent 的能力边界，本质上由「能调用什么工具」和「如何决定调用哪个工具」共同决定。\n\n"
+            "**一个例子**\n\n"
+            "| 层 | 做什么 | 出错的后果 |\n"
+            "|---|---|---|\n"
+            "| 规划 | 拆解任务 | 走错方向 |\n"
+            "| 工具 | 真正执行 | 拿到错误数据 |\n"
+            "| 观察 | 校验结果 | 带着错误往上走 |\n\n"
+            "点右上角 ⚙ 配置一个模型，我就能真正读着你这一章回答问题。"
+        )
+    return (
+        "**（演示模式，未连接真实模型）**\n\n"
+        "我是大肥鱼，负责陪你读这本书。现在可以：\n\n"
+        "- 在讲义里**选中一段文字**，旁边会冒出「问大肥鱼」\n"
+        "- 点下面的快捷指令，让我总结章节或出题考你\n"
+        "- 直接在输入框里问任何问题\n\n"
+        "> 演示模式只能返回固定样例。配置真实模型后，我才能读着你当前这一章回答。"
+    )
+
+
+def _chunked_write(handler, text):
+    """SSE 分块写入。客户端断开时静默返回 False。"""
+    data = text.encode("utf-8")
+    if not data:
+        return True
+    try:
+        handler.wfile.write(b"%x\r\n" % len(data))
+        handler.wfile.write(data)
+        handler.wfile.write(b"\r\n")
+        handler.wfile.flush()
+        return True
+    except (BrokenPipeError, ConnectionResetError, OSError):
+        return False
+
+
+def _chunked_end(handler):
+    try:
+        handler.wfile.write(b"0\r\n\r\n")
+        handler.wfile.flush()
+    except Exception:
+        pass
+
+
+def sse_event(handler, obj):
+    """发送一条 SSE 事件。"""
+    return _chunked_write(handler, "data: " + json.dumps(obj, ensure_ascii=False) + "\n\n")
+
+
 # 这些目录不出现在树里
 SKIP_DIRS = {
     ".git", "__pycache__", "node_modules", ".ipynb_checkpoints",
@@ -365,7 +543,262 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/ping":
             return self._json({"ok": True, "root": str(ROOT)})
 
+        # ---- AI 陪读 ----
+        if path == "/api/ai/config":
+            return self._api_ai_config_get()
+        if path == "/api/ai/presets":
+            return self._json({"presets": AI_PRESETS})
+
         return self._err(404, "未知路径: %s" % path)
+
+    # ---------- POST ----------
+    def do_POST(self):
+        try:
+            return self._route_post()
+        except UnsafePath as e:
+            return self._err(403, "路径越界: %s" % e)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            try:
+                return self._err(500, "%s: %s" % (type(e).__name__, e))
+            except Exception:
+                pass
+
+    def _route_post(self):
+        path = urllib.parse.urlparse(self.path).path
+        if path == "/api/ai/config":
+            return self._api_ai_config_set()
+        if path == "/api/ai/chat":
+            return self._api_ai_chat()
+        if path == "/api/ai/test":
+            return self._api_ai_test()
+        return self._err(404, "未知路径: %s" % path)
+
+    def _read_body(self, limit=256 * 1024):
+        """读取 POST body，带长度上限。"""
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            n = 0
+        if n <= 0:
+            return b""
+        n = min(n, limit)
+        return self.rfile.read(n)
+
+    # ---------- AI 陪读实现 ----------
+    def _api_ai_config_get(self):
+        cfg = load_ai_config()
+        return self._json({
+            "configured": bool(cfg.get("api_key")) or cfg.get("base_url", "").startswith("mock://"),
+            "preset": cfg.get("preset"),
+            "base_url": cfg.get("base_url"),
+            "model": cfg.get("model"),
+            "key_masked": mask_key(cfg.get("api_key")),
+            "temperature": cfg.get("temperature"),
+            "max_tokens": cfg.get("max_tokens"),
+        })
+
+    def _api_ai_config_set(self):
+        raw = self._read_body()
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except Exception:
+            return self._err(400, "请求体不是合法 JSON")
+
+        with _ai_lock:
+            cfg = load_ai_config()
+
+            preset = str(data.get("preset") or cfg.get("preset") or "").strip()
+            if preset and preset in AI_PRESETS:
+                cfg["preset"] = preset
+                # 选了预设且没显式改地址时，跟随预设
+                if not data.get("base_url"):
+                    cfg["base_url"] = AI_PRESETS[preset]["base_url"]
+                if not data.get("model"):
+                    cfg["model"] = AI_PRESETS[preset]["model"]
+
+            for k in ("base_url", "model"):
+                if data.get(k):
+                    cfg[k] = str(data[k]).strip()
+
+            # 密钥：传空字符串表示"清除"，不传表示"保持不变"
+            if "api_key" in data:
+                cfg["api_key"] = str(data.get("api_key") or "").strip()
+
+            for k, lo, hi in (("temperature", 0.0, 2.0), ("max_tokens", 128, 8192)):
+                if k in data and data[k] is not None:
+                    try:
+                        cfg[k] = max(lo, min(hi, float(data[k]) if k == "temperature" else int(data[k])))
+                    except (TypeError, ValueError):
+                        pass
+
+            save_ai_config(cfg)
+
+        return self._json({
+            "ok": True,
+            "configured": bool(cfg.get("api_key")) or str(cfg.get("base_url", "")).startswith("mock://"),
+            "preset": cfg.get("preset"),
+            "base_url": cfg.get("base_url"),
+            "model": cfg.get("model"),
+            "key_masked": mask_key(cfg.get("api_key")),
+            "temperature": cfg.get("temperature"),
+            "max_tokens": cfg.get("max_tokens"),
+        })
+
+    def _api_ai_test(self):
+        """测试连通性：发一个极短的请求，返回耗时与模型回复。"""
+        raw = self._read_body()
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except Exception:
+            data = {}
+        cfg = load_ai_config()
+        if data.get("base_url"):
+            cfg["base_url"] = str(data["base_url"]).strip()
+        if data.get("model"):
+            cfg["model"] = str(data["model"]).strip()
+        if data.get("api_key"):
+            cfg["api_key"] = str(data["api_key"]).strip()
+
+        if not cfg.get("base_url"):
+            return self._err(400, "还没配置接口地址")
+
+        if str(cfg["base_url"]).startswith("mock://"):
+            return self._json({"ok": True, "ms": 12, "reply": "演示模式无需联网", "model": cfg.get("model")})
+
+        if not cfg.get("api_key"):
+            return self._err(400, "还没填写 API Key")
+
+        t0 = time.time()
+        try:
+            reply = self._llm_call(cfg, [{"role": "user", "content": "只回复两个字：你好"}], stream=False, max_tokens=16)
+        except Exception as e:
+            return self._json({"ok": False, "error": str(e)}, 200)
+        return self._json({
+            "ok": True,
+            "ms": int((time.time() - t0) * 1000),
+            "reply": (reply or "")[:60],
+            "model": cfg.get("model"),
+        })
+
+    def _llm_call(self, cfg, messages, stream=False, max_tokens=None):
+        """调用 OpenAI 兼容接口。stream=True 时返回响应对象供逐行读取。"""
+        import urllib.request
+        base = str(cfg.get("base_url") or "").rstrip("/")
+        url = base + "/chat/completions"
+        payload = {
+            "model": cfg.get("model") or "gpt-4o-mini",
+            "messages": messages,
+            "temperature": float(cfg.get("temperature") or 0.7),
+            "max_tokens": int(max_tokens or cfg.get("max_tokens") or 1600),
+            "stream": bool(stream),
+        }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + str(cfg.get("api_key") or ""),
+            "User-Agent": "agent-study-platform/1.0",
+        }
+        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
+                                     headers=headers, method="POST")
+        resp = urllib.request.urlopen(req, timeout=120)
+        if stream:
+            return resp
+        with resp:
+            obj = json.loads(resp.read().decode("utf-8", "replace"))
+        try:
+            return obj["choices"][0]["message"]["content"]
+        except Exception:
+            return json.dumps(obj, ensure_ascii=False)[:500]
+
+    def _api_ai_chat(self):
+        raw = self._read_body(limit=512 * 1024)
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except Exception:
+            return self._err(400, "请求体不是合法 JSON")
+
+        cfg = load_ai_config()
+        ctx = data.get("context") or {}
+        messages = data.get("messages") or []
+        if not isinstance(messages, list) or not messages:
+            return self._err(400, "messages 不能为空")
+
+        is_mock = str(cfg.get("base_url") or "").startswith("mock://")
+        if not is_mock and not cfg.get("api_key"):
+            return self._err(400, "还没配置 API Key，点右上角 ⚙ 设置")
+
+        # 组装：系统提示词 + 对话历史（只保留最近 12 轮，防止上下文无限膨胀）
+        sys_prompt = build_system_prompt(ctx)
+        clean = []
+        for m in messages[-16:]:
+            role = m.get("role")
+            content = m.get("content")
+            if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+                clean.append({"role": role, "content": content[:8000]})
+        full = [{"role": "system", "content": sys_prompt}] + clean
+
+        # ---- 建立 SSE 连接 ----
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-transform")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("Transfer-Encoding", "chunked")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+
+        if is_mock:
+            import random
+            text = mock_stream_reply(clean, ctx)
+            # 按标点/换行切块，模拟真实流式
+            import re as _re
+            pieces = _re.findall(r"[^\n]{1,18}|[\n]", text)
+            for p in pieces:
+                if not sse_event(self, {"type": "delta", "text": p}):
+                    _chunked_end(self)
+                    return
+                time.sleep(0.012 + random.random() * 0.02)
+            sse_event(self, {"type": "done", "model": cfg.get("model")})
+            _chunked_end(self)
+            return
+
+        # ---- 真实模型 ----
+        try:
+            resp = self._llm_call(cfg, full, stream=True)
+        except Exception as e:
+            sse_event(self, {"type": "error", "message": "调用模型失败：%s" % e})
+            _chunked_end(self)
+            return
+
+        try:
+            for raw_line in resp:
+                line = raw_line.decode("utf-8", "replace").strip()
+                if not line or not line.startswith("data:"):
+                    continue
+                chunk = line[5:].strip()
+                if chunk == "[DONE]":
+                    break
+                try:
+                    obj = json.loads(chunk)
+                except Exception:
+                    continue
+                choices = obj.get("choices") or []
+                if not choices:
+                    continue
+                delta = choices[0].get("delta") or {}
+                text = delta.get("content")
+                if text:
+                    if not sse_event(self, {"type": "delta", "text": text}):
+                        break
+            sse_event(self, {"type": "done", "model": cfg.get("model")})
+        except Exception as e:
+            sse_event(self, {"type": "error", "message": "读取流失败：%s" % e})
+        finally:
+            try:
+                resp.close()
+            except Exception:
+                pass
+            _chunked_end(self)
 
     # ---------- 静态 ----------
     def _static(self, rel):

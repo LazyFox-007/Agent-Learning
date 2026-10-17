@@ -25,6 +25,9 @@
   <nav class="crumbs" id="crumbs"></nav>
 
   <div class="topbar-right">
+    <button class="icon-btn icon-btn-img" id="btnCompanion" title="AI 陪读 (Ctrl+J)">
+      <img src="/static/mascot-64.png" alt="陪读">
+    </button>
     <button class="icon-btn" id="btnSearch" title="搜索 (Ctrl+K)">🔍</button>
     <button class="icon-btn" id="btnToc" title="目录 (Ctrl+I)">☰</button>
     <button class="icon-btn" id="btnTheme" title="切换主题">🌓</button>
@@ -119,6 +122,92 @@
     <div class="toc-title">本页目录</div>
     <nav class="toc-nav" id="tocNav"></nav>
   </aside>
+
+  <!-- ================= AI 陪读面板 ================= -->
+  <aside class="companion" id="companion" hidden>
+    <header class="cp-head">
+      <img class="cp-avatar" src="/static/mascot-64.png" alt="大肥鱼">
+      <div class="cp-who">
+        <div class="cp-name">大肥鱼 <span class="cp-role">陪读</span></div>
+        <div class="cp-ctx" id="cpCtx">未打开文件</div>
+      </div>
+      <button class="icon-btn cp-ib" id="cpClear" title="清空本章对话">🗑</button>
+      <button class="icon-btn cp-ib" id="cpSettings" title="模型设置">⚙</button>
+      <button class="icon-btn cp-ib" id="cpClose" title="关闭 (Ctrl+J)">✕</button>
+    </header>
+
+    <div class="cp-tabs">
+      <button class="cp-tab active" data-cptab="chat">对话</button>
+      <button class="cp-tab" data-cptab="note">本章笔记</button>
+    </div>
+
+    <div class="cp-pane" id="cpPaneChat">
+      <div class="cp-msgs" id="cpMsgs"></div>
+      <div class="cp-typing" id="cpTyping" hidden>
+        <span></span><span></span><span></span>
+      </div>
+      <div class="cp-quick" id="cpQuick"></div>
+      <div class="cp-compose">
+        <textarea id="cpInput" rows="1" placeholder="问点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
+        <button class="cp-send" id="cpSend" title="发送 (Enter)">↑</button>
+      </div>
+    </div>
+
+    <div class="cp-pane" id="cpPaneNote" hidden>
+      <textarea id="cpNote" placeholder="记点什么……&#10;&#10;自动保存，跟着当前章节走。"></textarea>
+    </div>
+  </aside>
+</div>
+
+<!-- ================= 选中文字后的冒泡 ================= -->
+<button class="cp-selchip" id="cpSelChip" hidden>🐟 问大肥鱼</button>
+
+<!-- ================= 陪读设置 ================= -->
+<div class="cp-modal" id="cpModal" hidden>
+  <div class="cp-dialog">
+    <div class="cp-dlg-head">
+      <h3>陪读模型设置</h3>
+      <button class="icon-btn" id="cpModalClose" title="关闭">✕</button>
+    </div>
+    <div class="cp-dlg-body">
+      <div class="cp-hintbox">
+        密钥只写在本机 <code>_webapp\.ai-config.json</code>，
+        <b>不会上传、也不会进 git</b>。接口需兼容 OpenAI 协议。
+      </div>
+
+      <label class="cp-field">
+        <span>服务商</span>
+        <select id="cpPreset"></select>
+      </label>
+
+      <label class="cp-field">
+        <span>接口地址</span>
+        <input id="cpBaseUrl" type="text" placeholder="https://api.deepseek.com/v1" spellcheck="false">
+      </label>
+
+      <label class="cp-field">
+        <span>模型名</span>
+        <input id="cpModel" type="text" placeholder="deepseek-chat" spellcheck="false">
+      </label>
+
+      <label class="cp-field">
+        <span>API Key</span>
+        <input id="cpKey" type="password" placeholder="sk-..." spellcheck="false" autocomplete="off">
+      </label>
+
+      <label class="cp-field cp-field-row">
+        <span>温度</span>
+        <input id="cpTemp" type="range" min="0" max="2" step="0.1" value="0.7">
+        <b id="cpTempVal">0.7</b>
+      </label>
+
+      <div class="cp-test-out" id="cpTestOut"></div>
+    </div>
+    <div class="cp-dlg-foot">
+      <button class="cp-btn" id="cpTest">测试连接</button>
+      <button class="cp-btn primary" id="cpSave">保存</button>
+    </div>
+  </div>
 </div>
 
 <!-- ================= 右下角浮动导航 ================= -->
@@ -143,6 +232,7 @@
 <script src="/static/vendor/highlight.min.js"></script>
 <script src="/static/roadmap.js"></script>
 <script src="/static/renderers.js"></script>
+<script src="/static/companion.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

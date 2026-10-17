@@ -24,17 +24,47 @@
 
 | 能力 | 说明 |
 |---|---|
+| 🐟 **AI 陪读** | 大肥鱼坐在右侧，知道你在读哪一章、选中了哪段 —— 划词即问、总结章节、出题考你 |
 | 🔍 **全文搜索** | 跨 38 份 HTML + 37 个 Python 搜内容，不只是文件名 |
 | 📊 **进度记录** | 自动标记已读，侧栏有进度条，首页有总体统计 |
 | 🗺️ **学习路线** | 7 层结构 + 按目标选路径（新手 / 面试突击 / 构建产品 / 降本增效） |
 | 📄 **多格式渲染** | Markdown、Jupyter Notebook、代码（带高亮）、PDF、图片 |
 | 🧮 **数学公式** | KaTeX 渲染，不是显示 LaTeX 源码 |
 | 🌓 **明暗主题** | 跟随系统或手动切换 |
-| 💾 **完全离线** | 只监听 `127.0.0.1`，不联网、不暴露、不上传任何数据 |
+| 💾 **本地优先** | 只监听 `127.0.0.1`，不暴露、不上传；AI 密钥只存本机 |
 
 <div align="center">
 <img src="docs/screenshot-home.png" width="700" alt="首页">
 </div>
+
+---
+
+## 🐟 AI 陪读
+
+按 `Ctrl+J` 或点右上角的吉祥物头像打开。它不是通用聊天框 —— **它一直知道你读到哪了**。
+
+<img src="docs/screenshot-companion.png" width="820" alt="AI 陪读">
+
+| 交互 | 效果 |
+|---|---|
+| **划词** | 在讲义里选中一段文字 → 上方冒出「问大肥鱼」→ 点击直接讲解这段 |
+| **快捷指令** | 总结本章 · 出 3 道题考我 · 举例子 · 帮我找盲点 · 下一步学什么 |
+| **自由问答** | 输入框问任何问题，回答自动带上「第 19 章 · 当前小节」的上下文 |
+| **本章笔记** | 第二个标签页，跟章节走的便签，自动保存 |
+
+**配置模型**：点面板右上角 ⚙，填 API Key 即可。支持任何 OpenAI 兼容服务：
+
+| 服务商 | 需要什么 |
+|---|---|
+| DeepSeek（默认） | `api.deepseek.com` 的 key |
+| 通义千问 / Kimi / OpenAI | 各自平台的 key |
+| **Ollama 本地** | 不用 key，本机跑 `qwen2.5:7b` 之类 |
+| **演示模式** | 完全不用配置，返回固定样例，先看效果 |
+
+> 🔒 密钥只写在本机 `_webapp/.ai-config.json`（已 gitignore），
+> **不会回传给浏览器，也不会进版本控制**。前端只拿到掩码 `sk-abc…1234`。
+>
+> 设计细节与实现坑见 [docs/陪读设计.md](docs/陪读设计.md)。
 
 ---
 
@@ -68,14 +98,17 @@ python server.py
 ```
 Agent-Learning/
 ├── setup.ps1                    一键安装
-├── LICENSE                      MIT（含第三方声明）
+├── LICENSE                      MIT
+├── THIRD-PARTY-NOTICES.md       课程来源与前端依赖声明
 │
 ├── _webapp/                     学习平台
-│   ├── server.py                HTTP 服务（纯标准库）
+│   ├── server.py                HTTP 服务（纯标准库）+ AI 流式代理
 │   ├── start.bat                Windows 双击启动
+│   ├── .ai-config.json          ⬅ AI 密钥，本机生成，已 gitignore
 │   ├── static/                  前端
-│   │   ├── index.html           三栏布局
+│   │   ├── index.html           三栏布局 + 陪读面板
 │   │   ├── app.js               目录树 / 搜索 / 进度 / 路由
+│   │   ├── companion.js         🐟 AI 陪读（上下文 / 流式 / 选区 / 设置）
 │   │   ├── renderers.js         Markdown / Notebook / 代码 / PDF 渲染
 │   │   ├── roadmap.js           首页数据（由 gen-roadmap.js 生成）
 │   │   ├── style.css            主题变量都在 :root 里
@@ -86,7 +119,7 @@ Agent-Learning/
 ├── _scripts/
 │   └── import-agent-course.ps1  拉取课程 + 本地化转换
 │
-├── docs/                        README 截图 + 维护笔记
+├── docs/                        README 截图 + 陪读设计 + 维护笔记
 └── 01-AI-Agent全栈课程/          ⬅ 由 setup.ps1 生成，不纳入版本控制
 ```
 

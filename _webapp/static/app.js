@@ -301,6 +301,8 @@
         }
       }
       document.title = file.name + ' · agent学习平台';
+      // 通知陪读面板：换章节了
+      if (window.Companion) window.Companion.updateContext(file);
       loading(false);
     }).catch(function (e) {
       loading(false);
@@ -856,6 +858,7 @@
       if (state.stats) { renderStats(); renderTimeline(); renderExtra(); }
       expandTo('', null);
       syncFab();
+      if (window.Companion) window.Companion.updateContext(null);
       return;
     }
     openFile(path);
@@ -943,6 +946,12 @@
         return;
       }
       if (ev.key === 'Escape') { closeSearch(); return; }
+      // AI 陪读
+      if (mod && ev.key.toLowerCase() === 'j') {
+        ev.preventDefault();
+        if (window.Companion) window.Companion.toggle();
+        return;
+      }
       // 浮动导航快捷键
       if (ev.altKey && ev.key === 'Home') { ev.preventDefault(); goHome(); return; }
       if (ev.altKey && ev.key === 'ArrowUp') { ev.preventDefault(); scrollTop(); return; }
@@ -974,6 +983,12 @@
     $('#btnSidebar').addEventListener('click', toggleSidebar);
     $('#btnSearch').addEventListener('click', openSearch);
     $('#btnSearchClose').addEventListener('click', closeSearch);
+    // AI 陪读
+    var btnCp = $('#btnCompanion');
+    if (btnCp) btnCp.addEventListener('click', function () {
+      if (window.Companion) window.Companion.toggle();
+    });
+    if (window.Companion) window.Companion.init();
     $('#btnToc').addEventListener('click', function () {
       state.tocHidden = !state.tocHidden;
       lsSet(LS.toc, state.tocHidden);
