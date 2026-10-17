@@ -87,6 +87,10 @@
     return ICONS[node.kind] || ICONS.unknown;
   }
 
+  /* 统一课程图标（目录树里每个章节前面的那张图）
+     换图标只需要改这一个路径，图片替换到 _webapp/static/ 下即可。 */
+  var ICON_LESSON = '/static/fish-22.png';
+
   /* ---------- 目录树：友好的显示名 ---------- */
 
   /* 阿拉伯数字 -> 中文序数（1 一 … 99 九十九） */
@@ -183,7 +187,15 @@
     row.appendChild(arrow);
 
     if (ov && ov.badge) {
-      // 章节序号徽章 —— 想换课程图标的话，替换这个 .tbadge 的内容即可
+      // 章节行：大肥鱼图标 + 序号徽章
+      // 想换图标就改 ICON_LESSON 的路径（建议 22~32px 见方的 PNG）
+      var fish = document.createElement('img');
+      fish.className = 'tfish';
+      fish.src = ICON_LESSON;
+      fish.alt = '';
+      fish.loading = 'lazy';
+      row.appendChild(fish);
+
       var badge = document.createElement('span');
       badge.className = 'tbadge';
       badge.textContent = ov.badge;
