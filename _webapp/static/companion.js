@@ -144,6 +144,13 @@
     CP.ctx.path = file.path || '';
     CP.ctx.chapter = chapterFromPath(file.path);
     CP.ctx.selection = '';
+    // 换章节后 iframe 会重建，选区监听必须重新挂到新的 contentDocument 上
+    if (CP.rebindSelection) {
+      try { CP.rebindSelection(); } catch (e) {}
+      setTimeout(function () {
+        try { CP.rebindSelection(); } catch (e) {}
+      }, 400);
+    }
     // 等 iframe / 文档渲染完再取标题
     setTimeout(function () {
       CP.ctx.heading = visibleHeading();
@@ -455,14 +462,59 @@
     var chip = CP.el.chip;
     if (!chip) return;
 
+    var selTimer = null;
+
+    // 父文档：Markdown / 代码这类直接渲染的内容
     document.addEventListener('mouseup', onMouseUp, true);
+    document.addEventListener('keyup', onKeyUp, true);
+
+    /* iframe 内部：课程讲义全在这里面。
+       iframe 里的鼠标事件不会冒泡到父文档，必须在 contentDocument 上单独监听，
+       否则划线永远等不到 mouseup —— 这正是「划词问大肥鱼」失效的原因。 */
+    function bindIframeDoc(ifr) {
+      var idoc = null;
+      try { idoc = ifr.contentDocument; } catch (e) { return; }
+      if (!idoc || idoc.__cpSelBound) return;
+      idoc.__cpSelBound = true;
+
+      idoc.addEventListener('mouseup', onMouseUp, true);
+      idoc.addEventListener('keyup', onKeyUp, true);
+      idoc.addEventListener('scroll', function () { hideChip(); }, true);
+      // 键盘选择、双击选词这类没有 mouseup 的场景
+      idoc.addEventListener('selectionchange', function () {
+        clearTimeout(selTimer);
+        selTimer = setTimeout(function () { probeSelection(null); }, 240);
+      });
+    }
+
+    function bindSelectionTargets() {
+      var ifr = getIframe();
+      if (!ifr) return;
+      if (!ifr.__cpLoadBound) {
+        ifr.__cpLoadBound = true;
+        // 新章节会重建 iframe，load 时 contentDocument 才指向真正的文档
+        ifr.addEventListener('load', function () { bindIframeDoc(ifr); });
+      }
+      bindIframeDoc(ifr);
+    }
+
+    // 暴露给 updateContext：换章节后重新绑定
+    CP.rebindSelection = bindSelectionTargets;
+    bindSelectionTargets();
 
     function onMouseUp(ev) {
       setTimeout(function () { probeSelection(ev); }, 0);
     }
+    function onKeyUp(ev) {
+      if (ev.key === 'Shift' || ev.key === 'ArrowLeft' || ev.key === 'ArrowRight' ||
+          ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
+        setTimeout(function () { probeSelection(ev); }, 0);
+      }
+    }
 
     function probeSelection(ev) {
-      var sel = String(window.getSelection ? window.getSelection() : '').trim();
+      var winSel = window.getSelection ? window.getSelection() : null;
+      var sel = String(winSel || '').trim();
       var rect = null;
 
       var ifr = getIframe();
@@ -470,7 +522,7 @@
         try {
           var idoc = ifr.contentDocument;
           var isel = idoc && idoc.getSelection ? String(idoc.getSelection()).trim() : '';
-          if (isel && isel.length >= 8) {
+          if (isel && isel.length >= 2) {
             sel = isel;
             var range = idoc.getSelection().getRangeAt(0);
             var r = range.getBoundingClientRect();
@@ -480,29 +532,40 @@
         } catch (e) {}
       }
 
-      if (!rect && sel && sel.length >= 8) {
-        var s = window.getSelection();
-        if (s && s.rangeCount) {
-          var r2 = s.getRangeAt(0).getBoundingClientRect();
+      if (!rect && sel && sel.length >= 2) {
+        if (winSel && winSel.rangeCount) {
+          var r2 = winSel.getRangeAt(0).getBoundingClientRect();
           rect = { left: r2.left, top: r2.top, width: r2.width, height: r2.height };
         }
       }
 
-      if (!sel || !rect || sel.length < 8) { hideChip(); return; }
+      if (!sel || !rect || sel.length < 2) { hideChip(); return; }
 
       CP.ctx.selection = sel.slice(0, 3000);
       chip.dataset.sel = CP.ctx.selection;
       chip.hidden = false;
-      var top = Math.max(8, rect.top - 40);
-      var left = Math.min(window.innerWidth - 150, Math.max(8, rect.left + rect.width / 2 - 60));
+      // 冒泡画在父页面坐标系里，要避开顶部工具栏
+      var top = Math.max(8, rect.top - 42);
+      var left = Math.min(window.innerWidth - 160, Math.max(8, rect.left + rect.width / 2 - 62));
       chip.style.top = top + 'px';
       chip.style.left = left + 'px';
       renderQuick();
     }
 
+    // 点到别处就收起（点到冒泡本身除外）
     document.addEventListener('mousedown', function (ev) {
-      if (ev.target !== chip) { /* 保留，等 selection 判断 */ }
-    });
+      if (!chip.hidden && ev.target !== chip && !chip.contains(ev.target)) hideChip();
+    }, true);
+    var _ifrForHide = getIframe();
+    if (_ifrForHide) {
+      try {
+        _ifrForHide.addEventListener('load', function () {
+          var d = null;
+          try { d = _ifrForHide.contentDocument; } catch (e) { return; }
+          if (d) d.addEventListener('mousedown', function () { hideChip(); }, true);
+        });
+      } catch (e) {}
+    }
 
     chip.addEventListener('click', function () {
       var sel = chip.dataset.sel || '';
