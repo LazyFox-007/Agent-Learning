@@ -61,3 +61,6 @@ docs/git-config-backup.txt
 # AI 陪读密钥（绝不提交）
 _webapp/.ai-config.json
 _webapp/.ai-config.tmp
+
+# 局域网访问令牌（每台机器自己生成）
+_webapp/.lan-token

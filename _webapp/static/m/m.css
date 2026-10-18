@@ -1,0 +1,377 @@
+/* =====================================================================
+   手机版样式（static/m/m.css）
+   与电脑版共用 style.css 的基础变量、.doc 正文、.thm 定理环境、.cp-* 陪读组件
+   本文件只处理：手机布局、目录抽屉、悬浮球、陪读全屏化
+   ===================================================================== */
+
+/* ---------------- 全局：手机优先 ---------------- */
+html, body {
+  height: 100%;
+  overflow: hidden;              /* 由内部容器滚动，避免整页弹动 */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+body.m-app {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+/* ---------------- 顶栏 ---------------- */
+.m-top {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top);
+  height: calc(52px + env(safe-area-inset-top));
+}
+.m-top-btn {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--ink2);
+  font-size: 20px; border-radius: 10px; cursor: pointer;
+}
+.m-top-btn:active { background: var(--bg3); }
+.m-top-btn[hidden] { display: none; }
+.m-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px; font-weight: 700; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-align: center;
+}
+
+/* ---------------- 主区 ---------------- */
+.m-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.m-doc {
+  padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
+  font-size: 16px;
+  line-height: 1.85;
+  max-width: 100%;
+}
+/* 整页 HTML / PDF：占满，不留内边距 */
+.m-doc--full {
+  padding: 0;
+  height: 100%;
+}
+.m-doc--full .html-view,
+.m-doc--full .pdf-view {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+.m-doc img { max-width: 100%; height: auto; }
+.m-doc pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.m-doc table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+/* 公式：块级必须能横向滑动，否则长公式撑破屏幕 */
+.m-doc .katex-display,
+.m-doc .katex {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+.m-doc .katex-display > .katex { overflow: visible; }
+.m-doc .katex-display {
+  padding: 2px 0 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------------- 首页 ---------------- */
+.m-home {
+  padding: 18px 16px calc(96px + env(safe-area-inset-bottom));
+}
+.m-h1 {
+  font-size: 24px; font-weight: 700; color: var(--ink);
+  margin: 8px 0 6px;
+}
+.m-sub {
+  font-size: 13.5px; color: var(--ink4); line-height: 1.7;
+  margin: 0 0 18px;
+}
+
+/* 继续上次 */
+.m-resume { margin-bottom: 18px; }
+.m-resume-btn {
+  width: 100%;
+  display: flex; align-items: center; gap: 11px;
+  padding: 13px 14px;
+  border-radius: 13px;
+  border: 1px solid var(--accent2);
+  background: var(--accent-bg);
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
+}
+.m-resume-ico { font-size: 19px; flex-shrink: 0; }
+.m-resume-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.m-resume-txt b { font-size: 14px; font-weight: 700; }
+.m-resume-txt i {
+  font-style: normal; font-size: 12px; color: var(--ink3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 资源卡 */
+.m-cards { display: flex; flex-direction: column; gap: 11px; }
+.m-card {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 15px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  text-align: left; cursor: pointer;
+  position: relative; overflow: hidden;
+}
+.m-card::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--m-c, var(--accent));
+}
+.m-blue { --m-c: #3b5bdb; --m-bg: #eef2ff; }
+.m-violet { --m-c: #7048e8; --m-bg: #f3f0ff; }
+html[data-theme="dark"] .m-blue { --m-c: #748ffc; --m-bg: #151b2e; }
+html[data-theme="dark"] .m-violet { --m-c: #b197fc; --m-bg: #1d1730; }
+.m-card:active { background: var(--bg3); }
+.m-card-ico {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--m-bg); color: var(--m-c);
+  font-size: 21px; font-weight: 700;
+}
+.m-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.m-card-body b { font-size: 15px; font-weight: 700; color: var(--ink); }
+.m-card-body i {
+  font-style: normal; font-size: 11.5px; color: var(--ink4);
+}
+.m-card-arrow { flex-shrink: 0; font-size: 20px; color: var(--ink4); }
+
+.m-loading, .m-error {
+  padding: 28px 16px; text-align: center;
+  font-size: 13.5px; color: var(--ink4);
+}
+.m-error { color: var(--warn); }
+
+/* ---------------- 目录抽屉 ---------------- */
+.m-mask {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(10, 14, 22, .45);
+  opacity: 0; transition: opacity .22s;
+}
+.m-mask.on { opacity: 1; }
+.m-mask[hidden] { display: none; }
+
+.m-drawer {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 91;
+  width: min(86vw, 340px);
+  background: var(--bg2);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform .24s cubic-bezier(.4, 0, .2, 1);
+  padding-top: env(safe-area-inset-top);
+}
+.m-drawer.on { transform: none; }
+.m-drawer[hidden] { display: none; }
+.m-drawer-head {
+  flex-shrink: 0;
+  padding: 14px 16px 10px;
+  font-size: 13px; font-weight: 700; color: var(--ink3);
+  border-bottom: 1px solid var(--line);
+}
+.m-list {
+  flex: 1; overflow-y: auto;
+  padding: 8px 8px calc(20px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.m-group { margin-bottom: 14px; }
+.m-group-head {
+  padding: 8px 10px 6px;
+  font-size: 12px; font-weight: 700; color: var(--ink4);
+  letter-spacing: .3px;
+}
+.m-group-body { display: flex; flex-direction: column; gap: 1px; }
+
+/* 列表项：44px 以上，手指好点 */
+.m-li {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; min-height: 44px;
+  padding: 9px 10px;
+  border: none; background: transparent;
+  border-radius: 9px;
+  text-align: left; cursor: pointer;
+  color: var(--ink2); font-family: inherit;
+}
+.m-li:active { background: var(--bg3); }
+.m-li-no {
+  flex-shrink: 0; min-width: 42px;
+  font-size: 10.5px; font-weight: 700; color: var(--ink4);
+}
+.m-li-t { flex: 1; font-size: 14px; line-height: 1.5; }
+.m-li-hint { padding: 6px 10px; font-size: 12px; color: var(--ink4); }
+
+.m-subs {
+  display: flex; flex-direction: column; gap: 1px;
+  margin: 2px 0 6px 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+.m-sub {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 7px 10px;
+  border: none; background: transparent;
+  border-radius: 8px; text-align: left;
+  color: var(--ink3); font-size: 13px;
+  font-family: inherit; cursor: pointer;
+}
+.m-sub:active { background: var(--bg3); }
+.m-sub-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.m-sub-dot.html { background: #5c7cfa; }
+.m-sub-dot.py { background: #37b24d; }
+
+/* ---------------- 悬浮球 ---------------- */
+.cp-orb {
+  position: fixed;
+  right: 16px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 88;
+  width: 56px; height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--bg2);
+  background: linear-gradient(160deg, #eaf4ff, #d6e8ff);
+  box-shadow: 0 6px 20px rgba(30, 80, 180, .3), 0 0 0 1px rgba(59, 91, 219, .12);
+  cursor: pointer; overflow: visible;
+  transition: transform .18s, box-shadow .18s;
+}
+.cp-orb img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.cp-orb:active { transform: scale(.94); }
+.cp-orb.on { background: linear-gradient(160deg, #3b5bdb, #4c6ef5); }
+.cp-orb.on::after {
+  content: "✕"; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: rgba(59, 91, 219, .94);
+  color: #fff; font-size: 20px; font-weight: 700;
+}
+html[data-theme="dark"] .cp-orb {
+  border-color: var(--bg3);
+  background: linear-gradient(160deg, #26303f, #1c2433);
+}
+
+/* ---------------- 陪读面板：手机上全屏 ---------------- */
+.companion {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 95;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  border-left: none !important;
+  transform: translateY(100%);
+  transition: transform .24s cubic-bezier(.4, 0, .2, 1);
+  padding-top: env(safe-area-inset-top);
+}
+body.cp-open .companion {
+  transform: none;
+}
+.cp-head { padding: 10px 8px 10px 12px; }
+.cp-msgs { padding: 14px 14px 8px; }
+.cp-quick { padding: 0 14px 8px; }
+.cp-compose {
+  padding: 9px 12px calc(12px + env(safe-area-inset-bottom));
+}
+.cp-compose textarea { font-size: 16px; }   /* ≥16px 防止 iOS 自动放大 */
+
+/* 冒泡：手机上加大，方便手指点 */
+.cp-selchip {
+  padding: 9px 16px !important;
+  font-size: 13.5px !important;
+  border-radius: 99px !important;
+}
+
+/* 设置弹窗：手机上贴底 */
+.cp-modal { padding: 0 !important; align-items: flex-end !important; }
+.cp-dialog {
+  max-width: 100% !important;
+  width: 100% !important;
+  max-height: 92vh !important;
+  border-radius: 16px 16px 0 0 !important;
+}
+.cp-dlg-foot { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+
+/* 提示条 */
+.m-toast {
+  position: fixed; left: 50%; bottom: calc(88px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 9px 18px; border-radius: 99px;
+  background: rgba(20, 24, 32, .92); color: #fff;
+  font-size: 13px; max-width: 84vw;
+  text-align: center;
+}
+.m-toast[hidden] { display: none; }
+
+/* 主题切换按钮在手机上隐藏时 */
+[hidden] { display: none !important; }
+/* ---------------- 上一章 / 下一章 ---------------- */
+.m-nav {
+  display: flex;
+  gap: 10px;
+  margin: 26px 0 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.m-nav-a {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  text-decoration: none;
+  color: var(--ink2);
+}
+.m-nav-a:active { background: var(--bg3); }
+.m-nav-empty { border: none; background: transparent; }
+.m-nav-next { text-align: right; align-items: flex-end; }
+.m-nav-dir { font-size: 11px; font-weight: 700; color: var(--accent); }
+.m-nav-t {
+  font-size: 12.5px; line-height: 1.45; color: var(--ink3);
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+/* ---------------- 正文排版松紧（数学教材页偏紧，放宽一点） ---------------- */
+.m-doc { line-height: 2.0; }
+.m-doc p { margin: 0 0 1.15em; }
+.m-doc h1 { margin: 1.1em 0 .7em; font-size: 1.55em; line-height: 1.5; }
+.m-doc h2 { margin: 1.6em 0 .65em; font-size: 1.28em; line-height: 1.55; }
+.m-doc h3 { margin: 1.4em 0 .55em; font-size: 1.12em; }
+.m-doc ul, .m-doc ol { margin: .8em 0 1.1em; padding-left: 1.4em; }
+.m-doc li { margin: .4em 0; }
+.m-doc blockquote { margin: 1.1em 0; padding: .7em 1em; }
+/* 块级公式上下留白，别跟正文粘在一起 */
+.m-doc .katex-display { margin: 1.1em 0; padding: 4px 0 8px; }
+/* 定理框之间也松一点 */
+.m-doc .thm { margin: 1.5em 0; }
+/* 图片与正文的间距 */
+.m-doc img { margin: 1em 0; border-radius: 8px; }

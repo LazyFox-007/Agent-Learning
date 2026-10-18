@@ -43,6 +43,23 @@
     return out.join('/');
   }
 
+  /* 有些教材（如 AFA）的图片路径是按「项目根目录」写的，
+     而不是相对 md 文件所在目录。典型形态：md 放在 book/ 下，
+     但正文写 figures/x.png —— 实际文件在 <资源根>/figures/x.png。
+     这里对这种约定做一次回退：md 在 book/ 里时，把 book/ 去掉再拼一次。 */
+  function resolveAssetPath(baseDir, rel) {
+    var direct = resolvePath(baseDir, rel);
+    var p = String(rel || '').replace(/\\/g, '/');
+    if (/^(https?:|data:|blob:|mailto:|#|\/\/|\/)/i.test(p)) return direct;
+    var bd = String(baseDir || '');
+    if (/(^|\/)book$/.test(bd)) {
+      var parent = bd.replace(/\/book$/, '');
+      var alt = resolvePath(parent, p);
+      if (alt && alt !== direct) return alt;
+    }
+    return direct;
+  }
+
   function rawUrl(rootRelPath) {
     return '/api/raw?path=' + encodeURIComponent(rootRelPath);
   }
@@ -133,10 +150,10 @@
         return '<code class="math-error">' + esc(mm.tex) + '</code>';
       }
     });
-    // 图片相对路径
+    // 图片相对路径（book/ 里的教材会回退到资源根目录找 figures/）
     html = html.replace(/(<img\b[^>]*?\ssrc=)(["'])(.*?)\2/gi, function (m, pre, q, src) {
       if (/^(https?:|data:|blob:)/i.test(src)) return m;
-      var abs = resolvePath(baseDir, src);
+      var abs = resolveAssetPath(baseDir, src);
       return pre + q + rawUrl(abs) + q + ' data-src="' + esc(src) + '" loading="lazy"';
     });
     // 链接：站内相对链接转 hash 路由

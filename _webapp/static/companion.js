@@ -500,6 +500,13 @@
     // 父文档：Markdown / 代码这类直接渲染的内容
     document.addEventListener('mouseup', onMouseUp, true);
     document.addEventListener('keyup', onKeyUp, true);
+    // 手机上长按选词主要触发 selectionchange，mouseup 不一定有，
+    // 所以父文档也必须监听（数学页走的就是这条路）
+    document.addEventListener('selectionchange', function () {
+      if (document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      clearTimeout(selTimer);
+      selTimer = setTimeout(function () { probeSelection(null); }, 240);
+    });
 
     /* iframe 内部：课程讲义全在这里面。
        iframe 里的鼠标事件不会冒泡到父文档，必须在 contentDocument 上单独监听，
@@ -602,10 +609,10 @@
 
     chip.addEventListener('click', function () {
       var sel = chip.dataset.sel || '';
+      var at = { top: parseInt(chip.style.top, 10) || 80, left: parseInt(chip.style.left, 10) || 40 };
       hideChip();
-      if (!CP.open) openPanel();
-      if (CP.tab !== 'chat') switchTab('chat');
-      send('请解释我选中的这段内容：\n\n> ' + sel.replace(/\n/g, '\n> '), {});
+      // 划词问答：就地弹一个小气泡直接出答案，不打开全屏面板
+      askInline(sel, at);
     });
 
     window.addEventListener('scroll', hideChip, true);
@@ -613,6 +620,162 @@
 
   function hideChip() {
     if (CP.el.chip) CP.el.chip.hidden = true;
+  }
+
+  /* ------------------------------------------------------------------
+     划词快答：在选区旁边弹一个小气泡，直接流式出答案，不打开全屏面板
+     ------------------------------------------------------------------ */
+  var _inlineEl = null;      // 气泡根节点
+  var _inlineXhr = null;
+
+  function closeInline() {
+    if (_inlineXhr) { try { _inlineXhr.abort(); } catch (e) {} _inlineXhr = null; }
+    if (_inlineEl) { _inlineEl.remove(); _inlineEl = null; }
+  }
+
+  function inlineBubble() {
+    if (_inlineEl) return _inlineEl;
+    var el = document.createElement('div');
+    el.className = 'cp-inline';
+    el.innerHTML =
+      '<div class="cp-inline-head">' +
+        '<img src="/static/mascot-64.png" alt="">' +
+        '<b>大肥鱼</b>' +
+        '<button class="cp-inline-x" title="关闭">✕</button>' +
+      '</div>' +
+      '<div class="cp-inline-body"><span class="cp-inline-dots"><i></i><i></i><i></i></span></div>' +
+      '<div class="cp-inline-foot"><button class="cp-inline-more">在陪读面板里继续 →</button></div>';
+    document.body.appendChild(el);
+    el.querySelector('.cp-inline-x').addEventListener('click', closeInline);
+    el.querySelector('.cp-inline-more').addEventListener('click', function () {
+      var q = el.dataset.q || '';
+      closeInline();
+      if (!CP.open) openPanel();
+      if (CP.tab !== 'chat') switchTab('chat');
+      if (q) send(q, {});
+    });
+    _inlineEl = el;
+    return el;
+  }
+
+  function askInline(sel, at) {
+    sel = String(sel || '').trim();
+    if (!sel) return;
+    closeInline();
+    var el = inlineBubble();
+    el.dataset.q = '请解释我选中的这段内容：\n\n> ' + sel.replace(/\n/g, '\n> ');
+    el.dataset.sel = sel;
+    placeInline(el, at);
+
+    var body = el.querySelector('.cp-inline-body');
+
+    // 后端需要当前章节上下文，和面板用的是同一套
+    var ctx = {
+      path: CP.ctx.path, chapter: CP.ctx.chapter,
+      heading: CP.ctx.heading, progress: CP.ctx.progress,
+      selection: sel
+    };
+
+    var text = '';
+    var xhr = new XMLHttpRequest();
+    _inlineXhr = xhr;
+    xhr.open('POST', '/api/ai/chat', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    var lastLen = 0;
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 3 && xhr.readyState !== 4) return;
+      var raw = '';
+      try { raw = xhr.responseText || ''; } catch (e) { return; }
+      var chunk = raw.slice(lastLen);
+      lastLen = raw.length;
+      if (!chunk) return;
+
+      var evs = chunk.split('\n\n');
+      evs.forEach(function (ev) {
+        var line = ev.split('\n').filter(function (l) { return l.indexOf('data:') === 0; })[0];
+        if (!line) return;
+        var obj;
+        try { obj = JSON.parse(line.slice(5).trim()); } catch (e) { return; }
+        if (obj.type === 'delta' && obj.text) {
+          text += obj.text;
+          body.textContent = text;
+          body.scrollTop = body.scrollHeight;
+        } else if (obj.type === 'error') {
+          body.innerHTML = '<span class="cp-inline-err">❌ ' + esc(obj.message || '出错了') +
+            (obj.hint ? '<br>💡 ' + esc(obj.hint) : '') + '</span>';
+        } else if (obj.type === 'done') {
+          if (window.Renderers && Renderers.renderMarkdown) {
+            try {
+              var r = Renderers.renderMarkdown(text, CP.ctx.path ? CP.ctx.path.split('/').slice(0, -1).join('/') : '');
+              body.innerHTML = '<div class="cp-md">' + r.html + '</div>';
+            } catch (e) { body.textContent = text; }
+          } else { body.textContent = text; }
+        }
+      });
+      placeInline(el, at);
+    };
+
+    xhr.onerror = function () {
+      body.innerHTML = '<span class="cp-inline-err">❌ 连不上本地服务</span>';
+    };
+
+    xhr.send(JSON.stringify({
+      messages: [{ role: 'user', content: el.dataset.q }],
+      context: ctx
+    }));
+
+    // 点别处关闭
+    setTimeout(function () {
+      document.addEventListener('mousedown', function once(e) {
+        if (_inlineEl && !_inlineEl.contains(e.target)) {
+          closeInline();
+          document.removeEventListener('mousedown', once, true);
+        }
+      }, true);
+    }, 100);
+  }
+
+  /* 把气泡摆到选区附近，保证完整显示在屏幕内。
+     手机上的坑：
+       · 100vh 含浏览器地址栏，实际可见高度小得多 → 用 visualViewport
+       · 答案流式变长时高度一直在变 → 每次都要重新夹一次
+       · 上方放不下就翻到选区下方，下方也放不下就贴顶/贴底 */
+  function placeInline(el, at) {
+    var vv = window.visualViewport;
+    var vw = (vv && vv.width) || window.innerWidth;
+    var vh = (vv && vv.height) || window.innerHeight;
+    var offTop = (vv && vv.offsetTop) || 0;
+    var offLeft = (vv && vv.offsetLeft) || 0;
+
+    var GAP = 10;
+    var avail = vh - GAP * 2;                 // 真正能用的高度
+
+    // 先限制最大高度，避免内容把气泡撑出屏幕
+    el.style.maxHeight = Math.min(avail, Math.round(vh * 0.66)) + 'px';
+
+    var w = el.offsetWidth || Math.min(340, vw - 20);
+    var h = el.offsetHeight || 160;
+
+    var left = Math.round(at.left - w / 2 + 60);
+    left = Math.max(GAP + offLeft, Math.min(vw - w - GAP + offLeft, left));
+
+    // 优先放在选区上方
+    var top = at.top - h - 14;
+    if (top < GAP + offTop) {
+      // 上方不够 → 放到选区下方
+      var below = at.top + 52;
+      if (below + h > vh - GAP + offTop) {
+        // 上下都放不下 → 贴顶（内容自己滚动）
+        top = GAP + offTop;
+      } else {
+        top = below;
+      }
+    }
+    top = Math.max(GAP + offTop, Math.min(vh - h - GAP + offTop, top));
+
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
   }
 
   /* ------------------------------------------------------------------

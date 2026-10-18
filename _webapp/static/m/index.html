@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f8fa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="agent学习平台">
+<title>agent学习平台</title>
+<link rel="icon" href="/static/favicon.ico">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/vendor/katex.min.css">
+<link rel="stylesheet" href="/static/vendor/hljs-light.css" id="hljs-light">
+<link rel="stylesheet" href="/static/vendor/hljs-dark.css" id="hljs-dark" disabled>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/m/m.css">
+<script>
+/* 主题：跟系统，允许记住手动选择；同时切换代码高亮的深浅样式 */
+(function(){
+  try {
+    var t = localStorage.getItem('studyai.theme');
+    t = t ? JSON.parse(t) : null;
+    if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    var l = document.getElementById('hljs-light'), d = document.getElementById('hljs-dark');
+    if (l && d) { l.disabled = (t === 'dark'); d.disabled = (t !== 'dark'); }
+  } catch(e){}
+})();
+</script>
+</head>
+<body class="m-app">
+
+<header class="m-top">
+  <button class="m-top-btn" id="mBack" aria-label="返回" hidden>←</button>
+  <div class="m-title" id="mTitle">agent学习平台</div>
+  <button class="m-top-btn" id="mMenu" aria-label="目录">☰</button>
+</header>
+
+<div class="m-scroll" id="mScroll">
+  <div class="m-home" id="mHome">
+    <h1 class="m-h1">agent学习平台</h1>
+    <p class="m-sub">选一个资源开始 · 在讲义里划词就能问大肥鱼</p>
+    <div class="m-resume" id="mResume" hidden></div>
+    <div class="m-cards" id="mCards"></div>
+  </div>
+  <main class="m-doc" id="doc" hidden></main>
+</div>
+
+<!-- companion.js 需要 #toc 存在（手机版隐藏即可） -->
+<div id="toc" hidden></div>
+
+<!-- 目录抽屉 -->
+<div class="m-mask" id="mMask" hidden></div>
+<aside class="m-drawer" id="mDrawer" hidden>
+  <div class="m-drawer-head">目录</div>
+  <div class="m-list" id="mList"></div>
+</aside>
+
+<button class="cp-selchip" id="cpSelChip" hidden>🐟 问大肥鱼</button>
+
+<aside class="companion" id="companion" hidden>
+    <header class="cp-head">
+      <img class="cp-avatar" src="/static/mascot-64.png" alt="大肥鱼">
+      <div class="cp-who">
+        <div class="cp-name">大肥鱼 <span class="cp-role">陪读</span><span class="cp-mode" id="cpMode" hidden></span></div>
+        <div class="cp-ctx" id="cpCtx">未打开文件</div>
+      </div>
+      <button class="icon-btn cp-ib" id="cpClear" title="清空本章对话">🗑</button>
+      <button class="icon-btn cp-ib" id="cpSettings" title="模型设置">⚙</button>
+      <button class="icon-btn cp-ib" id="cpClose" title="关闭 (Ctrl+J)">✕</button>
+    </header>
+
+    <div class="cp-tabs">
+      <button class="cp-tab active" data-cptab="chat">对话</button>
+      <button class="cp-tab" data-cptab="note">本章笔记</button>
+    </div>
+
+    <div class="cp-pane" id="cpPaneChat">
+      <div class="cp-msgs" id="cpMsgs"></div>
+      <div class="cp-typing" id="cpTyping" hidden>
+        <span></span><span></span><span></span>
+      </div>
+      <div class="cp-quick" id="cpQuick"></div>
+      <div class="cp-compose">
+        <textarea id="cpInput" rows="1" placeholder="问下大肥鱼？"></textarea>
+        <button class="cp-send" id="cpSend" title="发送 (Enter)">↑</button>
+      </div>
+    </div>
+
+    <div class="cp-pane" id="cpPaneNote" hidden>
+      <textarea id="cpNote" placeholder="记点什么……&#10;&#10;自动保存，跟着当前章节走。"></textarea>
+    </div>
+  </aside>
+
+<div class="cp-modal" id="cpModal" hidden>
+  <div class="cp-dialog cp-dialog--setup">
+    <div class="cp-dlg-head">
+      <h3 id="cpDlgTitle">连接模型</h3>
+      <button class="icon-btn" id="cpModalClose" title="关闭">✕</button>
+    </div>
+
+    <div class="cp-dlg-body">
+      <p class="cp-lead">选一个服务商，填上 API Key 就能用了。密钥只存本机，不会上传。</p>
+
+      <!-- 服务商卡片，由 companion.js 渲染 -->
+      <div class="cp-providers" id="cpProviders"></div>
+
+      <label class="cp-field" id="cpKeyField">
+        <span>API Key</span>
+        <input id="cpKey" type="password" placeholder="sk-..." spellcheck="false" autocomplete="off">
+        <small class="cp-field-hint" id="cpKeyHint"></small>
+      </label>
+
+      <details class="cp-advanced" id="cpAdvanced">
+        <summary>高级设置（一般不用改）</summary>
+        <div class="cp-adv-body">
+          <label class="cp-field">
+            <span>接口地址</span>
+            <input id="cpBaseUrl" type="text" placeholder="https://api.deepseek.com/v1" spellcheck="false">
+          </label>
+          <label class="cp-field">
+            <span>模型名</span>
+            <input id="cpModel" type="text" placeholder="deepseek-chat" spellcheck="false">
+          </label>
+          <label class="cp-field cp-field-row">
+            <span>温度</span>
+            <input id="cpTemp" type="range" min="0" max="2" step="0.1" value="0.7">
+            <b id="cpTempVal">0.7</b>
+          </label>
+        </div>
+      </details>
+
+      <div class="cp-test-out" id="cpTestOut"></div>
+    </div>
+
+    <div class="cp-dlg-foot">
+      <a class="cp-getkey" id="cpGetKey" href="#" target="_blank" rel="noopener noreferrer" hidden>去申请 Key →</a>
+      <span class="cp-foot-spacer"></span>
+      <button class="cp-btn" id="cpTest">测试连接</button>
+      <button class="cp-btn primary" id="cpSave">保存并测试</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- 大肥鱼悬浮球：手机版陪读入口 -->
+<button class="cp-orb" id="cpOrb" aria-label="打开 AI 陪读">
+  <img src="/static/mascot-girl.png" alt="">
+</button>
+
+<div class="m-toast" id="mToast" hidden></div>
+
+<script src="/static/vendor/marked.min.js"></script>
+<script src="/static/vendor/katex.min.js"></script>
+<script src="/static/vendor/auto-render.min.js"></script>
+<script src="/static/vendor/highlight.min.js"></script>
+<script src="/static/roadmap.js"></script>
+<script src="/static/library.js"></script>
+<script src="/static/renderers.js"></script>
+<script src="/static/companion.js"></script>
+<script src="/static/m/m.js"></script>
+</body>
+</html>

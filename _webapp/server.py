@@ -17,6 +17,8 @@ import gzip
 import time
 import socket
 import mimetypes
+import re
+import secrets
 import threading
 import webbrowser
 import urllib.parse
@@ -32,6 +34,42 @@ STATIC   = WEBAPP / "static"
 
 HOST     = "127.0.0.1"
 PORT     = 8777
+
+# ---- 局域网模式（启动加 --lan 打开）----
+# 电脑版照旧走 127.0.0.1，不需要令牌；
+# 手机等外部设备必须带令牌，见启动时打印的 ?t= 地址。
+LAN_MODE       = False
+LAN_TOKEN      = ""
+LAN_TOKEN_FILE = WEBAPP / ".lan-token"
+
+
+def load_or_create_lan_token():
+    """读令牌；没有就生成一个存盘（.lan-token 已在 .gitignore）。"""
+    try:
+        if LAN_TOKEN_FILE.is_file():
+            t = LAN_TOKEN_FILE.read_text(encoding="utf-8").strip()
+            if t:
+                return t
+    except Exception:
+        pass
+    t = secrets.token_urlsafe(12)
+    try:
+        LAN_TOKEN_FILE.write_text(t, encoding="utf-8")
+    except Exception:
+        pass
+    return t
+
+
+def guess_lan_ip():
+    """推断本机局域网 IP（UDP connect 不发包）。"""
+    try:
+        u = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        u.connect(("8.8.8.8", 80))
+        ip = u.getsockname()[0]
+        u.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
 MAX_TEXT      = 8  * 1024 * 1024      # 文本类文件读取上限 8 MB
 MAX_RAW       = 64 * 1024 * 1024      # 原始字节流上限 64 MB
@@ -531,9 +569,60 @@ class Handler(BaseHTTPRequestHandler):
         params = urllib.parse.parse_qs(qs)
         return params.get(key, [default])[0]
 
+    # ---------- 访问控制（局域网模式） ----------
+    def _client_is_local(self):
+        """请求是否来自本机（回环地址）。本机永远放行，电脑版不受影响。"""
+        try:
+            ip = self.client_address[0]
+        except Exception:
+            return False
+        return ip in ("127.0.0.1", "::1", "localhost")
+
+    def _token_ok(self):
+        """局域网访问必须带令牌：?t=xxx 或 cookie。"""
+        if not LAN_MODE or self._client_is_local():
+            return True
+        want = LAN_TOKEN
+        if not want:
+            return True
+        # 1) 查询串 ?t=
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        got = (qs.get("t") or [""])[0]
+        if got and secrets.compare_digest(got, want):
+            return True
+        # 2) Cookie
+        cookie = self.headers.get("Cookie") or ""
+        m = re.search(r"(?:^|;\s*)smk=([^;]+)", cookie)
+        if m and secrets.compare_digest(m.group(1), want):
+            return True
+        return False
+
+    def _reject_unauth(self):
+        body = (
+            "<!doctype html><meta charset='utf-8'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            "<body style=\"font:16px/1.8 -apple-system,system-ui,sans-serif;"
+            "padding:28px;color:#333;max-width:520px;margin:auto\">"
+            "<h2 style='margin:0 0 10px'>需要访问令牌</h2>"
+            "<p style='color:#666'>这个服务只允许本机或带令牌的设备访问。</p>"
+            "<p style='color:#666'>请复制电脑上服务窗口打印的完整地址（带 "
+            "<code>?t=</code> 的那一串）再打开。</p>"
+            "</body>"
+        ).encode("utf-8")
+        self.send_response(403)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        try:
+            self.wfile.write(body)
+        except Exception:
+            pass
+
     # ---------- 路由 ----------
     def do_GET(self):
         try:
+            if not self._token_ok():
+                return self._reject_unauth()
             return self._route()
         except UnsafePath as e:
             return self._err(403, "路径越界: %s" % e)
@@ -550,6 +639,10 @@ class Handler(BaseHTTPRequestHandler):
 
         if path in ("/", "/index.html"):
             return self._static("index.html")
+
+        # 手机版外壳（与电脑版共用渲染器与陪读逻辑，布局独立）
+        if path in ("/m", "/m/", "/m/index.html"):
+            return self._static("m/index.html")
 
         # 部分浏览器无视 <link rel="icon"> 仍直接请求根路径
         if path == "/favicon.ico":
@@ -590,6 +683,8 @@ class Handler(BaseHTTPRequestHandler):
     # ---------- POST ----------
     def do_POST(self):
         try:
+            if not self._token_ok():
+                return self._reject_unauth()
             return self._route_post()
         except UnsafePath as e:
             return self._err(403, "路径越界: %s" % e)
@@ -1164,6 +1259,8 @@ def find_port(start=PORT, tries=20):
 
 
 def main():
+    global HOST, LAN_MODE, LAN_TOKEN
+
     if not ROOT.is_dir():
         print("!! 资料根目录不存在: %s" % ROOT)
         sys.exit(1)
@@ -1171,24 +1268,77 @@ def main():
         print("!! 前端缺失: %s" % (STATIC / "index.html"))
         sys.exit(1)
 
+    # --- 局域网模式 ---
+    if "--lan" in sys.argv:
+        LAN_MODE = True
+        LAN_TOKEN = load_or_create_lan_token()
+        HOST = "0.0.0.0"
+
+    # --bind <IP>：额外在指定网卡上开一个监听（比如 USB 共享网络的地址）。
+    # 这样既保留 127.0.0.1，又能让手机通过 USB 访问，且完全不开 0.0.0.0，
+    # WiFi 上的其他设备碰不到。
+    extra_binds = []
+    for i, a in enumerate(sys.argv):
+        if a == "--bind" and i + 1 < len(sys.argv):
+            ip = sys.argv[i + 1].strip()
+            if ip and ip != "127.0.0.1" and ip != "0.0.0.0":
+                extra_binds.append(ip)
+        elif a.startswith("--bind="):
+            ip = a.split("=", 1)[1].strip()
+            if ip and ip != "127.0.0.1" and ip != "0.0.0.0":
+                extra_binds.append(ip)
+
     port = find_port()
-    url = "http://%s:%d/" % (HOST, port)
+    local_url = "http://127.0.0.1:%d/" % port
 
     srv = ThreadingHTTPServer((HOST, port), Handler)
     srv.daemon_threads = True
+
+    # 额外的监听：同一个端口，绑到别的网卡上
+    extra_srvs = []
+    for ip in extra_binds:
+        try:
+            s2 = ThreadingHTTPServer((ip, port), Handler)
+            s2.daemon_threads = True
+            extra_srvs.append((ip, s2))
+        except Exception as e:
+            print("!! 无法绑定 %s:%d —— %s" % (ip, port, e))
 
     print("=" * 62)
     print("  agent学习平台 · 本地服务")
     print("=" * 62)
     print("  资料目录 : %s" % ROOT)
-    print("  访问地址 : %s" % url)
-    print("  监听     : %s:%d  (仅本机可访问)" % (HOST, port))
+    print("  本机访问 : %s" % local_url)
+    if LAN_MODE:
+        ip = guess_lan_ip()
+        print("  手机访问 : http://%s:%d/m?t=%s" % (ip, port, LAN_TOKEN))
+        print("  监听     : 0.0.0.0:%d  (局域网可访问，需令牌)" % port)
+        print()
+        print("  ⚠ 同一 WiFi 下的其他设备没有这个令牌就进不来。")
+        print("    令牌存在 _webapp/.lan-token，想换就删掉它重启。")
+    elif extra_srvs:
+        for ip, _ in extra_srvs:
+            print("  手机访问 : http://%s:%d/m" % (ip, port))
+        print("  监听     : 127.0.0.1 + %s  (只在这些网卡上，不开 0.0.0.0)"
+              % ", ".join(ip for ip, _ in extra_srvs))
+        print()
+        print("  这条链路只走你插的那根线，WiFi 上的其他设备碰不到。")
+    else:
+        print("  监听     : %s:%d  (仅本机可访问)" % (HOST, port))
+        print()
+        print("  想在手机/平板上用？")
+        print("     USB 共享网络 : python server.py --bind <那块网卡的IP>")
+        print("     同一 WiFi    : python server.py --lan   (带访问令牌)")
     print()
     print("  按 Ctrl+C 停止服务")
     print("=" * 62)
 
+    # 额外监听放到后台线程
+    for ip, s2 in extra_srvs:
+        threading.Thread(target=s2.serve_forever, daemon=True).start()
+
     if "--no-browser" not in sys.argv:
-        threading.Timer(0.8, lambda: webbrowser.open(url)).start()
+        threading.Timer(0.8, lambda: webbrowser.open(local_url)).start()
 
     try:
         srv.serve_forever()
