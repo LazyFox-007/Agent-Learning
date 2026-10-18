@@ -1327,3 +1327,13 @@ body.cp-open .fab-stack{right:calc(var(--cp-w) + 22px)}
 @media(max-width:640px){
   .cp-inline{width:calc(100vw - 20px);max-height:56vh}
 }
+/* 气泡可拖动：标题栏 + 抓手 */
+.cp-inline-head{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none}
+.cp-inline-head:active{cursor:grabbing}
+.cp-inline.dragging{box-shadow:0 18px 54px rgba(12,20,40,.32);transition:none}
+.cp-inline.dragging .cp-inline-body{pointer-events:none}
+.cp-inline-grip{
+  font-size:13px;color:var(--ink4);letter-spacing:-1px;
+  line-height:1;flex-shrink:0;opacity:.75;
+}
+.cp-inline-head:hover .cp-inline-grip{opacity:1;color:var(--ink3)}

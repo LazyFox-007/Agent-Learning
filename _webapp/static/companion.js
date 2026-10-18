@@ -639,6 +639,7 @@
     el.className = 'cp-inline';
     el.innerHTML =
       '<div class="cp-inline-head">' +
+        '<span class="cp-inline-grip" aria-hidden="true">⠿</span>' +
         '<img src="/static/mascot-64.png" alt="">' +
         '<b>大肥鱼</b>' +
         '<button class="cp-inline-x" title="关闭">✕</button>' +
@@ -646,6 +647,7 @@
       '<div class="cp-inline-body"><span class="cp-inline-dots"><i></i><i></i><i></i></span></div>' +
       '<div class="cp-inline-foot"><button class="cp-inline-more">在陪读面板里继续 →</button></div>';
     document.body.appendChild(el);
+    makeDraggable(el);
     el.querySelector('.cp-inline-x').addEventListener('click', closeInline);
     el.querySelector('.cp-inline-more').addEventListener('click', function () {
       var q = el.dataset.q || '';
@@ -736,6 +738,57 @@
     }, 100);
   }
 
+  /* 气泡可拖动：按住标题栏（或 ⠿ 抓手）拖到任意位置。
+     用 Pointer Events，鼠标和触摸都支持。
+     一旦用户手动拖过，就不再自动跟随选区定位（否则答案流式更新时会被拽回去）。 */
+  function makeDraggable(el) {
+    var head = el.querySelector('.cp-inline-head');
+    if (!head) return;
+    var dragging = false, offX = 0, offY = 0;
+
+    function viewport() {
+      var vv = window.visualViewport;
+      return {
+        w: (vv && vv.width) || window.innerWidth,
+        h: (vv && vv.height) || window.innerHeight,
+        ox: (vv && vv.offsetLeft) || 0,
+        oy: (vv && vv.offsetTop) || 0
+      };
+    }
+
+    head.addEventListener('pointerdown', function (ev) {
+      if (ev.button != null && ev.button !== 0) return;          // 只左键
+      if (ev.target.closest && ev.target.closest('.cp-inline-x')) return;  // 关闭按钮不算拖
+      dragging = true;
+      el.dataset.moved = '1';
+      el.classList.add('dragging');
+      var r = el.getBoundingClientRect();
+      offX = ev.clientX - r.left;
+      offY = ev.clientY - r.top;
+      try { head.setPointerCapture(ev.pointerId); } catch (e) {}
+      ev.preventDefault();
+    });
+
+    head.addEventListener('pointermove', function (ev) {
+      if (!dragging) return;
+      var vp = viewport();
+      var w = el.offsetWidth, h = el.offsetHeight;
+      var left = Math.max(4 + vp.ox, Math.min(vp.w - w - 4 + vp.ox, ev.clientX - offX));
+      var top = Math.max(4 + vp.oy, Math.min(vp.h - h - 4 + vp.oy, ev.clientY - offY));
+      el.style.left = Math.round(left) + 'px';
+      el.style.top = Math.round(top) + 'px';
+    });
+
+    function endDrag(ev) {
+      if (!dragging) return;
+      dragging = false;
+      el.classList.remove('dragging');
+      try { head.releasePointerCapture(ev.pointerId); } catch (e) {}
+    }
+    head.addEventListener('pointerup', endDrag);
+    head.addEventListener('pointercancel', endDrag);
+  }
+
   /* 把气泡摆到选区附近，保证完整显示在屏幕内。
      手机上的坑：
        · 100vh 含浏览器地址栏，实际可见高度小得多 → 用 visualViewport
@@ -750,9 +803,17 @@
 
     var GAP = 10;
     var avail = vh - GAP * 2;                 // 真正能用的高度
-
-    // 先限制最大高度，避免内容把气泡撑出屏幕
     el.style.maxHeight = Math.min(avail, Math.round(vh * 0.66)) + 'px';
+
+    // 用户手动拖过就不再自动摆位，只保证不跑出屏幕
+    if (el.dataset.moved === '1') {
+      var cur = el.getBoundingClientRect();
+      var l2 = Math.max(GAP + offLeft, Math.min(vw - el.offsetWidth - GAP + offLeft, cur.left));
+      var t2 = Math.max(GAP + offTop, Math.min(vh - el.offsetHeight - GAP + offTop, cur.top));
+      el.style.left = Math.round(l2) + 'px';
+      el.style.top = Math.round(t2) + 'px';
+      return;
+    }
 
     var w = el.offsetWidth || Math.min(340, vw - 20);
     var h = el.offsetHeight || 160;
@@ -760,13 +821,10 @@
     var left = Math.round(at.left - w / 2 + 60);
     left = Math.max(GAP + offLeft, Math.min(vw - w - GAP + offLeft, left));
 
-    // 优先放在选区上方
     var top = at.top - h - 14;
     if (top < GAP + offTop) {
-      // 上方不够 → 放到选区下方
       var below = at.top + 52;
       if (below + h > vh - GAP + offTop) {
-        // 上下都放不下 → 贴顶（内容自己滚动）
         top = GAP + offTop;
       } else {
         top = below;
