@@ -82,12 +82,20 @@
   <main class="content" id="content">
     <div class="welcome" id="welcome">
       <h1>agent学习平台</h1>
-      <p class="welcome-sub">AI Agent 全栈课程 · 7 层 37 章 —— 点击任意章节直接开始学习</p>
+      <p class="welcome-sub" id="welcomeSub">你的 AI 自学工作台 —— 这里放着所有学习资源，选一个开始</p>
+
+      <!-- ============ 资源库：多套资源的总入口 ============ -->
+      <section class="rm-sec lib-sec">
+        <div class="lib-grid" id="libGrid"></div>
+      </section>
+
+      <!-- ============ AFA 教材目录 ============ -->
+      <section class="rm-sec" id="libAfa"></section>
 
       <div class="welcome-stats" id="welcomeStats"></div>
 
       <section class="rm-sec">
-        <h2 class="rm-h2">课程总览</h2>
+        <h2 class="rm-h2">课程总览 · AI Agent</h2>
         <div class="rm-sub" id="rmCoursesSub"></div>
         <div class="course-grid" id="rmCourses"></div>
       </section>
@@ -235,6 +243,7 @@
 <script src="/static/vendor/auto-render.min.js"></script>
 <script src="/static/vendor/highlight.min.js"></script>
 <script src="/static/roadmap.js"></script>
+<script src="/static/library.js"></script>
 <script src="/static/renderers.js"></script>
 <script src="/static/companion.js"></script>
 <script src="/static/app.js"></script>

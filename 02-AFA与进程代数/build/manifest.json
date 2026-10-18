@@ -1,0 +1,26 @@
+{
+  "title": "AFA 与进程代数",
+  "subtitle": "从反基础公理到超集合语义",
+  "preface": "book/90-前言.md",
+  "chapters": [
+    "book/00-导论.md",
+    "book/01-第1章-良基性与基础公理.md",
+    "book/02-第2章-图装饰与反基础公理.md",
+    "book/03-第3章-互模拟与超全集.md",
+    "book/04-第4章-解引理与余归纳.md",
+    "book/05-第5章-余代数与终余代数.md",
+    "book/06-第6章-进程与互模拟.md",
+    "book/07-第7章-CCS.md",
+    "book/08-第8章-弱互模拟.md",
+    "book/09-第9章-ACP.md",
+    "book/10-第10章-pi演算.md",
+    "book/11-第11章-进程即超集合.md",
+    "book/12-第12章-进阶.md"
+  ],
+  "appendices": [
+    "book/91-附录A-公理速查.md",
+    "book/92-附录B-习题解答.md",
+    "book/93-附录C-术语表.md",
+    "book/94-附录D-参考文献.md"
+  ]
+}

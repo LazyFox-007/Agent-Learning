@@ -937,6 +937,7 @@
   }
 
   function renderWelcome() {
+    if (window.LibraryRender) { try { window.LibraryRender(); } catch (e) {} }
     renderStats();
     renderCourses();
     renderPaths();
@@ -959,6 +960,8 @@
       $('#crumbs').innerHTML = '';
       $('#toc').hidden = true;
       document.title = 'agent学习平台';
+      // 资源库卡片（多套资源的总入口）
+      if (window.LibraryRender) { try { window.LibraryRender(); } catch (e) {} }
       // 回到首页时刷新进度（可能刚读过文件）
       if (state.stats) { renderStats(); renderTimeline(); renderExtra(); }
       expandTo('', null);

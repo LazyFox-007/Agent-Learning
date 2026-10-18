@@ -88,7 +88,9 @@
       return PUA_A + 'M' + (store.math.length - 1) + PUA_B;
     });
     // 行内：$ 不跨行，且两侧不能是数字/空白（降低误判）
-    md = md.replace(/(^|[^\w\\$])\$([^\s$][^$\n]*?[^\s$\\])\$(?!\d)/g,
+    // 注意：中间的 *? 必须可省，否则 $V$ / $A$ 这类单字符公式匹配不到
+    //（AFA 教材大量使用单字母记法，旧写法会漏掉它们）
+    md = md.replace(/(^|[^\w\\$])\$([^\s$](?:[^$\n]*?[^\s$\\])?)\$(?!\d)/g,
       function (m, pre, tex) {
         if (/\d/.test(pre) && /^\d/.test(tex)) return m;   // $5$ 这类价格不处理
         store.math.push({ tex: tex, display: false });
@@ -110,6 +112,14 @@
       var langCls = c.lang ? ' class="language-' + esc(c.lang) + '"' : '';
       return '<pre><code' + langCls + '>' + esc(c.body) + '</code></pre>';
     });
+    // 定理环境：必须在「公式还原」之前插入。
+    // 否则块内那些公式占位符还躺在 store.thm 里，主 html 上还原公式时看不见它们，
+    // 结果定理框里会露出 PUA 占位符。
+    if (store.thm && store.thm.length) {
+      html = html.replace(/<!--THM(\d+)-->/g, function (m, i) {
+        return store.thm[+i] || '';
+      });
+    }
     // 公式
     html = html.replace(new RegExp(PUA_A + 'M(\\d+)' + PUA_B, 'g'), function (m, i) {
       var mm = store.math[+i];
@@ -186,15 +196,69 @@
     throw new Error('无法调用 marked 解析');
   }
 
+  /* =================================================================
+     定理环境（::: definition / ::: theorem / ::: proof ...）
+     AFA 教材用了 188 个这种 Pandoc 风格的分块指令。
+     配色对齐 build_docx.py 的 BOX 表，保证网页与 PDF 观感一致。
+     ================================================================= */
+  var DIRECTIVE_KIND = {
+    definition:  { label: '定义', cls: 'def' },
+    theorem:     { label: '定理', cls: 'thm' },
+    lemma:       { label: '引理', cls: 'thm' },
+    corollary:   { label: '推论', cls: 'thm' },
+    proposition: { label: '命题', cls: 'thm' },
+    example:     { label: '例',   cls: 'ex' },
+    remark:      { label: '注',   cls: 'rem' },
+    note:        { label: '注',   cls: 'rem' },
+    proof:       { label: '证明', cls: 'proof' },
+    reading:     { label: '延伸阅读', cls: 'read' },
+    history:     { label: '历史', cls: 'read' },
+    algorithm:   { label: '算法', cls: 'algo' }
+  };
+
+  /* 把 ::: 块换成 HTML 注释占位，块内正文照常走 marked */
+  function protectDirectives(md, store) {
+    if (!store.thm) store.thm = [];
+    var lines = md.split('\n');
+    var out = [];
+    var i = 0;
+    while (i < lines.length) {
+      var m = /^:::[ \t]*([A-Za-z]+)[ \t]*(.*)$/.exec(lines[i]);
+      if (!m) { out.push(lines[i]); i++; continue; }
+
+      var kind = m[1].toLowerCase();
+      var title = (m[2] || '').trim();
+      var body = [];
+      i++;
+      while (i < lines.length && !/^:::[ \t]*$/.test(lines[i])) { body.push(lines[i]); i++; }
+      if (i < lines.length) i++;   // 吃掉闭合的 :::
+
+      var meta = DIRECTIVE_KIND[kind] || { label: kind, cls: 'rem' };
+      var inner = mdParse(body.join('\n'));
+      var head = title
+        ? '<div class="thm-head">' + esc(title) + '</div>'
+        : '<div class="thm-head"><span class="thm-kind">' + esc(meta.label) + '</span></div>';
+
+      store.thm.push(
+        '<div class="thm thm-' + meta.cls + '" data-kind="' + esc(kind) + '">' +
+        head + '<div class="thm-body">' + inner + '</div></div>'
+      );
+      out.push('<!--THM' + (store.thm.length - 1) + '-->');
+      out.push('');
+    }
+    return out.join('\n');
+  }
+
   /* 主入口：Markdown → { html, toc } */
   function renderMarkdown(text, baseDir) {
     initMarked();
-    var store = { code: [], math: [] };
+    var store = { code: [], math: [], thm: [] };
     var md = String(text || '').replace(/\r\n/g, '\n');
     // Jupyter Book / MyST 的 [TOC] 占位指令：应用已提供右侧目录，直接移除
     md = md.replace(/^[ \t]*\[TOC\][ \t]*$/gim, '');
     md = protectCode(md, store);
     md = protectMath(md, store);
+    md = protectDirectives(md, store);
     var html = mdParse(md);
     html = restore(html, store, baseDir);
 
