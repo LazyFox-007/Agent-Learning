@@ -61,6 +61,10 @@ img{display:block;max-width:100%}
   background:linear-gradient(115deg,var(--blue),var(--violet) 62%,var(--teal));
   -webkit-background-clip:text;background-clip:text;color:transparent}
 .s1 .sub{margin-top:26px;font-size:clamp(15px,2vw,21px);color:var(--ink2);letter-spacing:.5px}
+.s1-tag{margin-top:20px;font-size:clamp(16px,2.3vw,26px);font-weight:800;color:var(--ink2);letter-spacing:-.3px}
+.s1-tag em{font-style:normal;
+  background:linear-gradient(115deg,var(--blue),var(--violet));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
 .cursor{display:inline-block;width:3px;height:1em;background:var(--blue);
   vertical-align:-.14em;margin-left:3px;animation:blink .9s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
@@ -297,10 +301,10 @@ html.instant .bub-b .ln{opacity:1 !important;transform:none !important}
     <div class="glow g1"></div><div class="glow g2"></div>
     <div class="logo-row anim zoom d1">
       <img src="/static/showcase/imgs/mascot.png" alt="">
-      <span>大肥鱼阅读器</span>
     </div>
-    <h1 class="anim up d2">一个<em>只做阅读</em>的<br>阅读器</h1>
-    <p class="sub anim up d3" id="s1sub"></p>
+    <h1 class="anim up d2">大肥鱼<em>阅读器</em></h1>
+    <p class="s1-tag anim up d3">一个<em>只做阅读</em>的阅读器</p>
+    <p class="sub anim up d4" id="s1sub"></p>
   </section>
 
   <!-- ===== 2 吐槽 ===== -->
@@ -369,7 +373,7 @@ html.instant .bub-b .ln{opacity:1 !important;transform:none !important}
       <!-- 气泡复现 -->
       <div class="bub" style="right:3%;top:46%">
         <div class="bub-h">
-          <img src="/static/showcase/imgs/fish.png" alt="">
+          <img src="/static/showcase/imgs/mascot.png" alt="">
           <b>大肥鱼</b>
         </div>
         <div class="bub-b" id="bubBody"></div>
@@ -736,7 +740,146 @@ html.instant .bub-b .ln{opacity:1 !important;transform:none !important}
   }
 
 
-  requestAnimationFrame(frame);
+    /* =================================================================
+     逐帧渲染（导出视频用）
+     不依赖 CSS 过渡 —— 给定时间 t，直接算出每个元素的状态。
+     同一时刻永远渲染出同一帧，可以任意 fps 采样。
+     ================================================================= */
+  var ANIM_DELAY = { d1: 0.12, d2: 0.28, d3: 0.44, d4: 0.60, d5: 0.76, d6: 0.92 };
+  var easeOut = function (p) { return 1 - Math.pow(1 - p, 3); };
+
+  function applyAnim(el, lt) {
+    var d = 0;
+    for (var k in ANIM_DELAY) { if (el.classList.contains(k)) { d = ANIM_DELAY[k]; break; } }
+    var p = Math.min(1, Math.max(0, (lt - d) / 0.7));
+    var e = easeOut(p);
+    var tf = '';
+    if (el.classList.contains('up'))         tf = 'translateY(' + (34 * (1 - e)) + 'px)';
+    else if (el.classList.contains('down'))  tf = 'translateY(' + (-26 * (1 - e)) + 'px)';
+    else if (el.classList.contains('left'))  tf = 'translateX(' + (-40 * (1 - e)) + 'px)';
+    else if (el.classList.contains('right')) tf = 'translateX(' + (40 * (1 - e)) + 'px)';
+    else if (el.classList.contains('zoom'))  tf = 'scale(' + (0.9 + 0.1 * e) + ')';
+    el.style.opacity = e.toFixed(4);
+    el.style.transform = tf || 'none';
+  }
+
+  function sceneIndexAt(t) {
+    for (var i = 0; i < scenes.length; i++) {
+      if (t >= START[i] && t < START[i] + DUR[i]) return i;
+    }
+    return scenes.length - 1;
+  }
+
+  window.__renderFrame = function (t) {
+    var idx = sceneIndexAt(t);
+    var lt = t - START[idx];
+
+    scenes.forEach(function (s) {
+      s.classList.remove('on', 'out');
+      s.style.opacity = '0';
+      s.style.visibility = 'hidden';
+    });
+
+    var s = scenes[idx];
+    s.style.visibility = 'visible';
+    var fin  = Math.min(1, lt / 0.55);
+    var fout = Math.min(1, (DUR[idx] - lt) / 0.5);
+    s.style.opacity = Math.max(0, Math.min(fin, fout)).toFixed(4);
+
+    Array.prototype.forEach.call(s.querySelectorAll('.anim'), function (el) { applyAnim(el, lt); });
+
+    /* 第 1 幕：打字机 */
+    if (idx === 0) {
+      var sub = document.getElementById('s1sub');
+      if (sub) {
+        var txt = '不卖会员 · 不要账号 · 不上传你的书';
+        var n = Math.min(txt.length, Math.floor(Math.max(0, lt - 0.95) * 1000 / 42));
+        sub.textContent = txt.slice(0, n);
+      }
+    }
+
+    /* 第 5 幕：选区 / 点击 / 气泡逐行 */
+    if (idx === 4) {
+      /* 气泡正文是正常播放时由 replayBubble() 动态生成的，
+         导出模式不会触发它 —— 这里按需补建，否则气泡是空的 */
+      var bb = document.getElementById('bubBody');
+      if (bb && bb.children.length === 0 && typeof BUB !== 'undefined') {
+        BUB.forEach(function (txt) {
+          var d = document.createElement('span');
+          d.className = 'ln';
+          d.innerHTML = txt;
+          bb.appendChild(d);
+        });
+      }
+      var sel = s.querySelector('.selection');
+      if (sel) sel.style.opacity = lt >= 0.7 ? '1' : '0';
+      var tap = s.querySelector('.tapdot');
+      if (tap) tap.style.opacity = lt >= 1.5 ? '1' : '0';
+      var bub = s.querySelector('.bub');
+      if (bub) {
+        var pb = Math.min(1, Math.max(0, (lt - 1.9) / 0.5));
+        var eb = easeOut(pb);
+        bub.style.opacity = eb.toFixed(3);
+        bub.style.transform = 'translateY(' + (18 * (1 - eb)) + 'px) scale(' + (0.96 + 0.04 * eb) + ')';
+      }
+      Array.prototype.forEach.call(s.querySelectorAll('.bub-b .ln'), function (el, i) {
+        var show = lt >= 2.0 + i * 0.55;
+        el.style.opacity = show ? '1' : '0';
+        el.style.transform = show ? 'none' : 'translateY(5px)';
+      });
+    }
+
+    /* 第 7 幕：数字滚动 */
+    if (idx === 6) {
+      Array.prototype.forEach.call(s.querySelectorAll('.num b[data-count]'), function (el) {
+        var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+        var suf = el.getAttribute('data-suffix') || '';
+        var pre = el.getAttribute('data-prefix') || '';
+        var p = Math.min(1, Math.max(0, (lt - 0.7) / 1.1));
+        el.textContent = pre + Math.round(target * easeOut(p)).toLocaleString('en-US') + suf;
+      });
+    }
+
+/* 第 6 幕：手机截图入场（.ph 有自己的动画，不在 .anim 里） */
+    if (idx === 5) {
+      var phDelays = [0.15, 0.33, 0.51];
+      Array.prototype.forEach.call(s.querySelectorAll('.ph'), function (el, i) {
+        var d = phDelays[i] != null ? phDelays[i] : 0.51;
+        var p = Math.min(1, Math.max(0, (lt - d) / 0.7));
+        var e2 = easeOut(p);
+        el.style.opacity = e2.toFixed(3);
+        el.style.transform = 'translateY(' + (38 * (1 - e2)) + 'px)';
+      });
+    }
+
+    /* Ken Burns */
+    var kb = s.querySelector('.kb-a img') || s.querySelector('.kb-b img');
+    if (kb) {
+      var q = Math.min(1, Math.max(0, lt / DUR[idx]));
+      if (s.querySelector('.kb-a img')) {
+        kb.style.transform = 'scale(' + (1 + 0.085 * q) + ') translate(' +
+          (-1.4 * q).toFixed(3) + '%,' + (-1.6 * q).toFixed(3) + '%)';
+      } else {
+        kb.style.transform = 'scale(' + (1.02 + 0.08 * q) + ') translate(' +
+          (1 - 2 * q).toFixed(3) + '%,' + (-2.2 * q).toFixed(3) + '%)';
+      }
+    }
+
+    return idx;
+  };
+  window.__filmTotal = TOTAL;
+
+  /* ?render=1 —— 导出模式：跳过开场、隐藏 HUD、禁用所有过渡 */
+  if (QS.get('render') === '1') {
+    skipGate();
+    hud.style.display = 'none';
+    var killCss = document.createElement('style');
+    killCss.textContent = '*{transition:none!important;animation:none!important}';
+    document.head.appendChild(killCss);
+    window.__renderFrame(parseFloat(QS.get('t') || '0'));
+  }
+
+requestAnimationFrame(frame);
 })();
 </script>
 </body>
