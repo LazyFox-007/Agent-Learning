@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大肥鱼阅读器 —— 一个只做阅读的阅读器</title>
+<link rel="icon" href="/static/favicon.ico">
+<style>
+:root{
+  --ink:#1b2130; --ink2:#4a5468; --ink3:#79839a; --ink4:#a6afc2;
+  --bg:#fbfaf7; --bg2:#ffffff; --bg3:#f2f1ec;
+  --line:#e7e5de; --line2:#d8d5cb;
+  --blue:#3b5bdb; --blue2:#5c7cfa; --violet:#7048e8; --teal:#0f9b8e;
+  --yellow:#f5b301; --pink:#e64980;
+  --sh:0 1px 2px rgba(24,32,48,.04), 0 8px 28px rgba(24,32,48,.06);
+  --sh-lg:0 4px 12px rgba(24,32,48,.06), 0 24px 64px rgba(24,32,48,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.75;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+/* ---------- 顶部导航 ---------- */
+.nav{
+  position:sticky;top:0;z-index:50;
+  background:rgba(251,250,247,.86);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.nav-in{display:flex;align-items:center;gap:12px;height:62px}
+.nav-logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15.5px;letter-spacing:-.2px}
+.nav-logo img{width:30px;height:30px;border-radius:50%;background:var(--bg3)}
+.nav-sp{flex:1}
+.nav-a{
+  padding:7px 14px;border-radius:99px;font-size:13.5px;font-weight:600;
+  color:var(--ink2);transition:.18s;
+}
+.nav-a:hover{background:var(--bg3);color:var(--ink)}
+.nav-cta{
+  background:var(--ink);color:#fff;
+  padding:9px 18px;border-radius:99px;font-size:13.5px;font-weight:700;
+  transition:.18s;
+}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(24,32,48,.22)}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;padding:88px 0 72px;overflow:hidden}
+.hero::before{
+  content:"";position:absolute;inset:0;z-index:-1;
+  background:
+    radial-gradient(900px 420px at 12% -8%, rgba(92,124,250,.13), transparent 62%),
+    radial-gradient(760px 380px at 92% 4%, rgba(112,72,232,.11), transparent 62%);
+}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:6px 13px;border-radius:99px;
+  background:#fff;border:1px solid var(--line2);
+  font-size:12.5px;font-weight:600;color:var(--ink2);
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+.badge b{color:var(--blue)}
+.dot{width:6px;height:6px;border-radius:50%;background:#37b24d;box-shadow:0 0 0 3px rgba(55,178,77,.16)}
+
+.hero-grid{display:grid;grid-template-columns:1fr 300px;gap:40px;align-items:center;margin-top:26px}
+h1{
+  font-size:clamp(38px,5.6vw,66px);line-height:1.16;letter-spacing:-2px;
+  font-weight:900;margin:16px 0 0;
+}
+h1 .hl{
+  background:linear-gradient(120deg,var(--blue),var(--violet));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero-sub{
+  font-size:clamp(16px,2vw,19px);color:var(--ink2);
+  margin-top:20px;max-width:600px;line-height:1.85;
+}
+.hero-sub em{
+  font-style:normal;font-weight:700;color:var(--ink);
+  background:linear-gradient(transparent 62%, rgba(245,179,1,.42) 62%);
+  padding:0 2px;
+}
+.hero-acts{display:flex;flex-wrap:wrap;gap:11px;margin-top:30px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:13px 24px;border-radius:13px;
+  font-size:14.5px;font-weight:700;transition:.2s;cursor:pointer;border:none;
+  font-family:inherit;
+}
+.btn-p{background:var(--ink);color:#fff;box-shadow:0 6px 20px rgba(24,32,48,.18)}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(24,32,48,.26)}
+.btn-g{background:#fff;color:var(--ink);border:1px solid var(--line2)}
+.btn-g:hover{border-color:var(--ink4);transform:translateY(-2px)}
+.hero-note{margin-top:18px;font-size:13px;color:var(--ink4)}
+.hero-note b{color:var(--ink2)}
+
+/* 吉祥物 */
+.fishbox{position:relative;display:flex;justify-content:center}
+.fishbox img{
+  width:190px;height:190px;border-radius:50%;object-fit:cover;
+  background:#eef2ff;border:6px solid #fff;
+  box-shadow:0 18px 44px rgba(59,91,219,.26);
+  animation:float 5s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-13px) rotate(2deg)}}
+.fish-bub{
+  position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+  background:var(--ink);color:#fff;font-size:12.5px;font-weight:600;
+  padding:7px 14px;border-radius:99px;white-space:nowrap;
+  box-shadow:0 8px 24px rgba(24,32,48,.24);
+}
+.fish-bub::after{
+  content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%) rotate(45deg);
+  width:10px;height:10px;background:var(--ink);border-radius:2px;
+}
+
+/* ---------- 通用区块 ---------- */
+section{padding:78px 0}
+.sec-head{max-width:680px;margin-bottom:44px}
+.kicker{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--blue);margin-bottom:13px;
+}
+.kicker::before{content:"";width:18px;height:2px;background:var(--blue);border-radius:2px}
+h2{font-size:clamp(27px,3.6vw,40px);line-height:1.3;letter-spacing:-1px;font-weight:850}
+.sec-sub{color:var(--ink2);margin-top:14px;font-size:16px}
+
+/* ---------- 痛点三卡 ---------- */
+.pains{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.pain{
+  background:var(--bg2);border:1px solid var(--line);border-radius:20px;
+  padding:28px 24px 26px;box-shadow:var(--sh);
+  position:relative;overflow:hidden;transition:.22s;
+}
+.pain:hover{transform:translateY(-4px);box-shadow:var(--sh-lg)}
+.pain::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--pc)}
+.pain:nth-child(1){--pc:#e64980}
+.pain:nth-child(2){--pc:#f5b301}
+.pain:nth-child(3){--pc:#7048e8}
+.pain-ico{font-size:29px;line-height:1;margin-bottom:14px}
+.pain h3{font-size:18.5px;font-weight:800;margin-bottom:9px}
+.pain p{font-size:14.5px;color:var(--ink2);line-height:1.8}
+.pain .quote{
+  display:block;margin-top:14px;padding:9px 12px;border-radius:9px;
+  background:var(--bg3);font-size:13px;color:var(--ink3);
+  border-left:2px solid var(--line2);
+}
+
+/* ---------- 功能展示 ---------- */
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:52px;align-items:center;padding:46px 0}
+.feat.rev .feat-txt{order:2}
+.feat.rev .feat-img{order:1}
+.feat-tag{
+  display:inline-block;padding:4px 11px;border-radius:99px;
+  font-size:12px;font-weight:800;letter-spacing:.4px;
+  background:#eef2ff;color:var(--blue);margin-bottom:15px;
+}
+.feat h3{font-size:clamp(22px,2.8vw,30px);font-weight:850;line-height:1.35;letter-spacing:-.6px}
+.feat p{color:var(--ink2);margin-top:13px;font-size:15.5px;line-height:1.85}
+.feat ul{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.feat li{
+  display:flex;gap:10px;font-size:14.5px;color:var(--ink2);line-height:1.7;
+}
+.feat li::before{
+  content:"";flex-shrink:0;width:17px;height:17px;margin-top:4px;border-radius:50%;
+  background:#eef2ff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%233b5bdb' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/11px no-repeat;
+}
+.shot{
+  border-radius:16px;overflow:hidden;
+  border:1px solid var(--line);
+  box-shadow:var(--sh-lg);
+  background:#fff;
+  transition:.28s;
+}
+.shot:hover{transform:translateY(-5px) scale(1.012)}
+.shot img{width:100%}
+.shot-bar{
+  display:flex;align-items:center;gap:6px;padding:9px 13px;
+  background:var(--bg3);border-bottom:1px solid var(--line);
+}
+.shot-bar i{width:9px;height:9px;border-radius:50%;background:#d8d5cb}
+.shot-bar span{margin-left:7px;font-size:11.5px;color:var(--ink4);font-weight:600}
+
+/* 手机截图 */
+.phones{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.phone{
+  border-radius:22px;overflow:hidden;border:1px solid var(--line);
+  box-shadow:var(--sh-lg);background:#fff;transition:.25s;
+}
+.phone:hover{transform:translateY(-5px)}
+.phone img{width:100%}
+
+/* ---------- 数字 ---------- */
+.stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
+  background:var(--ink);color:#fff;border-radius:26px;padding:44px 30px;
+  position:relative;overflow:hidden;
+}
+.stats::after{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(500px 240px at 88% 0%, rgba(92,124,250,.28), transparent 60%);
+}
+.stat{position:relative;text-align:center}
+.stat b{display:block;font-size:clamp(30px,4vw,44px);font-weight:900;letter-spacing:-1.5px;line-height:1.15}
+.stat span{display:block;font-size:13px;color:rgba(255,255,255,.62);margin-top:7px;font-weight:600}
+.stat small{display:block;font-size:11.5px;color:rgba(255,255,255,.4);margin-top:3px}
+
+/* ---------- 对比表 ---------- */
+.cmp{
+  width:100%;border-collapse:separate;border-spacing:0;
+  background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  box-shadow:var(--sh);font-size:14.5px;
+}
+.cmp th,.cmp td{padding:15px 18px;text-align:left;border-bottom:1px solid var(--line)}
+.cmp thead th{
+  background:var(--bg3);font-size:13px;font-weight:800;color:var(--ink3);
+  letter-spacing:.4px;
+}
+.cmp thead th:nth-child(2){color:var(--blue)}
+.cmp tbody tr:last-child td{border-bottom:none}
+.cmp td:first-child{font-weight:650;color:var(--ink)}
+.cmp .yes{color:var(--teal);font-weight:700}
+.cmp .no{color:var(--ink4)}
+.cmp tbody tr:hover{background:#fcfcfb}
+
+/* ---------- CTA ---------- */
+.cta{
+  text-align:center;padding:80px 24px;
+  background:linear-gradient(180deg,transparent, rgba(92,124,250,.055));
+  border-top:1px solid var(--line);
+}
+.cta h2{max-width:640px;margin:0 auto}
+.cta p{color:var(--ink2);margin-top:16px;font-size:16px;max-width:520px;margin-left:auto;margin-right:auto}
+.cta-acts{display:flex;justify-content:center;gap:12px;margin-top:30px;flex-wrap:wrap}
+.repo{
+  display:inline-flex;align-items:center;gap:9px;
+  padding:12px 20px;border-radius:12px;background:#fff;
+  border:1px solid var(--line2);font-size:14px;font-weight:700;
+  transition:.2s;
+}
+.repo:hover{border-color:var(--ink4);transform:translateY(-2px);box-shadow:var(--sh)}
+.repo code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:var(--ink3);font-weight:500}
+
+/* ---------- 页脚 ---------- */
+footer{
+  border-top:1px solid var(--line);padding:34px 0;
+  font-size:13px;color:var(--ink4);
+}
+.foot-in{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.foot-in a{color:var(--ink3);font-weight:600}
+.foot-in a:hover{color:var(--blue)}
+
+/* ---------- 入场动画 ---------- */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1;transform:none}
+
+/* ---------- 响应式 ---------- */
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr;gap:32px}
+  .fishbox{order:-1}
+  .fishbox img{width:132px;height:132px}
+  .pains{grid-template-columns:1fr}
+  .feat{grid-template-columns:1fr;gap:26px;padding:34px 0}
+  .feat.rev .feat-txt{order:1}
+  .feat.rev .feat-img{order:2}
+  .stats{grid-template-columns:repeat(2,1fr);gap:26px;padding:36px 22px}
+  .phones{grid-template-columns:1fr;max-width:300px;margin:0 auto}
+  section{padding:56px 0}
+  .hero{padding:52px 0 44px}
+}
+@media(max-width:560px){
+  .nav-a{display:none}
+  .cmp{font-size:13px}
+  .cmp th,.cmp td{padding:11px 12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 导航 ============ -->
+<nav class="nav">
+  <div class="wrap nav-in">
+    <a class="nav-logo" href="#top">
+      <img src="/static/showcase/imgs/fish.png" alt="大肥鱼">
+      <span>大肥鱼阅读器</span>
+    </a>
+    <span class="nav-sp"></span>
+    <a class="nav-a" href="#why">为什么</a>
+    <a class="nav-a" href="#feat">能干什么</a>
+    <a class="nav-a" href="#light">有多轻</a>
+    <a class="nav-cta" href="#get">拿走用</a>
+  </div>
+</nav>
+
+<!-- ============ Hero ============ -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <span class="badge"><i class="dot"></i> 本地运行 · 无需联网即可阅读</span>
+    <div class="hero-grid">
+      <div>
+        <h1>一个<span class="hl">只做阅读</span>的<br>阅读器。</h1>
+        <p class="hero-sub">
+          它不会问你「升级到专业版」——<em>因为它没有专业版</em>。<br>
+          不是 SaaS，不是会员，不是云。就是一个能打开你硬盘里那些书的软件。
+        </p>
+        <div class="hero-acts">
+          <a class="btn btn-p" href="#get">看看怎么用 →</a>
+          <a class="btn btn-g" href="https://github.com/LazyFox-007/Agent-Learning" target="_blank" rel="noopener">GitHub ⭐</a>
+        </div>
+        <p class="hero-note">零依赖 · <b>python server.py</b> 一条命令启动 · 数据不出设备</p>
+      </div>
+      <div class="fishbox">
+        <img src="/static/showcase/imgs/mascot.png" alt="大肥鱼">
+        <span class="fish-bub">读不懂就划一下，我在旁边</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 为什么 ============ -->
+<section id="why">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">起因</span>
+      <h2>为什么我又造了一个轮子</h2>
+      <p class="sec-sub">不是闲的。是实在用不下去。</p>
+    </div>
+    <div class="pains">
+      <div class="pain rv">
+        <div class="pain-ico">💸</div>
+        <h3>要钱</h3>
+        <p>打开一本书，先弹三个会员弹窗。你只是想看一眼第三章。</p>
+        <span class="quote">「升级专业版即可解锁」</span>
+      </div>
+      <div class="pain rv">
+        <div class="pain-ico">🔒</div>
+        <h3>要命</h3>
+        <p>想把自己做的笔记导出来，它说这个功能仅限尊享会员。</p>
+        <span class="quote">「该功能需要年度会员」</span>
+      </div>
+      <div class="pain rv">
+        <div class="pain-ico">🕵️</div>
+        <h3>要信任</h3>
+        <p>用户协议写了八千字，读到最后核心是「你上传的东西我们也有权使用」。</p>
+        <span class="quote">「为改善服务，我们可能…」</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 功能 ============ -->
+<section id="feat" style="background:linear-gradient(180deg,transparent,#f6f5f0 18%,#f6f5f0 82%,transparent)">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">能干什么</span>
+      <h2>就四件事，但每件都做透了</h2>
+      <p class="sec-sub">功能上做减法，质量上做加法。别的我不做，做了会变难用。</p>
+    </div>
+
+    <!-- 1 -->
+    <div class="feat rv">
+      <div class="feat-txt">
+        <span class="feat-tag">核心功能</span>
+        <h3>看不懂？<br>划一下就行。</h3>
+        <p>
+          选中一段文字，点「问大肥鱼」，旁边立刻冒出一个小气泡开始写答案。
+          <strong>眼睛不用离开那一行。</strong>
+        </p>
+        <ul>
+          <li>不用切软件、不用复制粘贴</li>
+          <li>答案一个个字蹦出来，不是等半天</li>
+          <li>气泡能用鼠标拖着走，对照原文看</li>
+          <li>它知道你在读第几章第几节</li>
+        </ul>
+      </div>
+      <div class="feat-img">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i><span>划词 → 就地出答案</span></div>
+          <img src="/static/showcase/imgs/inline.png" alt="划词气泡">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="feat rev rv">
+      <div class="feat-txt">
+        <span class="feat-tag">数学教材</span>
+        <h3>它真的会排版数学。</h3>
+        <p>
+          公式不是图片，也不是纯文本，是真正的 LaTeX 排版。
+          定理、定义、证明会渲染成彩色框，跟导出的 PDF 长得一样。
+        </p>
+        <ul>
+          <li>行内公式 <code>$V$</code> 这种单字母也正常</li>
+          <li>块级公式居中、带编号、能横向滑动</li>
+          <li>定义绿 / 定理蓝 / 例题琥珀 / 证明虚线</li>
+          <li>自动生成右侧本页目录</li>
+        </ul>
+      </div>
+      <div class="feat-img">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i><span>AFA 与进程代数 · 第 2 章</span></div>
+          <img src="/static/showcase/imgs/afa.png" alt="数学教材">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="feat rv">
+      <div class="feat-txt">
+        <span class="feat-tag">资源库</span>
+        <h3>所有书都在一个门口。</h3>
+        <p>
+          打开就是一个资源库，不再有「打开文件夹 → 找文件 → 选打开方式」这一套。
+        </p>
+        <ul>
+          <li>两套内置资源：AI Agent 全栈课程、AFA 与进程代数</li>
+          <li>自己的资料丢进文件夹就出现在这里</li>
+          <li>支持 Markdown / HTML / PDF / 代码 / 图片</li>
+          <li>记得你上次读到哪</li>
+        </ul>
+      </div>
+      <div class="feat-img">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i><span>资源库首页</span></div>
+          <img src="/static/showcase/imgs/home.png" alt="资源库首页">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 手机 ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">手机端</span>
+      <h2>躺着读，不算堕落。</h2>
+      <p class="sec-sub">
+        手机上不是「缩小版」，是独立的一套单栏界面：目录收进抽屉，陪读收进一颗悬浮球。
+      </p>
+    </div>
+    <div class="phones rv">
+      <div class="phone"><img src="/static/showcase/imgs/mobile.png" alt="手机首页"></div>
+      <div class="phone"><img src="/static/showcase/imgs/start.png" alt="开始学习"></div>
+      <div class="phone"><img src="/static/showcase/imgs/mquick.png" alt="手机划词"></div>
+    </div>
+    <p style="text-align:center;color:var(--ink4);font-size:13.5px;margin-top:20px">
+      首页 → 开始学习 → 划词提问，手机上一条路走到底
+    </p>
+  </div>
+</section>
+
+<!-- ============ 数字 ============ -->
+<section id="light">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">有多轻</span>
+      <h2>轻得不像个「平台」。</h2>
+      <p class="sec-sub">因为它压根不是平台。它是个软件。</p>
+    </div>
+    <div class="stats rv">
+      <div class="stat">
+        <b>7,000+</b><span>行代码</span><small>含双端 + 两套资源</small>
+      </div>
+      <div class="stat">
+        <b>0</b><span>个 npm 依赖</span><small>没有构建步骤</small>
+      </div>
+      <div class="stat">
+        <b>1</b><span>条命令启动</span><small>python server.py</small>
+      </div>
+      <div class="stat">
+        <b>¥0</b><span>使用成本</span><small>没有订阅，没有广告</small>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--ink2);font-size:15px;margin-top:26px;max-width:660px;margin-left:auto;margin-right:auto">
+      没有账号系统，因为没有「别人」。<br>
+      没有数据库，因为进度就存在你浏览器里。<br>
+      <strong>没有服务器，因为数据从来不出这台电脑。</strong>
+    </p>
+  </div>
+</section>
+
+<!-- ============ 对比 ============ -->
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="kicker">说句公道话</span>
+      <h2>它不适合所有人。</h2>
+      <p class="sec-sub">先看看自己是不是这种需求。</p>
+    </div>
+    <table class="cmp rv">
+      <thead>
+        <tr>
+          <th>你在意的</th>
+          <th>大肥鱼阅读器</th>
+          <th>一般阅读软件</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>要登录吗</td><td class="yes">不要，打开就用</td><td class="no">先注册，再验证手机号</td></tr>
+        <tr><td>资料存在哪</td><td class="yes">你自己的硬盘</td><td class="no">他们的云（要收存储费）</td></tr>
+        <tr><td>能不能导出</td><td class="yes">文件本来就是文件</td><td class="no">「该功能需会员」</td></tr>
+        <tr><td>有没有广告</td><td class="yes">没有。我靠什么赚钱？不赚</td><td class="no">开屏 + 信息流推荐</td></tr>
+        <tr><td>换设备同步</td><td class="no">不支持（自己放网盘）</td><td class="yes">支持（数据在云端）</td></tr>
+        <tr><td>多端协同编辑</td><td class="no">没有</td><td class="yes">有</td></tr>
+        <tr><td>移动端 App</td><td class="no">网页版（加到主屏幕）</td><td class="yes">有原生 App</td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--ink4);font-size:13.5px;margin-top:16px">
+      后面三条是真的没有。我不打算做，因为做了就要有服务器，有服务器就会有第二个「要钱」的理由。
+    </p>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<div class="cta" id="get">
+  <div class="wrap">
+    <div class="rv">
+      <h2>它不是产品，是我自己的读书工具。<br>不过你可以直接拿走用。</h2>
+      <p>仓库里自带两套学习资料，克隆下来就能读。想换成自己的书，把文件夹丢进资料目录就行。</p>
+      <div class="cta-acts">
+        <a class="repo" href="https://github.com/LazyFox-007/Agent-Learning" target="_blank" rel="noopener">
+          ⭐ GitHub <code>LazyFox-007/Agent-Learning</code>
+        </a>
+        <a class="repo" href="https://gitee.com/haveink/agent-learning-platform" target="_blank" rel="noopener">
+          🇨🇳 Gitee <code>haveink/agent-learning-platform</code>
+        </a>
+      </div>
+      <pre style="margin-top:34px;display:inline-block;text-align:left;background:#1b2130;color:#c8d3e8;
+        padding:20px 26px;border-radius:14px;font-family:ui-monospace,Consolas,monospace;
+        font-size:13px;line-height:1.9;box-shadow:0 16px 40px rgba(24,32,48,.22);overflow-x:auto;max-width:100%"><span style="color:#7b87a3"># 就三步</span>
+git clone https://gitee.com/haveink/agent-learning-platform.git
+cd agent-learning-platform
+python _webapp/server.py
+<span style="color:#7b87a3"># 浏览器打开 http://127.0.0.1:8777/</span></code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 页脚 ============ -->
+<footer>
+  <div class="wrap foot-in">
+    <span>大肥鱼阅读器 · 个人自用工具 · 无广告 · 不采集数据</span>
+    <span>
+      <a href="https://github.com/LazyFox-007/Agent-Learning" target="_blank" rel="noopener">GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://gitee.com/haveink/agent-learning-platform" target="_blank" rel="noopener">Gitee</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+/* 滚动入场 */
+(function () {
+  var els = document.querySelectorAll('.rv');
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(function (e) { e.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) {
+        en.target.classList.add('in');
+        io.unobserve(en.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+  els.forEach(function (e) { io.observe(e); });
+
+  /* 卡片逐个延迟，别一起弹出来 */
+  document.querySelectorAll('.pain').forEach(function (el, i) {
+    el.style.transitionDelay = (i * 80) + 'ms';
+  });
+  document.querySelectorAll('.stat').forEach(function (el, i) {
+    el.style.transitionDelay = (i * 70) + 'ms';
+  });
+})();
+</script>
+</body>
+</html>

@@ -644,6 +644,13 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/m", "/m/", "/m/index.html"):
             return self._static("m/index.html")
 
+        # 动画介绍片（自动播放的分镜页，视频的替代）
+        if path in ("/film", "/film/", "/film/index.html"):
+            return self._static("showcase/film.html")
+        # 产品展示页（对外介绍用的静态单页）
+        if path in ("/showcase", "/showcase/", "/showcase/index.html"):
+            return self._static("showcase/index.html")
+
         # 部分浏览器无视 <link rel="icon"> 仍直接请求根路径
         if path == "/favicon.ico":
             return self._static("favicon.ico")
