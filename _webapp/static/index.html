@@ -26,7 +26,7 @@
 
   <div class="topbar-right">
     <button class="icon-btn icon-btn-img" id="btnCompanion" title="AI 陪读 (Ctrl+J)">
-      <img src="/static/mascot-64.png" alt="陪读">
+      <img src="/static/mascot-girl.png" alt="陪读">
     </button>
     <button class="icon-btn" id="btnSearch" title="搜索 (Ctrl+K)">🔍</button>
     <button class="icon-btn" id="btnToc" title="目录 (Ctrl+I)">☰</button>
@@ -135,7 +135,7 @@
   <!-- ================= AI 陪读面板 ================= -->
   <aside class="companion" id="companion" hidden>
     <header class="cp-head">
-      <img class="cp-avatar" src="/static/mascot-64.png" alt="大肥鱼">
+      <img class="cp-avatar" src="/static/mascot-girl.png" alt="大肥鱼">
       <div class="cp-who">
         <div class="cp-name">大肥鱼 <span class="cp-role">陪读</span><span class="cp-mode" id="cpMode" hidden></span></div>
         <div class="cp-ctx" id="cpCtx">未打开文件</div>
@@ -157,7 +157,7 @@
       </div>
       <div class="cp-quick" id="cpQuick"></div>
       <div class="cp-compose">
-        <textarea id="cpInput" rows="1" placeholder="问点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
+        <textarea id="cpInput" rows="1" placeholder="问下大肥鱼？"></textarea>
         <button class="cp-send" id="cpSend" title="发送 (Enter)">↑</button>
       </div>
     </div>
@@ -246,6 +246,8 @@
 <script src="/static/library.js"></script>
 <script src="/static/renderers.js"></script>
 <script src="/static/companion.js"></script>
+<script src="/static/preview-bar.js"></script>
+<script src="/static/alive.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

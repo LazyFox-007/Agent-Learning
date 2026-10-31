@@ -80,26 +80,74 @@
 ## 快速开始
 
 **需要**：Python 3.8+ · git
+**不需要**：`pip install`、Node.js、联网、数据库
+
+### 三步跑起来
 
 ```powershell
 # 1) 克隆（国内用 Gitee，海外用 GitHub，两边内容一致）
 git clone https://gitee.com/haveink/agent-learning-platform.git
-# 或：git clone https://github.com/LazyFox-007/Agent-Learning.git
-
 cd agent-learning-platform
 
-# 2) 直接启动 —— 课程已随仓库提供，不需要联网，不需要额外安装
+# 2) 启动 —— 课程已随仓库提供，断网也能读
 cd _webapp
 python server.py
+
+# 3) 打开浏览器
+#    http://127.0.0.1:8777/
 ```
 
-浏览器会自动打开 **http://127.0.0.1:8777/**
-
-就这两步。**37 章课程正文已在仓库里**，克隆完断网也能读。
+浏览器一般会自动打开。**37 章讲义 + 12 章教材都在仓库里**，克隆完就有，不用额外下载。
 
 > 端口被占用时会自动往后找（8777~8796），不会冲突。
 
+### 配置 AI 陪读
+
+**克隆下来默认是「演示模式」** —— 陪读面板能打开，但回答是预置示例，不是真模型。
+
+配一次就好：
+
+1. 打开页面 → 按 `Ctrl+J`（手机端点右下角的悬浮球）
+2. 点右上角设置 → 选一个服务商（DeepSeek / Kimi / 通义 / OpenAI / 本地 Ollama）
+3. 粘贴自己的 API Key → 点「保存并测试」
+
+> **Key 只存在本机的 `_webapp/.ai-config.json`**，不上传、不进仓库（`.gitignore` 已排除）。
+> 换句话说：这个仓库里没有任何人的密钥，你得填自己的。
+
+本机实测过 DeepSeek（`api.deepseek.com` + `deepseek-chat`），响应约 0.5 秒。
+
+### 手机上用
+
+手机版是**独立的一套单栏界面**（不是桌面版缩小），地址多一个 `/m`：
+
+| 设备 | 地址 |
+|---|---|
+| 电脑 | `http://127.0.0.1:8777/` |
+| 手机 | `http://<电脑局域网IP>:8777/m` |
+
+手机要能访问，服务得绑到局域网那块网卡：
+
+```powershell
+python server.py --bind 192.168.1.100    # 换成你自己那块网卡的 IP
+```
+
+> 默认**只监听 `127.0.0.1`**，局域网里其他设备连不上 —— 这是故意的安全默认值。
+> 用 `--bind` 之后只有那一块网卡对外开放，WiFi 上的其他人依然进不来。
+>
+> 走 USB 共享网络的话，绑那块网卡的 IP（通常是 `172.31.x.x` 或 `192.168.42.x`）。
+
 **没有 Node.js 也能用。** Node 只在重新生成课程索引时才用到，首页数据已随仓库提供。
+
+### 课程放在哪
+
+资料根目录 = **仓库根目录**（`server.py` 往上两层）。想放别处：
+
+```powershell
+$env:STUDYAI_ROOT = "D:\我的书库"
+python server.py
+```
+
+把自己的 Markdown / HTML / PDF 丢进去，刷新就能看到。
 
 ### setup.ps1 是干什么的
 

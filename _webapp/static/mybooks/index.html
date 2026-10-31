@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的书库 · StudyAI</title>
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="stylesheet" href="/static/vendor/katex.min.css">
+<link rel="stylesheet" href="/static/vendor/hljs-light.css" id="hljs-light">
+<link rel="stylesheet" href="/static/vendor/hljs-dark.css" id="hljs-dark" disabled>
+<style>
+:root{
+  --bg:#f7f8fa; --panel:#fff; --text:#1a1d24; --dim:#6b7280; --line:#e5e7eb;
+  --brand:#3b82f6; --brand-soft:#eff6ff; --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0f1117; --panel:#171a21; --text:#e8eaed; --dim:#9aa3b2; --line:#272c36;
+         --brand:#60a5fa; --brand-soft:#132033; --shadow:0 1px 3px rgba(0,0,0,.4); }
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg); color:var(--text); display:flex; flex-direction:column;
+  font:15px/1.7 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+}
+
+/* ---- 顶栏 ---- */
+.top{
+  display:flex; align-items:center; gap:12px; padding:0 18px; height:56px;
+  background:var(--panel); border-bottom:1px solid var(--line); flex:none;
+}
+.top a.back{
+  display:flex; align-items:center; gap:6px; color:var(--dim); text-decoration:none;
+  font-size:14px; padding:6px 10px; border-radius:8px;
+}
+.top a.back:hover{ background:var(--brand-soft); color:var(--brand) }
+.top h1{ font-size:16px; font-weight:600; margin:0; flex:1 }
+.top h1 small{ font-weight:400; color:var(--dim); font-size:13px; margin-left:8px }
+.btn{
+  border:1px solid var(--line); background:var(--panel); color:var(--text);
+  padding:7px 14px; border-radius:8px; font-size:13.5px; cursor:pointer;
+  display:inline-flex; align-items:center; gap:6px; transition:.15s;
+}
+.btn:hover{ border-color:var(--brand); color:var(--brand) }
+.btn.primary{ background:var(--brand); border-color:var(--brand); color:#fff }
+.btn.primary:hover{ filter:brightness(1.08); color:#fff }
+
+/* ---- 主体 ---- */
+.main{ flex:1; overflow:auto; padding:22px 26px 60px }
+.crumb{ font-size:13.5px; color:var(--dim); margin-bottom:16px; display:flex; gap:6px; flex-wrap:wrap }
+.crumb a{ color:var(--brand); text-decoration:none; cursor:pointer }
+.crumb a:hover{ text-decoration:underline }
+
+.empty{
+  text-align:center; padding:60px 20px; color:var(--dim);
+}
+.empty .big{ font-size:44px; margin-bottom:12px }
+.empty p{ margin:6px 0 }
+
+/* ---- 卡片网格 ---- */
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px }
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  padding:14px 16px; cursor:pointer; transition:.15s; box-shadow:var(--shadow);
+  display:flex; flex-direction:column; gap:6px; min-height:96px;
+}
+.card:hover{ border-color:var(--brand); transform:translateY(-2px) }
+.card .ico{ font-size:20px; line-height:1 }
+.card .nm{ font-size:14px; font-weight:500; word-break:break-all; line-height:1.45 }
+.card .mt{ font-size:12px; color:var(--dim); margin-top:auto }
+
+/* ---- 阅读区 ---- */
+.reader{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:28px 34px; box-shadow:var(--shadow); max-width:900px; margin:0 auto }
+.reader h1,.reader h2,.reader h3{ line-height:1.35 }
+.reader img{ max-width:100% }
+.reader pre{ background:var(--bg); padding:14px; border-radius:8px; overflow:auto }
+.reader code{ font-family:"Cascadia Code",Consolas,monospace; font-size:.9em }
+.reader table{ border-collapse:collapse; width:100% }
+.reader th,.reader td{ border:1px solid var(--line); padding:6px 10px; text-align:left }
+.reader iframe{ width:100%; height:78vh; border:1px solid var(--line); border-radius:8px }
+
+.loading{ text-align:center; padding:50px; color:var(--dim) }
+
+/* ---- 右键菜单 ---- */
+.ctx{
+  position:fixed; z-index:9999; min-width:208px; padding:6px;
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  box-shadow:0 8px 28px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.08);
+  font-size:13.5px;
+}
+.ctx-item{
+  display:flex; align-items:center; gap:9px; padding:8px 11px; border-radius:6px;
+  cursor:pointer; white-space:nowrap; color:var(--text);
+}
+.ctx-item:hover{ background:var(--brand-soft); color:var(--brand) }
+.ctx-item .ci{ width:16px; text-align:center; opacity:.9 }
+.ctx-sep{ height:1px; background:var(--line); margin:5px 8px }
+
+/* ---- 提示条 ---- */
+.toast{
+  position:fixed; left:50%; bottom:36px; transform:translateX(-50%) translateY(14px);
+  background:#1f2937; color:#fff; padding:10px 20px; border-radius:10px;
+  font-size:13.5px; opacity:0; pointer-events:none; transition:.22s; z-index:10000;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0) }
+.toast.bad{ background:#b91c1c }
+
+</style>
+</head>
+<body>
+
+<div class="top">
+  <a class="back" href="/">← 返回阅读器</a>
+  <h1>我的书库 <small id="stat"></small></h1>
+  <button class="btn" id="btnReveal">📂 打开文件夹</button>
+</div>
+
+<div class="main" id="main">
+  <div class="loading">加载中…</div>
+</div>
+
+<script src="/static/vendor/marked.min.js"></script>
+<script src="/static/vendor/katex.min.js"></script>
+<script src="/static/vendor/auto-render.min.js"></script>
+<script src="/static/vendor/highlight.min.js"></script>
+<script src="/static/renderers.js"></script>
+<script src="/static/alive.js"></script>
+<script src="/static/mybooks/mybooks.js"></script>
+</body>
+</html>

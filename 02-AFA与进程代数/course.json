@@ -1,0 +1,10 @@
+{
+  "id": "afa",
+  "title": "AFA 与进程代数",
+  "version": "1.0.0",
+  "entry": "book/00-导论.md",
+  "description": "研究生入门教材：反基础公理、互模拟、进程代数。12 章 + 4 附录，公式用 KaTeX 渲染。",
+  "license": "CC-BY-4.0",
+  "tags": ["数学", "超集合", "进程代数"],
+  "order": 2
+}

@@ -129,7 +129,8 @@
     'README.md': 1, 'README-课程原版.md': 1, 'LICENSE': 1,
     'THIRD-PARTY-NOTICES.md': 1, '.gitignore': 1, '.gitattributes': 1,
     'setup.ps1': 1, 'requirements.txt': 1, 'pyproject.toml': 1,
-    'package.json': 1, 'package-lock.json': 1, 'docs': 1, '.github': 1
+    'package.json': 1, 'package-lock.json': 1, 'docs': 1, '.github': 1,
+    'tools': 1, '_scripts': 1, '_webapp': 1
   };
 
   function isHidden(node) {
@@ -171,6 +172,39 @@
   /* =================================================================
      文件树
      ================================================================= */
+  /* =================================================================
+     书库管理：删除 + 拖拽排序
+     只有 书库/ 目录下的文件带这两个能力，课程一律不动。
+     ================================================================= */
+  var LIB = { enabled: false, name: '书库' };
+
+  // 服务端没开 --library 时这个请求会 404，静默忽略即可
+  fetch('/api/library/info', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (d && d.enabled) { LIB.enabled = true; LIB.name = d.dirName || '书库'; }
+    })
+    .catch(function () {});
+
+  function isLibFile(path, type) {
+    if (!LIB.enabled || type !== 'file') return false;
+    var p = path || '';
+    return p.indexOf(LIB.name + '/') === 0;
+  }
+  function libParent(path) {
+    var p = path || '';
+    var i = p.lastIndexOf('/');
+    return i < 0 ? '' : p.slice(0, i);
+  }
+
+  // 主树用的是「相对资料根」的路径（书库/导入/a.md），
+  // 而 /api/library/* 要的是「相对书库根」的路径（导入/a.md）。
+  function libRel(path) {
+    var p = path || '';
+    var pre = LIB.name + '/';
+    return p.indexOf(pre) === 0 ? p.slice(pre.length) : p;
+  }
+
   function makeRow(node, depth) {
     var ov = displayOverride(node);
 
@@ -230,6 +264,24 @@
       row.title = node.path + '\n（此类型无法在网页中查看）';
     }
     if (node.type === 'file' && state.readSet[node.path]) row.classList.add('read');
+
+    // 书库文件：拖拽手柄 + 删除按钮
+    if (isLibFile(node.path, node.type)) {
+      row.dataset.lib = '1';
+      row.draggable = true;
+
+      var grip = document.createElement('span');
+      grip.className = 'tgrip';
+      grip.textContent = '⠿';
+      row.insertBefore(grip, arrow);
+
+      var del = document.createElement('button');
+      del.className = 'tdel';
+      del.type = 'button';
+      del.textContent = '×';
+      del.title = '删除这个文件';
+      row.appendChild(del);
+    }
 
     return row;
   }
@@ -329,6 +381,53 @@
     });
   }
 
+  /* 刷新某个目录的子树（删完 / 排完序后重建） */
+  function refreshDir(dirPath) {
+    delete state.treeCache[dirPath];
+    if (!dirPath) {
+      var root = $('#tree');
+      root.innerHTML = '';
+      loadTree('', root, 0);
+      return;
+    }
+    var box = document.querySelector('.tchildren[data-path="' + cssEsc(dirPath) + '"]');
+    if (!box) return;
+    box.dataset.loaded = '0';
+    box.innerHTML = '';
+    loadTree(dirPath, box, dirPath.split('/').length);
+  }
+
+  /* 删除（二次确认，移到回收站） */
+  function libDelete(path, name) {
+    var ok = window.confirm(
+      '确定要删除「' + name + '」吗？\n\n' +
+      '文件会被移到 书库\\.trash\\，还找得回来。');
+    if (!ok) return;
+
+    fetch('/api/library/delete?path=' + encodeURIComponent(libRel(path)))
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.d.message || res.d.error || '删除失败');
+        toast('已移到回收站');
+        if (decodeURI(location.hash.replace(/^#\//, '')) === path) location.hash = '#/';
+        refreshDir(libParent(path));
+      })
+      .catch(function (e) { toast('删除失败：' + e.message); });
+  }
+
+  /* 保存顺序 */
+  function libSaveOrder(dirPath, names) {
+    fetch('/api/library/reorder?path=' + encodeURIComponent(libRel(dirPath)) +
+          '&names=' + encodeURIComponent(names.join(',')))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) throw new Error(d.error);
+        toast('顺序已保存');
+        refreshDir(dirPath);
+      })
+      .catch(function (e) { toast('保存顺序失败：' + e.message); });
+  }
+
   /* 树事件委托 */
   function bindTree() {
     $('#tree').addEventListener('click', function (ev) {
@@ -336,6 +435,13 @@
       if (!row) return;
       var path = row.dataset.path;
       var type = row.dataset.type;
+
+      // 删除按钮优先处理
+      if (ev.target.classList.contains('tdel') && row.dataset.lib) {
+        ev.stopPropagation();
+        libDelete(path, (row.querySelector('.tname') || {}).textContent || path);
+        return;
+      }
 
       if (type === 'dir') {
         var kids = row.nextElementSibling;
@@ -350,6 +456,72 @@
         }
         location.hash = '#/' + encodeURI(path);
       }
+    });
+
+    /* ---- 书库文件拖拽排序 ---- */
+    var dragRow = null;
+
+    function clearDropMarks() {
+      $$('.tdrop-before,.tdrop-after').forEach(function (el) {
+        el.classList.remove('tdrop-before', 'tdrop-after');
+      });
+    }
+
+    $('#tree').addEventListener('dragstart', function (ev) {
+      var row = ev.target.closest('.trow');
+      if (!row || !row.dataset.lib) { return; }
+      dragRow = row;
+      row.classList.add('tdragging');
+      try {
+        ev.dataTransfer.effectAllowed = 'move';
+        ev.dataTransfer.setData('text/plain', row.dataset.path);
+      } catch (e) {}
+    });
+
+    $('#tree').addEventListener('dragend', function () {
+      if (dragRow) dragRow.classList.remove('tdragging');
+      clearDropMarks();
+      dragRow = null;
+    });
+
+    $('#tree').addEventListener('dragover', function (ev) {
+      if (!dragRow) return;
+      var row = ev.target.closest('.trow');
+      if (!row || !row.dataset.lib || row === dragRow) return;
+      // 只允许同一目录内排序
+      if (libParent(row.dataset.path) !== libParent(dragRow.dataset.path)) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'move';
+      clearDropMarks();
+      var r = row.getBoundingClientRect();
+      row.classList.add(ev.clientY > r.top + r.height / 2 ? 'tdrop-after' : 'tdrop-before');
+    });
+
+    $('#tree').addEventListener('drop', function (ev) {
+      if (!dragRow) return;
+      var row = ev.target.closest('.trow');
+      if (!row || !row.dataset.lib || row === dragRow) return;
+      ev.preventDefault();
+
+      var dir = libParent(dragRow.dataset.path);
+      if (libParent(row.dataset.path) !== dir) return;
+
+      // 同一容器里的书库文件，按 DOM 顺序取名字
+      var box = dragRow.parentElement;
+      var names = $$('.trow[data-lib]', box).map(function (r) {
+        return r.dataset.path.split('/').pop();
+      });
+      var dragName = dragRow.dataset.path.split('/').pop();
+      var targetName = row.dataset.path.split('/').pop();
+
+      names.splice(names.indexOf(dragName), 1);
+      var at = names.indexOf(targetName);
+      var r2 = row.getBoundingClientRect();
+      var after = ev.clientY > r2.top + r2.height / 2;
+      names.splice(after ? at + 1 : at, 0, dragName);
+
+      clearDropMarks();
+      libSaveOrder(dir, names);
     });
   }
 

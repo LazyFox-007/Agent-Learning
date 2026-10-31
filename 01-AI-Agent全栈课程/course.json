@@ -1,0 +1,11 @@
+{
+  "id": "agent",
+  "title": "AI Agent 全栈课程",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "description": "37 章 AI Agent 全栈课程，每章一份自包含 HTML 讲义 + 一个可运行的 Python 文件。",
+  "author": "callous-0923",
+  "license": "MIT",
+  "tags": ["AI", "Agent", "MCP", "RAG"],
+  "order": 1
+}

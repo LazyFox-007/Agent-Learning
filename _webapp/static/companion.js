@@ -255,7 +255,7 @@
 
     box.innerHTML =
       '<div class="cp-empty">' +
-        '<img src="/static/mascot-64.png" class="cp-empty-fish" alt="">' +
+        '<img src="/static/mascot-girl.png" class="cp-empty-fish" alt="">' +
         '<div class="cp-empty-t">大肥鱼在这儿</div>' +
         (cta ||
           '<div class="cp-empty-d">' +
@@ -276,7 +276,7 @@
           (m._streaming ? esc(m.content).replace(/\n/g, '<br>') : mdToHtml(m.content)) +
         '</div>';
     return '<div class="cp-msg ' + (isUser ? 'me' : 'ai') + '" data-idx="' + idx + '">' +
-             (isUser ? '' : '<img class="cp-mini" src="/static/mascot-64.png" alt="">') +
+             (isUser ? '' : '<img class="cp-mini" src="/static/mascot-girl.png" alt="">') +
              '<div class="cp-msgcol">' +
                body +
                '<div class="cp-meta">' +
@@ -640,7 +640,7 @@
     el.innerHTML =
       '<div class="cp-inline-head">' +
         '<span class="cp-inline-grip" aria-hidden="true">⠿</span>' +
-        '<img src="/static/mascot-64.png" alt="">' +
+        '<img src="/static/mascot-girl.png" alt="">' +
         '<b>大肥鱼</b>' +
         '<button class="cp-inline-x" title="关闭">✕</button>' +
       '</div>' +

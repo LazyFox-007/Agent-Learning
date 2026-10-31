@@ -64,3 +64,11 @@ _webapp/.ai-config.tmp
 
 # 局域网访问令牌（每台机器自己生成）
 _webapp/.lan-token
+
+# 用户自己的资料，不进仓库
+书库/
+_webapp/_logs/
+书库/.preview/
+docs/大肥鱼阅读器-介绍片-B站版.mp4
+docs/大肥鱼阅读器-介绍片-小红书版.mp4
+docs/大肥鱼阅读器-介绍片-配乐版.mp4

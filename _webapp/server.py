@@ -28,8 +28,14 @@ from pathlib import Path
 # ---------------------------------------------------------------------
 # 配置
 # ---------------------------------------------------------------------
-ROOT     = Path(r"C:\StudyAI").resolve()
+# 资料根目录：默认是仓库根（本文件所在目录的上一层），可用 STUDYAI_ROOT 环境变量覆盖。
+# 这样克隆到任意路径都能直接跑，不用改代码。
+_DEFAULT_ROOT = Path(__file__).resolve().parent.parent
+ROOT     = Path(os.environ.get("STUDYAI_ROOT") or _DEFAULT_ROOT).resolve()
 WEBAPP   = Path(__file__).resolve().parent
+import library
+import courses
+
 STATIC   = WEBAPP / "static"
 
 HOST     = "127.0.0.1"
@@ -396,6 +402,80 @@ def rel_of(p: Path) -> str:
 
 
 # ---------------------------------------------------------------------
+# 给 HTML 注入 KaTeX
+# ---------------------------------------------------------------------
+# 用户放的 HTML 常常是自己用 Markdown 转的，里面写着 $...$ 但没引 MathJax。
+# 直接放 iframe 只会看到一堆美元符号，所以这里把本地的 KaTeX 塞进去。
+_KATEX_HEAD = (
+    '<link rel="stylesheet" href="/static/vendor/katex.min.css">'
+    '<script src="/static/vendor/katex.min.js"></script>'
+    '<script src="/static/vendor/auto-render.min.js"></script>'
+)
+
+_KATEX_TAIL = """
+<script>
+(function () {
+  function run() {
+    if (!window.renderMathInElement) return;
+    try {
+      window.renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false },
+          { left: '\\\\(', right: '\\\\)', display: false },
+          { left: '\\\\[', right: '\\\\]', display: true }
+        ],
+        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        throwOnError: false
+      });
+    } catch (e) { console.warn('KaTeX 渲染失败', e); }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run);
+  } else { run(); }
+})();
+</script>
+"""
+
+
+def inject_math_support(data: bytes) -> bytes:
+    """把 KaTeX 注入 HTML，返回新的字节流。
+
+    · 已经引过 katex 的页面原样返回，不重复注入
+    · 优先插在 </head> 前；没有 head 就插在 <body 前；再没有就放最前面
+    """
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            text = data.decode("gbk", errors="replace")
+        except Exception:
+            return data
+
+    if "katex" in text.lower():
+        return data
+
+    low = text.lower()
+    if "</head>" in low:
+        i = low.index("</head>")
+        text = text[:i] + _KATEX_HEAD + text[i:]
+    elif "<body" in low:
+        i = low.index("<body")
+        text = text[:i] + _KATEX_HEAD + text[i:]
+    else:
+        text = _KATEX_HEAD + text
+
+    low = text.lower()
+    if "</body>" in low:
+        i = low.rindex("</body>")
+        text = text[:i] + _KATEX_TAIL + text[i:]
+    else:
+        text = text + _KATEX_TAIL
+
+    return text.encode("utf-8")
+
+
+# ---------------------------------------------------------------------
 # 目录树
 # ---------------------------------------------------------------------
 def list_dir(p: Path):
@@ -451,6 +531,20 @@ def list_dir(p: Path):
 # 搜索
 # ---------------------------------------------------------------------
 _search_cache = {"ts": 0, "index": []}
+
+# ---------------------------------------------------------------------
+# 自动退出（「关掉网页，后台也跟着走」）
+# ---------------------------------------------------------------------
+# 页面每隔十几秒发一次心跳；关掉标签页时用 sendBeacon 报个 bye。
+# 最后一个页面走掉后再等 grace 秒还没人回来，就退出进程。
+# 关掉这个功能（默认关）时完全不影响原有行为。
+AUTO_EXIT = {
+    "enabled": False,
+    "grace": 20.0,      # 秒
+    "since": None,      # 最后一个页面离开的时刻
+    "clients": set(),   # 还在线的页面 sid
+}
+_SRV = {"srv": None}
 _stats_cache  = {"ts": 0, "data": None}
 
 SEARCHABLE = {"markdown", "notebook", "code", "text"}
@@ -666,6 +760,10 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/files/"):
             return self._serve_file(urllib.parse.unquote(path[len("/files/"):]))
 
+        # 与 /files/ 相同，但给 HTML 注入 KaTeX（公式渲染）
+        if path.startswith("/mathfiles/"):
+            return self._serve_file(urllib.parse.unquote(path[len("/mathfiles/"):]), inject_math=True)
+
         if path == "/api/stats":
             return self._api_stats()
         if path == "/api/tree":
@@ -677,7 +775,35 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/search":
             return self._api_search()
         if path == "/api/ping":
-            return self._json({"ok": True, "root": str(ROOT)})
+            return self._json({"ok": True, "root": str(ROOT), "autoExit": AUTO_EXIT["enabled"]})
+
+        # ---- 存活心跳（用于自动退出）----
+        if path == "/api/heartbeat":
+            sid = self._q("sid", "")
+            if sid:
+                AUTO_EXIT["clients"].add(sid)
+                AUTO_EXIT["since"] = None
+            return self._json({"ok": True, "clients": len(AUTO_EXIT["clients"])})
+
+        if path == "/api/bye":
+            sid = self._q("sid", "")
+            if sid:
+                AUTO_EXIT["clients"].discard(sid)
+            if not AUTO_EXIT["clients"]:
+                AUTO_EXIT["since"] = time.time()
+            return self._json({"ok": True, "clients": len(AUTO_EXIT["clients"])})
+
+        # ---- 课程包（校验通过才出现在列表里）----
+        if path.startswith("/api/courses"):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return courses.handle(self, path, q)
+
+        # ---- 用户书库（--library 时才启用，默认不接管任何路由）----
+        if library.ENABLED and path.startswith("/api/library/"):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return library.handle(self, path, q)
+        if library.ENABLED and path in ("/library", "/library/", "/library/index.html"):
+            return self._static("mybooks/index.html")
 
         # ---- AI 陪读 ----
         if path == "/api/ai/config":
@@ -1062,7 +1188,7 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(200, data, ctype, {"Cache-Control": cache})
 
     # ---------- 按目录结构提供文件（支持 HTML 多页站点的相对导航）----------
-    def _serve_file(self, rel):
+    def _serve_file(self, rel, inject_math=False):
         p = safe_path(rel)
         if not p.is_file():
             return self._err(404, "文件不存在")
@@ -1084,6 +1210,13 @@ class Handler(BaseHTTPRequestHandler):
             ctype = "application/pdf"
 
         data = p.read_bytes()
+
+        # /mathfiles/ 走这条路：给 HTML 注入 KaTeX，让它里面的 $...$ 也能渲染成公式。
+        # 用路径前缀而不是查询参数，是因为页内相对链接跳转时会丢掉 query。
+        if inject_math and low in (".html", ".htm"):
+            data = inject_math_support(data)
+            ctype = "text/html; charset=utf-8"
+
         # 本地服务，缓存没有收益；课程文件重新导入后必须立刻生效
         self._send(200, data, ctype,
                    {"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
@@ -1179,6 +1312,11 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 text = None
                 meta["reason"] = "无法以文本方式解码"
+        # BOM 必须剥掉：Windows 记事本 / Set-Content / Excel 导出常带 UTF-8 BOM，
+        # 留着会让第一行变成 "\ufeff# 标题"，Markdown 认不出这是标题。
+        if text and text.startswith("\ufeff"):
+            text = text[1:]
+            meta["bom"] = True
         meta["content"] = text
         return self._json(meta)
 
@@ -1275,6 +1413,30 @@ def main():
         print("!! 前端缺失: %s" % (STATIC / "index.html"))
         sys.exit(1)
 
+    # --- 自动退出 ---
+    # --auto-exit        默认空闲 20 秒后退出
+    # --auto-exit=60     自定义宽限秒数
+    # 由「资源管理器右键」启动时自动带上，手动启动默认不带。
+    for a in sys.argv[1:]:
+        if a == "--auto-exit":
+            AUTO_EXIT["enabled"] = True
+        elif a.startswith("--auto-exit="):
+            try:
+                AUTO_EXIT["grace"] = max(5.0, float(a.split("=", 1)[1]))
+                AUTO_EXIT["enabled"] = True
+            except ValueError:
+                pass
+
+    # --- 课程包校验（始终启用，只读）---
+    courses.configure(ROOT, library.LIB_DIRNAME)
+
+    # --- 用户书库（独立功能，默认关闭）---
+    if "--library" in sys.argv:
+        library.ENABLED = True
+        library.configure(ROOT, classify)
+        _lib = library.lib_dir(create=True)
+        print("  书库     : %s" % _lib)
+
     # --- 局域网模式 ---
     if "--lan" in sys.argv:
         LAN_MODE = True
@@ -1300,6 +1462,49 @@ def main():
 
     srv = ThreadingHTTPServer((HOST, port), Handler)
     srv.daemon_threads = True
+    _SRV["srv"] = srv
+
+    def _cleanup_previews():
+        """退出前清掉没人要的预览文件。
+
+        「要不要保存」已经挪到网页里问了（顶部提示条），
+        所以这里只负责：没点保存的，一律删掉 —— 这就是「不导入就退」。
+        """
+        import shutil as _sh
+        base = ROOT / library.LIB_DIRNAME / ".preview"
+        if not base.is_dir():
+            return
+        try:
+            n = sum(1 for d in base.rglob("*") if d.is_file())
+        except OSError:
+            n = 0
+        try:
+            _sh.rmtree(str(base), ignore_errors=True)
+        except Exception:
+            pass
+        if n:
+            print("  清理临时预览 %d 个文件" % n)
+    if AUTO_EXIT["enabled"]:
+        def _watchdog():
+            while True:
+                time.sleep(2.0)
+                since = AUTO_EXIT["since"]
+                if since is None:
+                    continue
+                idle = time.time() - since
+                if idle >= AUTO_EXIT["grace"]:
+                    print("  页面已全部关闭，%.0f 秒无连接，准备退出" % idle)
+                    try:
+                        _cleanup_previews()
+                    except Exception as _e:
+                        print("  预览清理失败: %s" % _e)
+                    try:
+                        srv.shutdown()
+                    except Exception:
+                        pass
+                    os._exit(0)
+
+        threading.Thread(target=_watchdog, daemon=True).start()
 
     # 额外的监听：同一个端口，绑到别的网卡上
     extra_srvs = []

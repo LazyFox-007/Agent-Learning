@@ -153,6 +153,11 @@
     // 图片相对路径（book/ 里的教材会回退到资源根目录找 figures/）
     html = html.replace(/(<img\b[^>]*?\ssrc=)(["'])(.*?)\2/gi, function (m, pre, q, src) {
       if (/^(https?:|data:|blob:)/i.test(src)) return m;
+      // 以 /static/ /files/ /api/ 开头的是应用自己的路由地址，直接用，
+      // 不能当资料根目录相对路径去拼（用户从网上抄来的 md 常这么写）。
+      if (/^\/(static|files|api)\//i.test(src)) {
+        return pre + q + src + q + ' data-src="' + esc(src) + '" loading="lazy"';
+      }
       var abs = resolveAssetPath(baseDir, src);
       return pre + q + rawUrl(abs) + q + ' data-src="' + esc(src) + '" loading="lazy"';
     });
@@ -443,11 +448,15 @@
   }
 
   function renderHtmlFile(file) {
-    // HTML 用 /files/ 按真实目录提供，页内相对链接（多页站点导航）才能正常解析。
-    // sandbox 不给 allow-scripts：课程讲义是纯静态的，禁用脚本更安全。
+    // HTML 用 /mathfiles/ 提供：
+    //   · 仍然按真实目录结构解析，页内相对链接（多页站点导航）能正常工作
+    //   · 但服务端会往里注入 KaTeX，用户自己写的 $...$ 也能渲染成公式
+    // sandbox 给 allow-scripts（KaTeX 要跑）+ allow-same-origin：
+    //   内容全是用户本地的文件，同源脚本放行；iframe 也能正常读自己的资源。
     return {
-      html: '<iframe class="html-view" sandbox="allow-same-origin" src="' +
-            fileUrl(file.path) + '"></iframe>',
+      html: '<iframe class="html-view" sandbox="allow-scripts allow-same-origin" src="' +
+            '/mathfiles/' + String(file.path).split('/').map(encodeURIComponent).join('/') +
+            '"></iframe>',
       toc: []
     };
   }
