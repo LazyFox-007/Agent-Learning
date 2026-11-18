@@ -39,6 +39,7 @@
 | 🗺️ **学习路线** | 7 层结构 + 按目标选路径（新手 / 面试突击 / 构建产品 / 降本增效） |
 | 📄 **多格式渲染** | Markdown、Jupyter Notebook、代码（带高亮）、PDF、图片 |
 | 🧮 **数学公式** | KaTeX 渲染，不是显示 LaTeX 源码 |
+| ✍️ **练习区（可选）** | 网页里改代码 → 保存到 `练习区/` → 一键运行看输出；`--ide` 开启，默认关闭 |
 | 🌓 **明暗主题** | 跟随系统或手动切换 |
 | 💾 **本地优先** | 只监听 `127.0.0.1`，不暴露、不上传；AI 密钥只存本机 |
 
@@ -70,7 +71,7 @@
 | **Ollama 本地** | 不用 key，本机跑 `qwen2.5:7b` 之类 |
 | **演示模式** | 完全不用配置，返回固定样例，先看效果 |
 
-> 🔒 密钥只写在本机 `_webapp/.ai-config.json`（已 gitignore），
+> 🔒 密钥只写在本机 `_webapp/data/ai-config.json`（已 gitignore），
 > **不会回传给浏览器，也不会进版本控制**。前端只拿到掩码 `sk-abc…1234`。
 >
 > 设计细节与实现坑见 [docs/陪读设计.md](docs/陪读设计.md)。
@@ -111,7 +112,7 @@ python server.py
 2. 点右上角设置 → 选一个服务商（DeepSeek / Kimi / 通义 / OpenAI / 本地 Ollama）
 3. 粘贴自己的 API Key → 点「保存并测试」
 
-> **Key 只存在本机的 `_webapp/.ai-config.json`**，不上传、不进仓库（`.gitignore` 已排除）。
+> **Key 只存在本机的 `_webapp/data/ai-config.json`**，不上传、不进仓库（`.gitignore` 已排除）。
 > 换句话说：这个仓库里没有任何人的密钥，你得填自己的。
 
 本机实测过 DeepSeek（`api.deepseek.com` + `deepseek-chat`），响应约 0.5 秒。
@@ -132,9 +133,12 @@ python server.py --bind 192.168.1.100    # 换成你自己那块网卡的 IP
 ```
 
 > 默认**只监听 `127.0.0.1`**，局域网里其他设备连不上 —— 这是故意的安全默认值。
-> 用 `--bind` 之后只有那一块网卡对外开放，WiFi 上的其他人依然进不来。
+> `--bind` 是把服务**额外**绑到你指定的那块网卡上，**它不带访问令牌**，所以要看绑的是哪块：
 >
-> 走 USB 共享网络的话，绑那块网卡的 IP（通常是 `172.31.x.x` 或 `192.168.42.x`）。
+> - **USB 共享网络**（手机通过数据线连电脑）：绑那块网卡的 IP（常见 `172.31.x.x` / `192.168.42.x`），
+>   只有这条链路能访问，相对安全 —— 推荐这种方式。
+> - **同一 WiFi**：请改用 `--lan`（会要求 `?t=` 令牌）。**不要用 `--bind` 绑 WiFi 网卡的 IP**，
+>   那等于把整个资料库开放给同一网段的所有设备。
 
 **没有 Node.js 也能用。** Node 只在重新生成课程索引时才用到，首页数据已随仓库提供。
 
@@ -149,12 +153,12 @@ python server.py
 
 把自己的 Markdown / HTML / PDF 丢进去，刷新就能看到。
 
-### setup.ps1 是干什么的
+### _dev/setup.ps1 是干什么的
 
 只在**想更新课程**的时候才需要：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File setup.ps1
+powershell -ExecutionPolicy Bypass -File _dev\setup.ps1
 ```
 
 它会从 [上游仓库](https://github.com/callous-0923/agent-study) 重新拉一份最新课程，
@@ -167,9 +171,30 @@ powershell -ExecutionPolicy Bypass -File setup.ps1
 
 ```
 Agent-Learning/
-├── setup.ps1                    更新课程用（可选，日常启动不需要）
-├── LICENSE                      MIT
-├── THIRD-PARTY-NOTICES.md       课程来源与前端依赖声明
+├── _webapp/                     学习平台（双击 start.bat 启动）
+│   ├── server.py                HTTP 层：路由 / 文件 / 搜索 / 统计
+│   ├── app/                     后端模块
+│   │   ├── ai.py                AI 陪读：预设 / 密钥 / 提示词 / 流式调用
+│   │   ├── ide.py               练习区：保存到工作区 + 运行 Python
+│   │   ├── courses.py           课程包校验（通过才出现在首页）
+│   │   └── library.py           「我的书库」（--library 才启用）
+│   ├── start.bat                Windows 双击启动
+│   ├── data/                    本机私有配置（已 gitignore）
+│   │   └── ai-config.json       ⬅ AI 密钥
+│   ├── static/                  前端
+│   │   ├── index.html           三栏布局 + 陪读面板
+│   │   ├── app.js               目录树 / 搜索 / 进度 / 路由
+│   │   ├── companion.js         🐟 AI 陪读（上下文 / 流式 / 选区 / 设置）
+│   │   ├── ide/                 编辑器页（Monaco，保存 / 运行）
+│   │   ├── renderers.js         Markdown / Notebook / 代码 / PDF 渲染
+│   │   ├── roadmap.js           首页数据（由 dev/gen-roadmap.js 生成）
+│   │   ├── style.css            主题变量都在 :root 里
+│   │   └── vendor/              marked · KaTeX · highlight.js · Monaco
+│   ├── tests/                   回归测试（纯标准库 unittest）
+│   ├── assets/                  吉祥物图标与图标生成脚本
+│   ├── dev/                     开发工具（生成器 / 渲染测试 / npm 依赖）
+│   ├── logs/                    运行日志（已 gitignore）
+│   └── shots/                   验证截图（已 gitignore）
 │
 ├── 01-AI-Agent全栈课程/          ⬅ 37 章课程正文 + 源码，随仓库提供
 │   ├── index.html               课程主页
@@ -178,25 +203,20 @@ Agent-Learning/
 │   ├── chapter_36_defense/
 │   └── LICENSE                  上游课程授权
 │
-├── _webapp/                     学习平台
-│   ├── server.py                HTTP 服务（纯标准库）+ AI 流式代理
-│   ├── start.bat                Windows 双击启动
-│   ├── .ai-config.json          ⬅ AI 密钥，本机生成，已 gitignore
-│   ├── static/                  前端
-│   │   ├── index.html           三栏布局 + 陪读面板
-│   │   ├── app.js               目录树 / 搜索 / 进度 / 路由
-│   │   ├── companion.js         🐟 AI 陪读（上下文 / 流式 / 选区 / 设置）
-│   │   ├── renderers.js         Markdown / Notebook / 代码 / PDF 渲染
-│   │   ├── roadmap.js           首页数据（由 gen-roadmap.js 生成）
-│   │   ├── style.css            主题变量都在 :root 里
-│   │   └── vendor/              marked · KaTeX · highlight.js
-│   ├── assets/                  吉祥物图标与图标生成脚本
-│   └── _build/                  开发工具（生成器 + 渲染测试）
+├── 02-AFA与进程代数/             本地数学教材（Markdown + KaTeX）
 │
-├── _scripts/
-│   └── import-agent-course.ps1  重新拉取课程 + 本地化转换
+├── _dev/                        开发脚本（不参与阅读）
+│   ├── setup.ps1                一键安装 / 更新课程
+│   ├── scripts/
+│   │   ├── import-agent-course.ps1   重新拉取课程 + 本地化转换
+│   │   └── install-shell-menu.ps1    右键「用阅读器打开」
+│   └── tools/                   视频导出、水印等辅助脚本
 │
-└── docs/                        README 截图 + 陪读设计 + 维护笔记
+├── 书库/                        用户自己的资料（已 gitignore）
+├── 练习区/                      编辑器里写的代码（已 gitignore）
+├── docs/                        README 截图 + 陪读设计 + 维护笔记
+├── LICENSE / THIRD-PARTY-NOTICES.md
+└── .gitignore / .gitattributes
 ```
 
 ---
@@ -258,8 +278,25 @@ Agent-Learning/
 
 ### 零依赖
 
-`server.py` 只用 Python 标准库（`http.server` / `json` / `gzip` / `mimetypes`），
-**不需要 `pip install` 任何东西**。
+`server.py` / `app/*.py` 全部只用 Python 标准库
+（`http.server` / `json` / `gzip` / `mimetypes`），**不需要 `pip install` 任何东西**。
+
+### 自动化测试
+
+服务端有 22 项回归测试（纯标准库 `unittest`，不需要 pytest），覆盖路径越界、敏感文件拦截、
+HEAD/Range 语义、超长 POST 不断连、GBK 搜索、KaTeX 注入、模型调用（用本地假接口，不花钱）：
+
+```powershell
+cd _webapp
+python -m unittest discover -s tests -v
+```
+
+前端渲染另有 28 项检查：
+
+```powershell
+cd _webapp\dev
+node test-render.js
+```
 
 ---
 
@@ -273,10 +310,11 @@ A：可以。往仓库根目录扔文件夹即可，平台会自动识别（`_` 
 
 **Q：支持 Mac / Linux 吗？**
 A：`server.py` 跨平台，`python server.py` 直接能跑。`setup.ps1` 和 `start.bat` 是 Windows 脚本，
-其他系统手动执行 `_scripts/import-agent-course.ps1` 里的 git clone 命令即可。
+其他系统手动执行 `_dev/scripts/import-agent-course.ps1` 里的 git clone 命令即可。
 
 **Q：`git pull` 更新平台后，课程会跟着更新吗？**
-A：不会，课程是 gitignore 的。删掉 `01-AI-Agent全栈课程/` 后重跑 `setup.ps1` 即可拉到上游最新版。
+A：不会。课程正文**已经随仓库提供**（`01-AI-Agent全栈课程/` 81 个文件、`02-AFA与进程代数/` 54 个文件），
+但 `git pull` 只会更新平台代码，不会动课程内容。想拉上游最新版：删掉对应课程目录后重跑 `setup.ps1`。
 
 **Q：页面内容和文件对不上怎么办？**
 A：先 `Ctrl`+`F5` 强制刷新。静态资源已设 `no-store`，正常情况下不会再有缓存问题。

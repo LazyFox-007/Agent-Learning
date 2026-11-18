@@ -14,8 +14,8 @@ v3 的做法（背景重建法）
 import cv2
 import numpy as np
 
-SRC = r'C:\StudyAI\_webapp\_shots\wm-in.jpg'
-OUT = r'C:\StudyAI\_webapp\_shots\wm-out.png'
+SRC = r'C:\StudyAI\_webapp\shots\wm-in.jpg'
+OUT = r'C:\StudyAI\_webapp\shots\wm-out.png'
 
 img = cv2.imread(SRC, cv2.IMREAD_COLOR)
 h, w = img.shape[:2]
@@ -59,9 +59,9 @@ print('已输出:', OUT)
 # ---- 4. 放大检查 ----
 z = out[1120:1280, 940:1280]
 z = cv2.resize(z, (680, 320), interpolation=cv2.INTER_LANCZOS4)
-cv2.imwrite(r'C:\StudyAI\_webapp\_shots\wm-fixed-zoom.png', z)
+cv2.imwrite(r'C:\StudyAI\_webapp\shots\wm-fixed-zoom.png', z)
 
 # 顺便出一张「整图缩略」方便看整体有没有被破坏
 thumb = cv2.resize(out, (640, 640), interpolation=cv2.INTER_AREA)
-cv2.imwrite(r'C:\StudyAI\_webapp\_shots\wm-fixed-thumb.png', thumb)
+cv2.imwrite(r'C:\StudyAI\_webapp\shots\wm-fixed-thumb.png', thumb)
 print('放大图 + 缩略图已存')

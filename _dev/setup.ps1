@@ -1,4 +1,4 @@
-# =====================================================================
+﻿# =====================================================================
 #  agent学习平台 · 一键安装
 #
 #  用法（在仓库根目录）：
@@ -12,9 +12,9 @@
 # =====================================================================
 $ErrorActionPreference = 'Continue'
 
-$RepoRoot = $PSScriptRoot
+$RepoRoot = Split-Path $PSScriptRoot -Parent
 $CourseDir = Join-Path $RepoRoot '01-AI-Agent全栈课程'
-$BuildDir  = Join-Path $RepoRoot '_webapp\_build'
+$BuildDir  = Join-Path $RepoRoot '_webapp\dev'
 
 Write-Host ""
 Write-Host ("=" * 68)
@@ -77,7 +77,7 @@ if (Test-Path (Join-Path $CourseDir 'index.html')) {
     Write-Host "  如需强制重新拉取，先删除目录：" -ForegroundColor DarkGray
     Write-Host ("    Remove-Item '{0}' -Recurse -Force" -f $CourseDir) -ForegroundColor DarkGray
 } else {
-    & (Join-Path $RepoRoot '_scripts\import-agent-course.ps1')
+    & (Join-Path $RepoRoot '_dev\scripts\import-agent-course.ps1')
     if (-not (Test-Path (Join-Path $CourseDir 'index.html'))) {
         Write-Host ""
         Write-Host "  ❌ 课程拉取失败，安装未完成。" -ForegroundColor Red
@@ -93,7 +93,7 @@ Write-Host "=== 3/4) 生成索引与路线数据 ===" -ForegroundColor Cyan
 if (-not $hasNode) {
     Write-Host "  跳过（无 Node）。仓库自带的 static/roadmap.js 仍可使用。" -ForegroundColor DarkGray
 } elseif (-not (Test-Path $BuildDir)) {
-    Write-Host "  跳过（未找到 _webapp\_build）。" -ForegroundColor DarkGray
+    Write-Host "  跳过（未找到 _webapp\dev）。" -ForegroundColor DarkGray
 } else {
     Push-Location $BuildDir
 

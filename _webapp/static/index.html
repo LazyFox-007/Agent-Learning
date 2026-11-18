@@ -28,6 +28,7 @@
     <button class="icon-btn icon-btn-img" id="btnCompanion" title="AI 陪读 (Ctrl+J)">
       <img src="/static/mascot-girl.png" alt="陪读">
     </button>
+    <button class="icon-btn" id="btnIde" title="编辑器：在右侧分栏打开（Ctrl+E）">✎</button>
     <button class="icon-btn" id="btnSearch" title="搜索 (Ctrl+K)">🔍</button>
     <button class="icon-btn" id="btnToc" title="目录 (Ctrl+I)">☰</button>
     <button class="icon-btn" id="btnTheme" title="切换主题">🌓</button>
@@ -89,6 +90,16 @@
         <div class="lib-grid" id="libGrid"></div>
       </section>
 
+      <!-- ============ 练习区（--ide 才显示） ============ -->
+      <section class="rm-sec" id="ideSec" hidden>
+        <h2 class="rm-h2">练习区</h2>
+        <div class="rm-sub">在网页里写代码、保存到 <code>练习区/</code>、一键运行。读讲义时点标题栏的 ✎，会左右分栏边读边改。</div>
+        <div class="ide-cta">
+          <button class="btn-ide-open" id="btnOpenIde">打开编辑器 →</button>
+          <span class="ide-cta-hint" id="ideCtaHint"></span>
+        </div>
+      </section>
+
       <!-- ============ AFA 教材目录 ============ -->
       <section class="rm-sec" id="libAfa"></section>
 
@@ -125,6 +136,17 @@
     </div>
     <article class="doc" id="doc" hidden></article>
   </main>
+
+  <!-- 内嵌编辑器（阅读器 + IDE 分栏，点标题栏 ✎ 打开） -->
+  <div class="split-handle" id="splitHandle" hidden title="拖动调整宽度"></div>
+  <aside class="editor-pane" id="editorPane" hidden>
+    <div class="editor-pane-head">
+      <span class="editor-pane-title" id="editorPaneTitle">编辑器</span>
+      <button class="icon-btn sm" id="btnEditorPopout" title="在新标签页打开">↗</button>
+      <button class="icon-btn sm" id="btnEditorClose" title="关闭编辑器">✕</button>
+    </div>
+    <iframe class="editor-frame" id="editorFrame" title="代码编辑器"></iframe>
+  </aside>
 
   <!-- 目录（TOC） -->
   <aside class="toc" id="toc" hidden>

@@ -34,10 +34,10 @@ $Extensions = @($Extensions | ForEach-Object { "$_" -split ',' } |
                 Where-Object { $_ })
 if ($Extensions.Count -eq 0) { $Extensions = @('*') }
 
-$RepoRoot = Split-Path $PSScriptRoot -Parent
+$RepoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $Launcher = Join-Path $RepoRoot '_webapp\open_in_reader.py'
 $Icon     = Join-Path $RepoRoot '_webapp\static\mascot.ico'
-$LogFile  = Join-Path $RepoRoot '_webapp\_logs\open-with.log'
+$LogFile  = Join-Path $RepoRoot '_webapp\logs\open-with.log'
 
 $KeyName  = 'StudyAIReader'
 $MenuText = '用大肥鱼阅读器打开'

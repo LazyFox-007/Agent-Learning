@@ -130,7 +130,7 @@
     'THIRD-PARTY-NOTICES.md': 1, '.gitignore': 1, '.gitattributes': 1,
     'setup.ps1': 1, 'requirements.txt': 1, 'pyproject.toml': 1,
     'package.json': 1, 'package-lock.json': 1, 'docs': 1, '.github': 1,
-    'tools': 1, '_scripts': 1, '_webapp': 1
+    '_dev': 1, '_scripts': 1, '_webapp': 1, 'tools': 1
   };
 
   function isHidden(node) {
@@ -587,6 +587,132 @@
     });
   }
 
+  /* =================================================================
+     内嵌编辑器：阅读器 + IDE 分栏（VSCode 式）
+     - 桌面端点标题栏 ✎ → 右侧打开编辑器，可拖动分隔条
+     - 窄屏（<900px）自动退回新标签，避免分栏被压扁
+     ================================================================= */
+  var SPLIT_KEY = 'studyai.splitWidth';
+
+  function splitEls() {
+    return {
+      layout: $('#layout'),
+      pane: $('#editorPane'),
+      frame: $('#editorFrame'),
+      handle: $('#splitHandle'),
+      title: $('#editorPaneTitle')
+    };
+  }
+
+  /* 关掉陪读面板，免得它 + 编辑器一起把阅读区挤成 0 宽 */
+  function closeCompanionForSplit() {
+    var cp = $('#companion');
+    if (cp && !cp.hidden && window.Companion && window.Companion.toggle) {
+      window.Companion.toggle();
+    }
+  }
+
+  /* 按「可用宽度」算分栏宽度，保证阅读区至少 minContent */
+  function fitSplitWidth(el, keepSaved) {
+    var rect = el.layout.getBoundingClientRect();
+    var side = ($('#sidebar') || {}).getBoundingClientRect ? $('#sidebar').getBoundingClientRect().width : 0;
+    var avail = Math.max(0, rect.width - side - 5);
+    var minPane = 300, minContent = 320;
+    var maxPane = Math.max(minPane, avail - minContent);
+    var want = keepSaved ? parseInt(lsGet(SPLIT_KEY, ''), 10) : 0;
+    if (!want) want = Math.round(avail * 0.46);
+    el.pane.style.width = Math.max(minPane, Math.min(want, maxPane)) + 'px';
+  }
+
+  function openInlineEditor(path) {
+    if (window.innerWidth < 900) {
+      window.open('/ide?path=' + encodeURIComponent(path), '_blank');
+      toast('窗口太窄，已在新标签打开编辑器');
+      return;
+    }
+    var e = splitEls();
+    closeCompanionForSplit();
+    e.layout.classList.add('split');
+    e.pane.hidden = false;
+    e.handle.hidden = false;
+    e.title.textContent = (path || '').split('/').pop() || '编辑器';
+    e.title.title = path || '';
+    e.frame.dataset.path = path;
+    e.frame.src = '/ide?embed=1&path=' + encodeURIComponent(path);
+    fitSplitWidth(e, true);
+    requestAnimationFrame(function () { fitSplitWidth(e, true); });
+  }
+
+  /* 顶栏那只笔：在右侧分栏打开。已打开文件就打开该文件，否则显示练习区列表。 */
+  function openIdeInSplit() {
+    if (window.innerWidth < 900) {
+      window.open('/ide', '_blank');
+      return;
+    }
+    var e = splitEls();
+    closeCompanionForSplit();
+    e.layout.classList.add('split');
+    e.pane.hidden = false;
+    e.handle.hidden = false;
+    var path = (state.current && state.current.path) ? state.current.path : '';
+    e.title.textContent = path ? path.split('/').pop() : '练习区';
+    e.title.title = path || '';
+    e.frame.dataset.path = path;
+    e.frame.src = '/ide?embed=1' + (path ? '&path=' + encodeURIComponent(path) : '');
+    fitSplitWidth(e, true);
+    requestAnimationFrame(function () { fitSplitWidth(e, true); });
+  }
+
+  function closeInlineEditor() {
+    var e = splitEls();
+    e.layout.classList.remove('split');
+    e.pane.hidden = true;
+    e.handle.hidden = true;
+    e.frame.src = 'about:blank';
+    e.frame.dataset.path = '';
+  }
+
+  function initSplit() {
+    var e = splitEls();
+    if (!e.handle) return;
+    $('#btnEditorClose').addEventListener('click', closeInlineEditor);
+    $('#btnEditorPopout').addEventListener('click', function () {
+      var p = e.frame.dataset.path || '';
+      window.open('/ide?path=' + encodeURIComponent(p), '_blank');
+    });
+
+    var dragging = false;
+    e.handle.addEventListener('pointerdown', function (ev) {
+      dragging = true;
+      try { e.handle.setPointerCapture(ev.pointerId); } catch (err) {}
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      ev.preventDefault();
+    });
+    e.handle.addEventListener('pointermove', function (ev) {
+      if (!dragging) return;
+      var rect = e.layout.getBoundingClientRect();
+      var w = Math.round(rect.right - ev.clientX);
+      var min = 320, max = Math.round(rect.width * 0.75);
+      e.pane.style.width = Math.max(min, Math.min(max, w)) + 'px';
+    });
+    function stop(ev) {
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      var w = parseInt(e.pane.style.width, 10);
+      if (w) lsSet(SPLIT_KEY, w);
+      try { e.handle.releasePointerCapture(ev.pointerId); } catch (err) {}
+    }
+    e.handle.addEventListener('pointerup', stop);
+    e.handle.addEventListener('pointercancel', stop);
+
+    window.addEventListener('resize', function () {
+      if (e.layout.classList.contains('split')) fitSplitWidth(e, true);
+    });
+  }
+
   function renderFile(file) {
     var doc = $('#doc');
     var welcome = $('#welcome');
@@ -619,6 +745,8 @@
         '<button class="icon-btn" id="btnRead" title="标记已读/未读">' +
           (state.readSet[file.path] ? '✅' : '⬜') + '</button>' +
         '<button class="icon-btn" id="btnCopyPath" title="复制路径">📋</button>' +
+        ((file.kind === 'code' || file.kind === 'text' || file.kind === 'markdown')
+          ? '<button class="icon-btn" id="btnEdit" title="用编辑器打开（只读预览）">✎</button>' : '') +
         (wide ? '<button class="icon-btn" id="btnOpenTab" title="在新标签页打开（可全屏，支持页面内导航）">↗</button>' : '') +
       '</div></div>';
 
@@ -630,6 +758,8 @@
     if (br) br.addEventListener('click', function () { toggleRead(file.path); br.textContent = state.readSet[file.path] ? '✅' : '⬜'; });
     var bc = $('#btnCopyPath', doc);
     if (bc) bc.addEventListener('click', function () { copyText(file.path); });
+    var be = $('#btnEdit', doc);
+    if (be) be.addEventListener('click', function () { openInlineEditor(file.path); });
     var bo = $('#btnOpenTab', doc);
     if (bo) bo.addEventListener('click', function () { window.open(R.fileUrl(file.path), '_blank'); });
 
@@ -770,7 +900,11 @@
     var box = $('#progressList');
     if (!state.stats) { box.innerHTML = '<div class="pane-hint">加载中…</div>'; return; }
     var read = state.readSet;
-    var html = state.stats.sections.map(function (s) {
+    // 目录树里隐藏的工程目录（docs / tools / _scripts…）不要进进度面板，
+    // 否则永远有几十个文件算「未读」，总进度到不了 100%。
+    var html = state.stats.sections.filter(function (s) {
+      return !HIDE_NAMES[s.name];
+    }).map(function (s) {
       // 统计该版块已读数
       var cnt = 0;
       Object.keys(read).forEach(function (p) {
@@ -1227,6 +1361,7 @@
   function bindKeys() {
     document.addEventListener('keydown', function (ev) {
       var mod = ev.ctrlKey || ev.metaKey;
+      if (mod && ev.key.toLowerCase() === 'e') { ev.preventDefault(); openIdeInSplit(); return; }
       if (mod && ev.key.toLowerCase() === 'k') { ev.preventDefault(); openSearch(); return; }
       if (mod && ev.key.toLowerCase() === 'b') { ev.preventDefault(); toggleSidebar(); return; }
       if (mod && ev.key.toLowerCase() === 'i') {
@@ -1268,6 +1403,7 @@
     state.showAllFiles = lsGet('studyai.allfiles', false);
     if (lsGet(LS.sidebar, false)) $('#sidebar').classList.add('collapsed');
     syncAllFilesBtn();
+    initSplit();
 
     // 事件
     $('#btnTheme').addEventListener('click', function () {
@@ -1275,6 +1411,29 @@
     });
     $('#btnSidebar').addEventListener('click', toggleSidebar);
     $('#btnSearch').addEventListener('click', openSearch);
+    // 练习区入口：顶栏按钮 + 首页板块；没开 --ide 时一起隐藏
+    (function initIdeEntry() {
+      var btnIde = $('#btnIde');
+      var sec = $('#ideSec');
+      var go = function () { openIdeInSplit(); };
+      function hide() {
+        if (btnIde) btnIde.style.display = 'none';
+        if (sec) sec.hidden = true;
+      }
+      if (btnIde) btnIde.addEventListener('click', go);
+      var btnOpen = $('#btnOpenIde');
+      if (btnOpen) btnOpen.addEventListener('click', go);
+
+      fetch('/api/ide/status', { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : { enabled: false }; })
+        .then(function (st) {
+          if (!st || !st.enabled) { hide(); return; }
+          if (sec) sec.hidden = false;
+          var hint = $('#ideCtaHint');
+          if (hint) hint.textContent = '工作区 ' + st.workspace + ' · 解释器 ' + st.python;
+        })
+        .catch(hide);
+    })();
     $('#btnSearchClose').addEventListener('click', closeSearch);
     // AI 陪读
     var btnCp = $('#btnCompanion');

@@ -1,0 +1,178 @@
+/* 编辑器页：只做外壳样式，编辑器本身用 Monaco 的 vs / vs-dark 主题 */
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  display:flex;flex-direction:column;
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:#fff;color:#1f2328;
+}
+
+/* ---------- 顶栏 ---------- */
+.ide-bar{
+  flex-shrink:0;display:flex;align-items:center;gap:8px;
+  height:44px;padding:0 12px;
+  border-bottom:1px solid #e3e6ea;background:#f8f9fb;
+}
+.ide-back{
+  width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  color:#57606a;text-decoration:none;font-size:16px;flex-shrink:0;
+}
+.ide-back:hover{background:#e9ecf1;color:#1f2328}
+.ide-name{
+  font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:44vw;
+}
+.ide-badge{
+  font-size:11px;padding:2px 7px;border-radius:99px;white-space:nowrap;
+  background:#eef1f6;color:#6b7480;
+}
+.ide-badge.ok{background:#e6f4ea;color:#1e7b3c}
+.ide-badge.warn{background:#fff4e0;color:#9a6206}
+.ide-badge.bad{background:#fdeaea;color:#b3261e}
+.ide-spacer{flex:1}
+.ide-btn{
+  height:28px;padding:0 11px;border:1px solid #d7dbe2;border-radius:7px;
+  background:#fff;color:#3b424b;font-size:12.5px;font-family:inherit;cursor:pointer;
+  white-space:nowrap;
+}
+.ide-btn:hover:not(:disabled){background:#f2f4f8}
+.ide-btn:disabled{opacity:.45;cursor:default}
+.ide-btn.ide-btn-primary{background:#2f6feb;border-color:#2f6feb;color:#fff}
+.ide-btn.ide-btn-primary:hover{background:#2a63d4}
+.ide-btn.ide-icon{width:30px;padding:0;font-size:14px}
+
+/* 分栏内嵌模式：父页面已有标题栏，这里只去掉「返回」和重复文件名 */
+body.embed .ide-back{display:none}
+body.embed .ide-name{display:none}
+body.embed .ide-bar{padding-left:8px;height:38px;background:transparent;border-bottom-color:#eef0f3}
+body.embed .ide-badge{margin-left:2px}
+body.dark.embed .ide-bar{border-bottom-color:#333}
+
+/* ---------- 主区 ---------- */
+.ide-main{flex:1;min-height:0;display:flex;flex-direction:column}
+.ide-host{flex:1;min-height:0}
+
+.ide-output{
+  flex-shrink:0;height:220px;display:flex;flex-direction:column;
+  border-top:1px solid #e3e6ea;background:#fbfcfd;
+}
+.ide-output[hidden]{display:none}
+.ide-out-head{
+  flex-shrink:0;display:flex;align-items:center;gap:8px;
+  height:32px;padding:0 10px;border-bottom:1px solid #eef0f3;
+  font-size:12px;color:#57606a;
+}
+.ide-out-title.ok{color:#1e7b3c}
+.ide-out-title.bad{color:#b3261e}
+.ide-mini{
+  border:none;background:transparent;color:#57606a;font-size:12px;
+  font-family:inherit;cursor:pointer;padding:2px 6px;border-radius:5px;
+}
+.ide-mini:hover{background:#eceff3;color:#1f2328}
+.ide-out-body{
+  flex:1;min-height:0;margin:0;overflow:auto;
+  padding:9px 12px;
+  font:12.5px/1.65 ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+  white-space:pre-wrap;word-break:break-word;color:#24292f;
+}
+
+/* ---------- 练习区列表（无 ?path= 时） ---------- */
+.ide-empty{
+  height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;text-align:center;color:#6b7480;font-size:13.5px;line-height:2;
+}
+.ide-empty b{color:#1f2328;font-size:15px}
+.ide-empty code{background:#eef1f6;padding:1px 6px;border-radius:4px;font-size:12.5px}
+.ide-list{height:100%;overflow:auto;padding:14px 18px}
+.ide-list-head{
+  font-size:12px;color:#6b7480;margin-bottom:10px;
+  padding-bottom:8px;border-bottom:1px solid #eef0f3;
+}
+.ide-list-row{
+  display:flex;align-items:center;gap:12px;
+  padding:9px 10px;border-radius:8px;text-decoration:none;color:#1f2328;
+  border:1px solid transparent;
+}
+.ide-list-row:hover{background:#f4f6f9;border-color:#e3e6ea}
+.ide-list-name{flex:1;font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
+.ide-list-meta{font-size:11.5px;color:#8a929c;flex-shrink:0}
+
+/* ---------- 遮罩 / 提示 ---------- */
+.ide-mask{
+  position:fixed;inset:44px 0 0 0;display:flex;align-items:center;justify-content:center;
+  background:#fff;color:#6b7480;font-size:13.5px;
+  white-space:pre-wrap;line-height:1.8;padding:24px;text-align:left;
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  z-index:9;
+}
+.ide-mask[hidden]{display:none}
+
+/* ---------- 设置对话框 ---------- */
+.ide-dialog{
+  border:1px solid #dfe3e8;border-radius:12px;padding:0;
+  width:min(460px,92vw);background:#fff;color:#1f2328;
+  box-shadow:0 18px 50px rgba(16,24,40,.18);
+}
+.ide-dialog::backdrop{background:rgba(16,24,40,.38)}
+.ide-form{padding:18px 20px 14px;margin:0}
+.ide-form h3{margin:0 0 14px;font-size:15px}
+.ide-form label{display:block;margin-bottom:14px;font-size:12.5px;color:#3b424b;font-weight:600}
+.ide-form input{
+  display:block;width:100%;margin-top:6px;height:34px;padding:0 10px;
+  border:1px solid #d7dbe2;border-radius:8px;background:#fff;
+  font:13px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;color:#1f2328;
+}
+.ide-form input:focus{outline:2px solid #cfe0ff;border-color:#2f6feb}
+.ide-form small{display:block;margin-top:5px;font-weight:400;color:#6b7480;font-size:11.5px;line-height:1.5}
+.ide-hint{margin:0 0 12px;font-size:12.5px;color:#57606a;line-height:1.7}
+.ide-form-foot{
+  display:flex;align-items:center;gap:8px;margin-top:4px;
+  padding-top:12px;border-top:1px solid #eef0f3;
+}
+.ide-form-msg{flex:1;font-size:12px;color:#b3261e}
+
+
+.ide-form select{
+  display:block;width:100%;margin-top:6px;height:34px;padding:0 8px;
+  border:1px solid #d7dbe2;border-radius:8px;background:#fff;
+  font:13px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;color:#1f2328;
+}
+.ide-check{
+  display:flex;align-items:center;gap:7px;font-weight:400;
+  font-size:12.5px;color:#3b424b;
+}
+.ide-check input{width:auto;height:auto;margin:0}
+body.dark .ide-form select{background:#1e1e1e;border-color:#45454a;color:#e8e8e8}
+body.dark .ide-check{color:#cfcfcf}
+
+/* ---------- 暗色 ---------- */
+body.dark{background:#1e1e1e;color:#d4d4d4}
+body.dark .ide-bar{background:#252526;border-bottom-color:#3c3c3c}
+body.dark .ide-name{color:#e8e8e8}
+body.dark .ide-back{color:#9da5b4}
+body.dark .ide-back:hover{background:#37373d;color:#fff}
+body.dark .ide-badge{background:#37373d;color:#a8b0bd}
+body.dark .ide-badge.ok{background:#1e3a26;color:#7ee2a8}
+body.dark .ide-badge.warn{background:#3d3117;color:#e8c266}
+body.dark .ide-badge.bad{background:#3d1f1f;color:#f2a7a3}
+body.dark .ide-btn{background:#2d2d30;border-color:#45454a;color:#cfcfcf}
+body.dark .ide-btn:hover:not(:disabled){background:#37373d}
+body.dark .ide-btn.ide-btn-primary{background:#3b78e7;border-color:#3b78e7;color:#fff}
+body.dark .ide-output{background:#1b1b1c;border-top-color:#3c3c3c}
+body.dark .ide-out-head{border-bottom-color:#333;color:#9da5b4}
+body.dark .ide-mini{color:#9da5b4}
+body.dark .ide-mini:hover{background:#333;color:#fff}
+body.dark .ide-out-body{color:#d4d4d4}
+body.dark .ide-mask{background:#1e1e1e;color:#9da5b4}
+body.dark .ide-empty{color:#9da5b4}
+body.dark .ide-empty b{color:#e8e8e8}
+body.dark .ide-empty code{background:#2d2d30}
+body.dark .ide-list-head{color:#9da5b4;border-bottom-color:#333}
+body.dark .ide-list-row{color:#d4d4d4}
+body.dark .ide-list-row:hover{background:#2a2d2e;border-color:#3c3c3c}
+body.dark .ide-list-meta{color:#7c8590}
+body.dark .ide-dialog{background:#252526;border-color:#3c3c3c;color:#d4d4d4}
+body.dark .ide-form label{color:#cfcfcf}
+body.dark .ide-form input{background:#1e1e1e;border-color:#45454a;color:#e8e8e8}
+body.dark .ide-form small,body.dark .ide-hint{color:#9da5b4}
+body.dark .ide-form-foot{border-top-color:#3c3c3c}

@@ -1,6 +1,7 @@
 @echo off
 chcp 65001 >nul 2>&1
 setlocal
+set PYTHONDONTWRITEBYTECODE=1
 title agent学习平台
 
 cd /d "%~dp0"

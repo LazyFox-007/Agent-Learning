@@ -1,0 +1,21 @@
+# 只约束真正有硬性要求的类型，避免把仓库里既有文件的行尾整批改写
+# 背景见 docs/维护笔记.md：
+#   .bat 用 LF 会让 cmd 解析多行 if 失败 → 必须 CRLF
+#   .ps1 用 LF 也可以，但必须带 BOM（PowerShell 5.1 按 BOM 判编码）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制：不要让 git 做文本/行尾处理
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.docx  binary
+*.pptx  binary
+*.mp4   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary

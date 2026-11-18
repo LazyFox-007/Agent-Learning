@@ -33,7 +33,7 @@ ROOT = WEBAPP.parent
 LIB_DIRNAME = "书库"
 IMPORT_SUBDIR = "导入"
 PREVIEW_DIR = ".preview"          # 临时预览区，藏起来不进列表
-LOG = WEBAPP / "_logs" / "open-with.log"
+LOG = WEBAPP / "logs" / "open-with.log"
 
 PORT_START, PORT_TRIES = 8777, 20
 

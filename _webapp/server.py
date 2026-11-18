@@ -17,7 +17,6 @@ import gzip
 import time
 import socket
 import mimetypes
-import re
 import secrets
 import threading
 import webbrowser
@@ -33,8 +32,24 @@ from pathlib import Path
 _DEFAULT_ROOT = Path(__file__).resolve().parent.parent
 ROOT     = Path(os.environ.get("STUDYAI_ROOT") or _DEFAULT_ROOT).resolve()
 WEBAPP   = Path(__file__).resolve().parent
-import library
-import courses
+from app import ai, courses, ide, library
+
+
+def _migrate_legacy_paths():
+    """老版本把配置放在 _webapp 根下，这里自动搬到 data/（一次性）。"""
+    data = WEBAPP / "data"
+    data.mkdir(exist_ok=True)
+    for old, new in ((WEBAPP / ".ai-config.json", data / "ai-config.json"),
+                     (WEBAPP / ".lan-token", data / "lan-token"),
+                     (WEBAPP / ".ide-config.json", data / "ide-config.json")):
+        try:
+            if old.is_file() and not new.exists():
+                os.replace(old, new)
+        except OSError:
+            pass
+
+
+_migrate_legacy_paths()
 
 STATIC   = WEBAPP / "static"
 
@@ -46,7 +61,7 @@ PORT     = 8777
 # 手机等外部设备必须带令牌，见启动时打印的 ?t= 地址。
 LAN_MODE       = False
 LAN_TOKEN      = ""
-LAN_TOKEN_FILE = WEBAPP / ".lan-token"
+LAN_TOKEN_FILE = WEBAPP / "data" / "lan-token"
 
 
 def load_or_create_lan_token():
@@ -83,190 +98,18 @@ SEARCH_LIMIT  = 200                   # 搜索最大结果数
 SEARCH_MAXSIZE= 2  * 1024 * 1024      # 单文件搜索上限
 
 # ---------------------------------------------------------------------
-# AI 陪读配置
+# AI 陪读配置（实现在 app/ai.py）
 # ---------------------------------------------------------------------
-# 密钥只存在本机这个文件里，不进版本控制，也从不回传给浏览器（只返回掩码）。
-AI_CONFIG_FILE = WEBAPP / ".ai-config.json"
 
-# 预设服务商（全部走 OpenAI 兼容协议）
-AI_PRESETS = {
-    "deepseek": {
-        "name": "DeepSeek", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat",
-        "tag": "推荐", "badge": "cheap",
-        "desc": "国内直连、价格极低，最省事的选择",
-        "home": "https://platform.deepseek.com/api_keys",
-        "key_hint": "sk- 开头",
-    },
-    "qwen": {
-        "name": "通义千问", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "model": "qwen-plus",
-        "tag": "有免费额度", "badge": "free",
-        "desc": "阿里云百炼，新用户通常有免费 token",
-        "home": "https://bailian.console.aliyun.com/",
-        "key_hint": "sk- 开头",
-    },
-    "moonshot": {
-        "name": "Kimi", "base_url": "https://api.moonshot.cn/v1", "model": "moonshot-v1-8k",
-        "tag": "长文本", "badge": "cheap",
-        "desc": "月之暗面，适合读长章节",
-        "home": "https://platform.moonshot.cn/console/api-keys",
-        "key_hint": "sk- 开头",
-    },
-    "openai": {
-        "name": "OpenAI", "base_url": "https://api.openai.com/v1", "model": "gpt-4o-mini",
-        "tag": "需代理", "badge": "paid",
-        "desc": "国内直连通常不通，需要网络代理",
-        "home": "https://platform.openai.com/api-keys",
-        "key_hint": "sk- 开头",
-    },
-    "ollama": {
-        "name": "Ollama 本地", "base_url": "http://127.0.0.1:11434/v1", "model": "qwen2.5:7b",
-        "tag": "完全免费", "badge": "free",
-        "desc": "跑在自己电脑上，断网可用；需先装 Ollama 并 pull 模型",
-        "home": "https://ollama.com/download",
-        "key_hint": "本地服务不用填 Key",
-    },
-    "mock": {
-        "name": "演示模式", "base_url": "mock://demo", "model": "mock-fish",
-        "tag": "不联网", "badge": "demo",
-        "desc": "返回固定示例，只用来看界面长什么样",
-        "home": "",
-        "key_hint": "不需要 Key",
-    },
-}
-
-AI_CONFIG_DEFAULT = {
-    "preset": "deepseek",
-    "base_url": AI_PRESETS["deepseek"]["base_url"],
-    "model": AI_PRESETS["deepseek"]["model"],
-    "api_key": "",
-    "temperature": 0.7,
-    "max_tokens": 1600,
-}
-
-_ai_lock = threading.Lock()
-
-
-def load_ai_config():
-    """读取 AI 配置；文件不存在则返回默认值。"""
-    cfg = dict(AI_CONFIG_DEFAULT)
-    try:
-        if AI_CONFIG_FILE.is_file():
-            with open(AI_CONFIG_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-            if isinstance(saved, dict):
-                cfg.update({k: v for k, v in saved.items() if k in AI_CONFIG_DEFAULT})
-    except Exception:
-        pass
-    return cfg
-
-
-def save_ai_config(cfg):
-    """原子写入配置，并尽量收紧文件权限。"""
-    AI_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = AI_CONFIG_FILE.with_suffix(".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, AI_CONFIG_FILE)
-    try:
-        os.chmod(AI_CONFIG_FILE, 0o600)
-    except Exception:
-        pass
-
-
-def mask_key(key):
-    """密钥只回显卡号，绝不回显完整内容。"""
-    if not key:
-        return ""
-    key = str(key)
-    if len(key) <= 10:
-        return "****"
-    return key[:6] + "…" + key[-4:]
-
-
-def build_system_prompt(ctx):
-    """把「你正在读什么」编织进系统提示词 —— 这是陪读和普通聊天机器人的区别。"""
-    ctx = ctx or {}
-    lines = [
-        "你是「大肥鱼」，一只陪学生读书的助教鱼。你的学生正在读《AI Agent 全栈课程》。",
-        "",
-        "【当前阅读上下文】",
-    ]
-    if ctx.get("chapter"):
-        lines.append("· 章节：" + str(ctx["chapter"]))
-    if ctx.get("path"):
-        lines.append("· 文件：" + str(ctx["path"]))
-    if ctx.get("heading"):
-        lines.append("· 所在小节：" + str(ctx["heading"]))
-    if ctx.get("progress"):
-        lines.append("· 阅读进度：" + str(ctx["progress"]))
-
-    sel = (ctx.get("selection") or "").strip()
-    if sel:
-        lines += ["", "【学生刚选中的原文】", sel[:3000]]
-
-    excerpt = (ctx.get("excerpt") or "").strip()
-    if excerpt:
-        lines += ["", "【本章正文节选】", excerpt[:9000]]
-
-    lines += [
-        "",
-        "【陪读原则】",
-        "1. 回答要紧贴当前章节的内容，不要泛泛而谈。",
-        "2. 讲抽象概念一定配具体例子；能用代码说明就用代码。",
-        "3. 学生问「为什么」时，先给结论，再讲原因。",
-        "4. 不确定的地方直说不知道，绝不编造 API、论文或数据。",
-        "5. 回答简洁，多用小标题、列表、代码块，不要复述学生的问题。",
-        "6. 超出本章范围的问题，简要回答并指出哪一章会深入。",
-        "7. 中文回答。语气像个耐心的师兄，不要油腻，少用表情符号。",
-    ]
-    return "\n".join(lines)
-
-
-def mock_stream_reply(messages, ctx):
-    """演示模式：不联网，返回固定样例，用来验证界面与流式链路是否打通。"""
-    last = ""
-    for m in reversed(messages or []):
-        if m.get("role") == "user":
-            last = (m.get("content") or "").strip()
-            break
-    sel = (ctx.get("selection") or "").strip()
-    chap = (ctx.get("chapter") or "当前章节")
-
-    if sel:
-        return (
-            "**（演示模式，未连接真实模型）**\n\n"
-            "你选中的这段是：\n\n> " + sel[:200].replace("\n", "\n> ") + "\n\n"
-            "**这段话在讲什么** —— 它属于《" + chap + "》的核心论证部分。\n\n"
-            "**为什么重要** —— 它把抽象的设计原则落到了可执行的动作上。\n\n"
-            "**举个例子** —— 假设你要让 Agent 完成「查天气」：\n\n"
-            "```python\n"
-            "tools = [{\"name\": \"get_weather\", \"description\": \"查询指定城市的实时天气\"}]\n"
-            "```\n\n"
-            "配置真实模型后，这里会变成针对你选中内容的、贴合上下文的讲解。"
-        )
-    if last:
-        return (
-            "**（演示模式，未连接真实模型）**\n\n"
-            "你问的是：「" + last[:80] + "」\n\n"
-            "**先给结论** —— 这是个好问题，它正好卡在《" + chap + "》的关键处。\n\n"
-            "**为什么** —— Agent 的能力边界，本质上由「能调用什么工具」和「如何决定调用哪个工具」共同决定。\n\n"
-            "**一个例子**\n\n"
-            "| 层 | 做什么 | 出错的后果 |\n"
-            "|---|---|---|\n"
-            "| 规划 | 拆解任务 | 走错方向 |\n"
-            "| 工具 | 真正执行 | 拿到错误数据 |\n"
-            "| 观察 | 校验结果 | 带着错误往上走 |\n\n"
-            "点右上角 ⚙ 配置一个模型，我就能真正读着你这一章回答问题。"
-        )
-    return (
-        "**（演示模式，未连接真实模型）**\n\n"
-        "我是大肥鱼，负责陪你读这本书。现在可以：\n\n"
-        "- 在讲义里**选中一段文字**，旁边会冒出「问大肥鱼」\n"
-        "- 点下面的快捷指令，让我总结章节或出题考你\n"
-        "- 直接在输入框里问任何问题\n\n"
-        "> 演示模式只能返回固定样例。配置真实模型后，我才能读着你当前这一章回答。"
-    )
-
+AI_PRESETS          = ai.AI_PRESETS
+AI_CONFIG_DEFAULT   = ai.AI_CONFIG_DEFAULT
+AI_CONFIG_FILE      = ai.AI_CONFIG_FILE
+load_ai_config      = ai.load_ai_config
+save_ai_config      = ai.save_ai_config
+mask_key            = ai.mask_key
+build_system_prompt = ai.build_system_prompt
+mock_stream_reply   = ai.mock_stream_reply
+_ai_lock            = ai.LOCK
 
 def _chunked_write(handler, text):
     """SSE 分块写入。客户端断开时静默返回 False。"""
@@ -299,8 +142,22 @@ def sse_event(handler, obj):
 # 这些目录不出现在树里
 SKIP_DIRS = {
     ".git", "__pycache__", "node_modules", ".ipynb_checkpoints",
-    ".github", ".vscode", ".idea", "_webapp", "_zips", "_scripts",
+    ".github", ".vscode", ".idea", "_webapp", "_zips", "_scripts", "_dev",
     "_IDM导入清单", ".pytest_cache", "dist", "build", ".mypy_cache",
+}
+
+# /files/ 与 /api/raw 是「按真实路径取文件」，不受 SKIP_DIRS 约束 ——
+# 于是 /files/_webapp/.ai-config.json 能把明文 API Key 直接下载走。
+# 这里单独列一份「绝不对外」的名单，只拦工具/配置目录与密钥文件；
+# 注意不要一刀切禁止所有点开头的目录：书库的 .preview 临时预览要靠 /files/ 打开。
+DENY_SEGMENTS = {
+    ".git", ".github", ".vscode", ".idea", "__pycache__", "node_modules",
+    "_webapp", "_logs", "_build", "_shots", "_scripts", "_zips",
+    "_agent-study-src", "_IDM导入清单", "_dev",
+}
+DENY_FILES = {
+    ".ai-config.json", ".ai-config.tmp", ".lan-token",
+    ".env", ".env.local",
 }
 
 # 已知无法在浏览器里看的东西
@@ -401,6 +258,25 @@ def rel_of(p: Path) -> str:
     return str(p.relative_to(ROOT)).replace("\\", "/")
 
 
+def check_public(rel: str) -> Path:
+    """safe_path + 敏感文件过滤，用于「按路径取文件」的路由。
+
+    safe_path 只保证不越出 ROOT；但 ROOT 里本身就躺着密钥、令牌和 .git，
+    所以对外提供文件前还要过一遍黑名单。
+    """
+    p = safe_path(rel)
+    try:
+        parts = p.relative_to(ROOT).parts
+    except ValueError:
+        raise UnsafePath("outside root: %s" % rel)
+    for seg in parts:
+        if seg.lower() in DENY_SEGMENTS:
+            raise UnsafePath("blocked dir: %s" % rel)
+    if parts and parts[-1].lower() in DENY_FILES:
+        raise UnsafePath("blocked file: %s" % rel)
+    return p
+
+
 # ---------------------------------------------------------------------
 # 给 HTML 注入 KaTeX
 # ---------------------------------------------------------------------
@@ -452,7 +328,9 @@ def inject_math_support(data: bytes) -> bytes:
         except Exception:
             return data
 
-    if "katex" in text.lower():
+    # 判断「已经引过 KaTeX」要看真实的 script/link，不能只看正文里有没有 katex 这个词，
+    # 否则讲义里提一句 KaTeX 就再也不会注入公式渲染。
+    if re.search(r"katex\.min\.(?:js|css)|renderMathInElement|/katex/", text, re.I):
         return data
 
     low = text.lower()
@@ -481,7 +359,8 @@ def inject_math_support(data: bytes) -> bytes:
 def list_dir(p: Path):
     dirs, files = [], []
     try:
-        entries = list(os.scandir(p))
+        with os.scandir(p) as it:
+            entries = list(it)
     except (PermissionError, FileNotFoundError, NotADirectoryError) as e:
         return dirs, files
 
@@ -496,7 +375,8 @@ def list_dir(p: Path):
                 if name in SKIP_DIRS:
                     continue
                 try:
-                    has_kids = any(True for _ in os.scandir(e.path))
+                    with os.scandir(e.path) as sub:
+                        has_kids = any(True for _ in sub)
                 except OSError:
                     has_kids = False
                 dirs.append({
@@ -546,6 +426,8 @@ AUTO_EXIT = {
 }
 _SRV = {"srv": None}
 _stats_cache  = {"ts": 0, "data": None}
+# 缓存由多个请求线程共享，加锁避免并发时重复全量扫描（也避免半成品被读走）
+_cache_lock = threading.Lock()
 
 SEARCHABLE = {"markdown", "notebook", "code", "text"}
 
@@ -554,23 +436,28 @@ def build_index():
     now = time.time()
     if now - _search_cache["ts"] < 300 and _search_cache["index"]:
         return _search_cache["index"]
-    idx = []
-    for dirpath, dirnames, filenames in os.walk(ROOT):
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
-        for fn in filenames:
-            fp = Path(dirpath) / fn
-            try:
-                st = fp.stat()
-            except OSError:
-                continue
-            if st.st_size > SEARCH_MAXSIZE:
-                continue
-            kind, lang, renderable = classify(fn, st.st_size)
-            if kind in SEARCHABLE and renderable:
-                idx.append((rel_of(fp), fn, fp, kind))
-    _search_cache["ts"] = now
-    _search_cache["index"] = idx
-    return idx
+    with _cache_lock:
+        # 双重检查：可能别的线程已经建好了
+        now = time.time()
+        if now - _search_cache["ts"] < 300 and _search_cache["index"]:
+            return _search_cache["index"]
+        idx = []
+        for dirpath, dirnames, filenames in os.walk(ROOT):
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+            for fn in filenames:
+                fp = Path(dirpath) / fn
+                try:
+                    st = fp.stat()
+                except OSError:
+                    continue
+                if st.st_size > SEARCH_MAXSIZE:
+                    continue
+                kind, lang, renderable = classify(fn, st.st_size)
+                if kind in SEARCHABLE and renderable:
+                    idx.append((rel_of(fp), fn, fp, kind))
+        _search_cache["ts"] = now
+        _search_cache["index"] = idx
+        return idx
 
 
 def do_search(query: str, limit: int):
@@ -581,10 +468,16 @@ def do_search(query: str, limit: int):
     for rel, name, fp, kind in build_index():
         if len(results) >= limit:
             break
+        # 先读字节再解码：中文资料不一定是 UTF-8，GBK 编码的直接按 UTF-8 读会整篇变空、
+        # 搜索静默漏掉（errors="ignore" 会把非法字节全丢掉）。
         try:
-            text = fp.read_text(encoding="utf-8", errors="ignore")
-        except (OSError, UnicodeDecodeError):
+            raw = fp.read_bytes()
+        except OSError:
             continue
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            text = raw.decode("gbk", errors="ignore")
         low = text.lower()
         pos = low.find(q)
         if pos < 0:
@@ -617,6 +510,41 @@ def do_search(query: str, limit: int):
     }
 
 
+def compute_stats():
+    """扫描根目录，统计每个板块的文件数与体积（跳过 SKIP_DIRS 与隐藏项）。"""
+    secs = []
+    total_files = 0
+    total_size = 0
+    with os.scandir(ROOT) as it:
+        entries = sorted(it, key=lambda x: x.name)
+    for e in entries:
+        if not e.is_dir() or e.name in SKIP_DIRS or e.name.startswith("_"):
+            continue
+        d, f = list_dir(Path(e.path))
+        sz = 0
+        n = 0
+        for root_, dirs_, files_ in os.walk(e.path):
+            dirs_[:] = [x for x in dirs_ if x not in SKIP_DIRS and not x.startswith(".")]
+            for fn in files_:
+                if fn.startswith("."):
+                    continue
+                try:
+                    sz += os.path.getsize(os.path.join(root_, fn))
+                    n += 1
+                except OSError:
+                    pass
+        total_files += n
+        total_size += sz
+        secs.append({"name": e.name, "path": e.name,
+                     "files": n, "size": sz, "repos": len(d)})
+    return {
+        "root": str(ROOT),
+        "sections": secs,
+        "totalFiles": total_files,
+        "totalSize": total_size,
+    }
+
+
 # ---------------------------------------------------------------------
 # HTTP 处理
 # ---------------------------------------------------------------------
@@ -626,11 +554,26 @@ CT_JSON = "application/json; charset=utf-8"
 class Handler(BaseHTTPRequestHandler):
     server_version = "agent-study-platform/1.0"
     protocol_version = "HTTP/1.1"
+    _head_only = False
 
     def log_message(self, fmt, *args):
-        # 静音常规请求，只留错误
-        if args and str(args[0]).startswith(("4", "5")):
-            sys.stderr.write("  [%s] %s\n" % (self.log_date_time_string(), fmt % args))
+        # 静音常规请求，只留 4xx / 5xx。
+        # log_request 传的是 (请求行, 状态码, 长度)，log_error 传的是 (状态码, 消息)，
+        # 状态码可能落在 args[0] 也可能落在 args[1] —— 只判 args[0] 会永远不命中。
+        code = None
+        for a in args[:2]:
+            s = str(a)
+            if len(s) == 3 and s.isdigit() and s[0] in "45":
+                code = s
+                break
+        if not code:
+            return
+        try:
+            text = fmt % args
+        except Exception:
+            text = fmt
+        sys.stderr.write("  [%s] %s %s\n" % (self.log_date_time_string(), code, text))
+        sys.stderr.flush()
 
     # ---------- 工具 ----------
     def _send(self, code, body: bytes, ctype: str, extra=None, gzip_ok=True):
@@ -646,6 +589,8 @@ class Handler(BaseHTTPRequestHandler):
         for k, v in headers.items():
             self.send_header(k, v)
         self.end_headers()
+        if self._head_only:
+            return
         try:
             self.wfile.write(body)
         except (BrokenPipeError, ConnectionResetError):
@@ -707,6 +652,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
+        if self._head_only:
+            return
         try:
             self.wfile.write(body)
         except Exception:
@@ -726,7 +673,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._err(500, "%s: %s" % (type(e).__name__, e))
 
     def do_HEAD(self):
-        return self.do_GET()
+        # HEAD 只要头部。直接复用 do_GET 会把 body 也写出去，
+        # 声明了 Content-Length 却又多发一份字节，keep-alive 上的下一个请求就会错位。
+        self._head_only = True
+        try:
+            return self.do_GET()
+        finally:
+            self._head_only = False
 
     def _route(self):
         path = urllib.parse.urlparse(self.path).path
@@ -744,6 +697,10 @@ class Handler(BaseHTTPRequestHandler):
         # 产品展示页（对外介绍用的静态单页）
         if path in ("/showcase", "/showcase/", "/showcase/index.html"):
             return self._static("showcase/index.html")
+
+        # 代码编辑器（Monaco，只读预览）
+        if path in ("/ide", "/ide/", "/ide/index.html"):
+            return self._static("ide/index.html")
 
         # 部分浏览器无视 <link rel="icon"> 仍直接请求根路径
         if path == "/favicon.ico":
@@ -763,6 +720,11 @@ class Handler(BaseHTTPRequestHandler):
         # 与 /files/ 相同，但给 HTML 注入 KaTeX（公式渲染）
         if path.startswith("/mathfiles/"):
             return self._serve_file(urllib.parse.unquote(path[len("/mathfiles/"):]), inject_math=True)
+
+        # ---- 练习区（保存 / 运行；--ide 才挂载）----
+        if path.startswith("/api/ide/"):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return ide.handle(self, path, q)
 
         if path == "/api/stats":
             return self._api_stats()
@@ -799,6 +761,9 @@ class Handler(BaseHTTPRequestHandler):
             return courses.handle(self, path, q)
 
         # ---- 用户书库（--library 时才启用，默认不接管任何路由）----
+        # 没启用时也给前端一个明确答复，别让它每次开页都收一条 404（控制台噪音）
+        if path == "/api/library/info" and not library.ENABLED:
+            return self._json({"enabled": False})
         if library.ENABLED and path.startswith("/api/library/"):
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             return library.handle(self, path, q)
@@ -831,6 +796,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def _route_post(self):
         path = urllib.parse.urlparse(self.path).path
+        if path.startswith("/api/ide/"):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            return ide.handle(self, path, q)
         if path == "/api/ai/config":
             return self._api_ai_config_set()
         if path == "/api/ai/chat":
@@ -847,8 +815,22 @@ class Handler(BaseHTTPRequestHandler):
             n = 0
         if n <= 0:
             return b""
-        n = min(n, limit)
-        return self.rfile.read(n)
+        if n <= limit:
+            return self.rfile.read(n)
+        # 超限：只取前 limit 字节，但剩下的必须读掉。
+        # 否则残留字节会被当成下一个请求的开头，keep-alive 连接直接串包。
+        data = self.rfile.read(limit)
+        remain = n - limit
+        if remain > 8 * 1024 * 1024:
+            # 剩太多就不为一条坏请求耗带宽，直接断开这条连接
+            self.close_connection = True
+            return data
+        while remain > 0:
+            chunk = self.rfile.read(min(65536, remain))
+            if not chunk:
+                break
+            remain -= len(chunk)
+        return data
 
     # ---------- AI 陪读实现 ----------
     def _api_ai_config_get(self):
@@ -910,86 +892,6 @@ class Handler(BaseHTTPRequestHandler):
             "max_tokens": cfg.get("max_tokens"),
         })
 
-    @staticmethod
-    def _classify_llm_error(e):
-        """把模型调用失败翻译成人话。
-
-        返回 dict: {kind, message, hint}
-          kind    —— 前端用来决定怎么展示（auth / network / billing ...）
-          message —— 发生了什么
-          hint    —— 该怎么办
-        """
-        import socket
-        import urllib.error
-
-        code = None
-        detail = ""
-        if isinstance(e, urllib.error.HTTPError):
-            code = e.code
-            try:
-                detail = e.read().decode("utf-8", "replace")
-            except Exception:
-                detail = ""
-            if not detail:
-                detail = str(e)
-        else:
-            detail = str(e) or e.__class__.__name__
-
-        low = detail.lower()
-
-        if code == 401 or "invalid_api_key" in low or "incorrect api key" in low \
-                or "unauthorized" in low or "invalid token" in low:
-            return {"kind": "auth",
-                    "message": "API Key 无效或已过期",
-                    "hint": "确认 Key 复制完整（首尾不要有空格），或去服务商后台重新生成一个"}
-
-        if code == 403:
-            return {"kind": "forbidden",
-                    "message": "这个 Key 没有调用权限",
-                    "hint": "确认账号已开通对应模型；部分服务商要求先实名或充值才能调用"}
-
-        if code == 404:
-            return {"kind": "notfound",
-                    "message": "接口地址或模型名不存在",
-                    "hint": "接口地址一般以 /v1 结尾；模型名要和服务商文档完全一致（如 deepseek-chat）"}
-
-        if code == 402 or "insufficient" in low or "balance" in low \
-                or "quota" in low or "欠费" in detail or "额度" in detail:
-            return {"kind": "billing",
-                    "message": "账户余额不足或额度已用完",
-                    "hint": "去服务商后台充值后再试"}
-
-        if code == 429:
-            return {"kind": "ratelimit",
-                    "message": "请求太频繁，被限流了",
-                    "hint": "等几十秒再试；免费额度通常有每分钟次数限制"}
-
-        if code and 500 <= code < 600:
-            return {"kind": "server",
-                    "message": "服务商那边出错了（HTTP %d）" % code,
-                    "hint": "稍后重试；持续失败可以换一家服务商"}
-
-        if isinstance(e, (TimeoutError, socket.timeout)) or "timed out" in low:
-            return {"kind": "timeout",
-                    "message": "连接超时",
-                    "hint": "检查网络；国内直连 OpenAI 通常需要代理"}
-
-        if "getaddrinfo" in low or "name or service not known" in low \
-                or "connection refused" in low or "connection reset" in low \
-                or "failed to establish" in low:
-            return {"kind": "network",
-                    "message": "连不上这个接口地址",
-                    "hint": "检查地址拼写；用本地 Ollama 的话要先启动服务（默认 127.0.0.1:11434）"}
-
-        if "certificate" in low or "ssl" in low:
-            return {"kind": "ssl",
-                    "message": "TLS 证书校验失败",
-                    "hint": "公共 API 一般不会这样；自建服务用自签证书需要额外配置"}
-
-        return {"kind": "unknown",
-                "message": (detail.strip() or str(e))[:300],
-                "hint": "把这个错误发给开发者看看"}
-
     def _api_ai_test(self):
         """测试连通性：发一个极短的请求，返回耗时与模型回复。"""
         raw = self._read_body()
@@ -1021,10 +923,10 @@ class Handler(BaseHTTPRequestHandler):
 
         t0 = time.time()
         try:
-            reply = self._llm_call(cfg, [{"role": "user", "content": "只回复两个字：你好"}],
+            reply = ai.llm_call(cfg, [{"role": "user", "content": "只回复两个字：你好"}],
                                    stream=False, max_tokens=16)
         except Exception as e:
-            info = self._classify_llm_error(e)
+            info = ai.classify_error(e)
             info.update({"ok": False, "error": info.pop("message")})
             return self._json(info, 200)
         return self._json({
@@ -1033,35 +935,6 @@ class Handler(BaseHTTPRequestHandler):
             "reply": (reply or "")[:60],
             "model": cfg.get("model"),
         })
-
-    def _llm_call(self, cfg, messages, stream=False, max_tokens=None):
-        """调用 OpenAI 兼容接口。stream=True 时返回响应对象供逐行读取。"""
-        import urllib.request
-        base = str(cfg.get("base_url") or "").rstrip("/")
-        url = base + "/chat/completions"
-        payload = {
-            "model": cfg.get("model") or "gpt-4o-mini",
-            "messages": messages,
-            "temperature": float(cfg.get("temperature") or 0.7),
-            "max_tokens": int(max_tokens or cfg.get("max_tokens") or 1600),
-            "stream": bool(stream),
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + str(cfg.get("api_key") or ""),
-            "User-Agent": "agent-study-platform/1.0",
-        }
-        req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
-                                     headers=headers, method="POST")
-        resp = urllib.request.urlopen(req, timeout=120)
-        if stream:
-            return resp
-        with resp:
-            obj = json.loads(resp.read().decode("utf-8", "replace"))
-        try:
-            return obj["choices"][0]["message"]["content"]
-        except Exception:
-            return json.dumps(obj, ensure_ascii=False)[:500]
 
     def _api_ai_chat(self):
         raw = self._read_body(limit=512 * 1024)
@@ -1116,9 +989,9 @@ class Handler(BaseHTTPRequestHandler):
 
         # ---- 真实模型 ----
         try:
-            resp = self._llm_call(cfg, full, stream=True)
+            resp = ai.llm_call(cfg, full, stream=True)
         except Exception as e:
-            info = self._classify_llm_error(e)
+            info = ai.classify_error(e)
             sse_event(self, {"type": "error",
                              "message": info["message"],
                              "kind": info["kind"],
@@ -1189,7 +1062,7 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------- 按目录结构提供文件（支持 HTML 多页站点的相对导航）----------
     def _serve_file(self, rel, inject_math=False):
-        p = safe_path(rel)
+        p = check_public(rel)
         if not p.is_file():
             return self._err(404, "文件不存在")
         size = p.stat().st_size
@@ -1225,48 +1098,21 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------- API ----------
     def _api_stats(self):
-        # 遍历 8000+ 文件较慢，缓存 10 分钟
-        now = time.time()
+        # 遍历全库较慢，缓存 10 分钟；并发请求只让一个线程真正去扫
         cached = _stats_cache.get("data")
-        if cached and now - _stats_cache.get("ts", 0) < 600:
+        if cached and time.time() - _stats_cache.get("ts", 0) < 600:
             return self._json(cached)
-
-        secs = []
-        total_files = 0
-        total_size = 0
-        for e in sorted(os.scandir(ROOT), key=lambda x: x.name):
-            if not e.is_dir() or e.name in SKIP_DIRS or e.name.startswith("_"):
-                continue
-            d, f = list_dir(Path(e.path))
-            sz = 0
-            n = 0
-            for root_, dirs_, files_ in os.walk(e.path):
-                dirs_[:] = [d for d in dirs_ if d not in SKIP_DIRS and not d.startswith(".")]
-                for fn in files_:
-                    if fn.startswith("."):
-                        continue
-                    try:
-                        sz += os.path.getsize(os.path.join(root_, fn))
-                        n += 1
-                    except OSError:
-                        pass
-            total_files += n
-            total_size += sz
-            secs.append({"name": e.name, "path": e.name,
-                         "files": n, "size": sz, "repos": len(d)})
-        data = {
-            "root": str(ROOT),
-            "sections": secs,
-            "totalFiles": total_files,
-            "totalSize": total_size,
-        }
-        _stats_cache["data"] = data
-        _stats_cache["ts"] = now
+        with _cache_lock:
+            data = _stats_cache.get("data")
+            if not data or time.time() - _stats_cache.get("ts", 0) >= 600:
+                data = compute_stats()
+                _stats_cache["data"] = data
+                _stats_cache["ts"] = time.time()
         return self._json(data)
 
     def _api_tree(self):
         rel = self._q("path", "")
-        p = safe_path(rel)
+        p = check_public(rel)
         if not p.exists():
             return self._err(404, "目录不存在")
         if not p.is_dir():
@@ -1286,7 +1132,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _api_file(self):
         rel = self._q("path", "")
-        p = safe_path(rel)
+        p = check_public(rel)
         if not p.is_file():
             return self._err(404, "文件不存在")
         st = p.stat()
@@ -1323,7 +1169,7 @@ class Handler(BaseHTTPRequestHandler):
     def _api_raw(self):
         """原始字节流，支持 Range（PDF / 图片 / 大文件）"""
         rel = self._q("path", "")
-        p = safe_path(rel)
+        p = check_public(rel)
         if not p.is_file():
             return self._err(404, "文件不存在")
         size = p.stat().st_size
@@ -1337,18 +1183,28 @@ class Handler(BaseHTTPRequestHandler):
             ctype = "image/svg+xml"
 
         start, end = 0, size - 1
-        rng = self.headers.get("Range")
+        rng = (self.headers.get("Range") or "").strip()
         partial = False
         if rng:
-            m = re.match(r"bytes=(\d*)-(\d*)", rng)
-            if m:
-                if m.group(1):
-                    start = int(m.group(1))
-                if m.group(2):
-                    end = int(m.group(2))
-                end = min(end, size - 1)
-                if start <= end:
-                    partial = True
+            # RFC 7233：bytes=a-b 闭区间；bytes=a- 到尾；bytes=-n 是「最后 n 字节」。
+            # 旧写法把 bytes=-n 当成 0-n，PDF 恢复阅读位置 / 断点续传会拿到文件开头。
+            m = re.match(r"^bytes=(\d*)-(\d*)$", rng)
+            if not m or (not m.group(1) and not m.group(2)):
+                return self._range_unsatisfiable(size)
+            if not m.group(1):
+                n = int(m.group(2))
+                if n <= 0:
+                    return self._range_unsatisfiable(size)
+                start = max(0, size - n)
+                end = size - 1
+            else:
+                start = int(m.group(1))
+                if start >= size:
+                    return self._range_unsatisfiable(size)
+                end = min(int(m.group(2)), size - 1) if m.group(2) else size - 1
+                if end < start:
+                    return self._range_unsatisfiable(size)
+            partial = True
 
         length = end - start + 1
         self.send_response(206 if partial else 200)
@@ -1363,6 +1219,8 @@ class Handler(BaseHTTPRequestHandler):
         if partial:
             self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
         self.end_headers()
+        if self._head_only:
+            return
         try:
             with open(p, "rb") as f:
                 f.seek(start)
@@ -1375,6 +1233,14 @@ class Handler(BaseHTTPRequestHandler):
                     remain -= len(chunk)
         except (BrokenPipeError, ConnectionResetError):
             pass
+
+    def _range_unsatisfiable(self, size):
+        """区间不合法时按 RFC 返回 416，而不是 200 + 空 body（后者会被当成 0 字节文件）。"""
+        self.send_response(416)
+        self.send_header("Content-Range", "bytes */%d" % size)
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
 
     def _api_search(self):
         q = self._q("q", "").strip()
@@ -1391,16 +1257,58 @@ class Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------------------
 # 启动
 # ---------------------------------------------------------------------
+class StudyServer(ThreadingHTTPServer):
+    daemon_threads = True
+    # Windows 的 SO_REUSEADDR 语义与 Linux 不同：它允许两个进程绑同一端口，
+    # 于是「端口被占用就顺延」完全失效，还会堆出收不到请求的幽灵实例。
+    # 所以 Windows 下必须关掉端口复用。
+    allow_reuse_address = (os.name != "nt")
+
+
 def find_port(start=PORT, tries=20):
     for p in range(start, start + tries):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            if os.name != "nt":
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 s.bind((HOST, p))
                 return p
             except OSError:
                 continue
     raise RuntimeError("找不到可用端口 %d~%d" % (start, start + tries))
+
+
+def _port_is_free(port):
+    """快速判断端口有没有人在听（bind 是瞬时的，不像 connect 那样要等超时）。"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((HOST, port))
+            return True
+        except OSError:
+            return False
+
+
+def already_running():
+    """默认端口段上已经有「同一个资料根」的实例在跑吗？有就返回它的地址。
+
+    注意不要盲目对 20 个端口发 HTTP 请求：Windows 上连一个没人监听的端口
+    要等 0.3 秒左右，20 个就是 6~8 秒，启动会明显变慢，还会让并发启动互相抢端口。
+    所以先用 bind 瞬时筛出「确实被占用」的端口，再只对它们发 ping。
+    """
+    import urllib.request
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    want = str(ROOT).lower()
+    for p in range(PORT, PORT + 20):
+        if _port_is_free(p):
+            continue
+        try:
+            with opener.open("http://127.0.0.1:%d/api/ping" % p, timeout=0.5) as r:
+                obj = json.loads(r.read().decode("utf-8", "replace"))
+        except Exception:
+            continue
+        if obj.get("ok") and str(obj.get("root", "")).lower() == want:
+            return "http://127.0.0.1:%d/" % p
+    return None
 
 
 def main():
@@ -1457,11 +1365,34 @@ def main():
             if ip and ip != "127.0.0.1" and ip != "0.0.0.0":
                 extra_binds.append(ip)
 
+    # 已经在跑就不再起第二个：Windows 下重复实例会静默绑同一端口，
+    # 变成收不到请求的幽灵进程，还会让「改了代码重启」看起来没生效。
+    if not any(a in ("--lan", "--force") or a.startswith("--bind") for a in sys.argv[1:]):
+        running = already_running()
+        if running:
+            print("  服务已在运行：%s" % running)
+            if "--no-browser" not in sys.argv:
+                webbrowser.open(running)
+            print("  这次不再启动新实例（旧的还在服务）。要强制重启请加 --force")
+            return
+
+    # --- 练习区（保存文件 + 运行 Python，默认关闭）---
+    if "--ide" in sys.argv:
+        if LAN_MODE or extra_binds:
+            print("!! --ide 不能和 --lan / --bind 同时用：")
+            print("   那等于把「任意代码执行」开放给局域网，风险太高。")
+            sys.exit(1)
+        ide.configure(ROOT)
+        ide.ENABLED = True
+
     port = find_port()
     local_url = "http://127.0.0.1:%d/" % port
 
-    srv = ThreadingHTTPServer((HOST, port), Handler)
-    srv.daemon_threads = True
+    try:
+        srv = StudyServer((HOST, port), Handler)
+    except OSError as e:
+        print("!! 端口 %d 绑定失败：%s" % (port, e))
+        sys.exit(1)
     _SRV["srv"] = srv
 
     def _cleanup_previews():
@@ -1510,8 +1441,7 @@ def main():
     extra_srvs = []
     for ip in extra_binds:
         try:
-            s2 = ThreadingHTTPServer((ip, port), Handler)
-            s2.daemon_threads = True
+            s2 = StudyServer((ip, port), Handler)
             extra_srvs.append((ip, s2))
         except Exception as e:
             print("!! 无法绑定 %s:%d —— %s" % (ip, port, e))
@@ -1520,6 +1450,10 @@ def main():
     print("  agent学习平台 · 本地服务")
     print("=" * 62)
     print("  资料目录 : %s" % ROOT)
+    if ide.ENABLED:
+        _st = ide.status()
+        print("  练习区   : %s" % _st["workspaceAbs"])
+        print("  解释器   : %s" % _st["python"])
     print("  本机访问 : %s" % local_url)
     if LAN_MODE:
         ip = guess_lan_ip()

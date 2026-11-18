@@ -1357,3 +1357,46 @@ body.cp-open .fab-stack{right:calc(var(--cp-w) + 22px)}
 .pv-toast{ position:fixed; left:50%; bottom:80px; transform:translateX(-50%) translateY(10px); background:#111827; color:#f9fafb; padding:9px 18px; border-radius:10px; font-size:13px; opacity:0; transition:.22s; z-index:9999 }
 .pv-toast.show{ opacity:1; transform:translateX(-50%) translateY(0) }
 .pv-toast.bad{ background:#b91c1c }
+
+/* =====================================================================
+   内嵌编辑器：阅读器 + IDE 分栏（VSCode 式左右布局）
+   `.layout.split` 打开时隐藏右侧目录，把宽度让给编辑器
+   ===================================================================== */
+.layout.split .toc{display:none}
+.split-handle{
+  width:5px;flex-shrink:0;cursor:col-resize;
+  background:var(--line);transition:background .12s;
+}
+.split-handle:hover,.split-handle:active{background:var(--accent2)}
+.split-handle[hidden]{display:none}
+.editor-pane{
+  width:46%;min-width:320px;max-width:75%;
+  display:flex;flex-direction:column;flex-shrink:0;
+  border-left:1px solid var(--line);background:var(--bg2);
+}
+.editor-pane[hidden]{display:none}
+.editor-pane-head{
+  flex-shrink:0;display:flex;align-items:center;gap:4px;
+  height:34px;padding:0 6px 0 12px;
+  border-bottom:1px solid var(--line);
+  font-size:12px;color:var(--ink3);
+}
+.editor-pane-title{
+  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-weight:600;color:var(--ink2);
+}
+.editor-frame{flex:1;width:100%;border:0;min-height:0;background:#fff}
+body[data-theme="dark"] .editor-frame{background:#1e1e1e}
+
+/* split: keep reader at least this wide (pane width is computed in JS) */
+.layout.split .content{min-width:320px}
+
+/* 首页「练习区」板块 */
+.ide-cta{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px}
+.btn-ide-open{
+  height:38px;padding:0 20px;border:none;border-radius:9px;
+  background:var(--accent);color:#fff;font-weight:600;font-size:13.5px;
+  cursor:pointer;transition:.14s;
+}
+.btn-ide-open:hover{filter:brightness(.94)}
+.ide-cta-hint{font-size:12px;color:var(--ink4);word-break:break-all}

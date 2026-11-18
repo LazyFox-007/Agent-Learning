@@ -11,14 +11,14 @@ _agent-study-src/
 #  构建产物与临时文件
 # =====================================================================
 # 调试截图
-_webapp/_shots/
+_webapp/shots/
 
 # Node 依赖（仅在重新生成数据时需要）
-_webapp/_build/node_modules/
-_webapp/_build/package-lock.json
+_webapp/dev/node_modules/
+_webapp/dev/package-lock.json
 
 # 生成的数据快照（roadmap.js 才是运行时产物，已纳入版本控制）
-_webapp/_build/roadmap.json
+_webapp/dev/roadmap.json
 
 # Python
 __pycache__/
@@ -59,16 +59,23 @@ $RECYCLE.BIN/
 docs/git-config-backup.txt
 
 # AI 陪读密钥（绝不提交）
-_webapp/.ai-config.json
-_webapp/.ai-config.tmp
+_webapp/data/ai-config.json
+_webapp/data/ai-config.tmp
 
 # 局域网访问令牌（每台机器自己生成）
-_webapp/.lan-token
+_webapp/data/lan-token
 
 # 用户自己的资料，不进仓库
 书库/
-_webapp/_logs/
+_webapp/logs/
 书库/.preview/
 docs/大肥鱼阅读器-介绍片-B站版.mp4
 docs/大肥鱼阅读器-介绍片-小红书版.mp4
 docs/大肥鱼阅读器-介绍片-配乐版.mp4
+
+# IDE（练习区）配置
+_webapp/data/ide-config.json
+_webapp/data/ide-config.tmp
+
+# 练习区：用户自己写的代码，不进仓库
+练习区/

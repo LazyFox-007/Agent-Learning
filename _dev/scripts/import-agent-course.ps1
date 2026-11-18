@@ -1,4 +1,4 @@
-# =====================================================================
+﻿# =====================================================================
 #  导入 AI Agent 全栈课程
 #
 #  上游：https://github.com/callous-0923/agent-study  (MIT License)
@@ -15,7 +15,7 @@
 $ErrorActionPreference = 'Continue'
 
 # ---------- 路径（相对于脚本位置，不写死绝对路径）----------
-$RepoRoot   = Split-Path $PSScriptRoot -Parent          # 仓库根目录
+$RepoRoot   = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent          # 仓库根目录
 $Dest       = Join-Path $RepoRoot '01-AI-Agent全栈课程'
 $Src        = Join-Path $RepoRoot '_agent-study-src'
 $Upstream   = 'https://github.com/callous-0923/agent-study.git'

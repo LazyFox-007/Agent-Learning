@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>编辑 · agent学习平台</title>
+<link rel="icon" href="/static/favicon.ico">
+<link rel="stylesheet" href="/static/vendor/monaco/vs/editor/editor.main.css">
+<link rel="stylesheet" href="/static/ide/ide.css">
+</head>
+<body>
+<header class="ide-bar">
+  <a class="ide-back" href="/" title="回到阅读器">←</a>
+  <span class="ide-name" id="ideName">加载中…</span>
+  <span class="ide-badge" id="ideBadge"></span>
+  <span class="ide-spacer"></span>
+  <button class="ide-btn" id="btnNew" title="在工作区新建文件" hidden>新建</button>
+  <button class="ide-btn" id="btnSave" title="保存到工作区（Ctrl+S）" disabled>保存</button>
+  <button class="ide-btn" id="btnSaveAs" title="另存到工作区的其他目录" disabled>另存…</button>
+  <button class="ide-btn" id="btnRun" title="运行（Ctrl+Enter）" disabled>运行</button>
+  <button class="ide-btn" id="btnOut" title="显示 / 隐藏输出">输出</button>
+  <button class="ide-btn ide-icon" id="btnSettings" title="设置：工作区 / 解释器 / 超时">⚙</button>
+</header>
+
+<div class="ide-main">
+  <div class="ide-host" id="ideHost"></div>
+  <section class="ide-output" id="ideOutput" hidden>
+    <div class="ide-out-head">
+      <span id="ideOutTitle">输出</span>
+      <span class="ide-spacer"></span>
+      <button class="ide-mini" id="btnClearOut">清空</button>
+      <button class="ide-mini" id="btnCloseOut">关闭</button>
+    </div>
+    <pre class="ide-out-body" id="ideOutBody"></pre>
+  </section>
+</div>
+
+<div class="ide-mask" id="ideMask">正在加载编辑器…</div>
+
+<dialog class="ide-dialog" id="dlgSettings">
+  <form method="dialog" class="ide-form">
+    <h3>设置</h3>
+    <label>工作区目录
+      <input id="cfgWorkspace" type="text" placeholder="练习区">
+      <small>相对资料根的目录，保存的文件只会写到这里。默认「练习区」。</small>
+    </label>
+    <label>Python 解释器
+      <input id="cfgPython" type="text" placeholder="留空 = 当前运行本服务的解释器">
+      <small id="cfgPythonHint"></small>
+    </label>
+    <label>运行超时（秒）
+      <input id="cfgTimeout" type="number" min="1" max="120" step="1">
+      <small>超过这个时间会连同子进程一起杀掉。</small>
+    </label>
+    <div class="ide-form-foot">
+      <span class="ide-form-msg" id="cfgMsg"></span>
+      <button class="ide-btn" value="cancel" type="submit">取消</button>
+      <button class="ide-btn ide-btn-primary" id="btnCfgSave" value="save" type="submit">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="ide-dialog" id="dlgNew">
+  <form method="dialog" class="ide-form">
+    <h3>新建文件</h3>
+    <label>工作区内的相对路径
+      <input id="newPath" type="text" placeholder="例如 chapter01/hello.py">
+      <small>会自动创建目录；文件内容先留空，建好后直接在编辑器里写。</small>
+    </label>
+    <div class="ide-form-foot">
+      <span class="ide-form-msg" id="newMsg"></span>
+      <button class="ide-btn" value="cancel" type="submit">取消</button>
+      <button class="ide-btn ide-btn-primary" id="btnNewOk" value="create" type="submit">创建</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="ide-dialog" id="dlgSaveAs">
+  <form method="dialog" class="ide-form">
+    <h3>保存文件</h3>
+    <p class="ide-hint" id="saveAsHint"></p>
+    <label>保存到
+      <select id="saveAsDir"></select>
+      <small>只列练习区里已有的目录。想建新目录，在文件名里写 <code>子目录/文件名.py</code> 即可。</small>
+    </label>
+    <label>文件名
+      <input id="saveAsName" type="text" placeholder="hello.py">
+    </label>
+    <label class="ide-check">
+      <input type="checkbox" id="saveAsRemember"> 记住这个目录，下次默认保存到这里
+    </label>
+    <div class="ide-form-foot">
+      <span class="ide-form-msg" id="saveAsMsg"></span>
+      <button class="ide-btn" value="cancel" type="submit">取消</button>
+      <button class="ide-btn ide-btn-primary" id="btnSaveAsOk" value="save" type="submit">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/static/vendor/monaco/vs/loader.js"></script>
+<script src="/static/ide/ide.js"></script>
+</body>
+</html>

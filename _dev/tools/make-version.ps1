@@ -1,4 +1,4 @@
-# 生成带水印 + 配乐的成片
+﻿﻿# 生成带水印 + 配乐的成片
 #
 # 用法（在 PowerShell 里）
 #   .\tools\make-version.ps1 -Platform 'B站'      -Name '江西的那个人'
@@ -54,7 +54,7 @@ if (Test-Path $out) {
   # 抽右下角确认水印
   $chk = Join-Path $env:TEMP ("wmchk-" + [guid]::NewGuid().ToString('N').Substring(0,6) + ".png")
   & $FFmpeg -y -ss 40 -i $out -frames:v 1 -vf "crop=860:220:1080:860" $chk 2>&1 | Out-Null
-  $dst = "C:\StudyAI\_webapp\_shots\wm-$tag.png"
+  $dst = "C:\StudyAI\_webapp\shots\wm-$tag.png"
   Move-Item $chk $dst -Force -ErrorAction SilentlyContinue
   Write-Host "  水印预览: $dst"
 }
