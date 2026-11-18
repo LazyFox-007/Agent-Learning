@@ -81,10 +81,10 @@
   function refreshSaveBtn() {
     if (!state.enabled) { el.btnSave.disabled = true; return; }
     el.btnSave.disabled = false;
-    el.btnSave.textContent = inWorkspace(state.path) ? '保存' : '另存…';
+    el.btnSave.textContent = '保存';
     el.btnSave.title = inWorkspace(state.path)
       ? '保存到 ' + state.path + '（Ctrl+S）'
-      : '课程文件只读，保存会另存到工作区（Ctrl+S）';
+      : '课程文件只读，点保存会弹出「保存到哪」（Ctrl+S）';
   }
 
   function refreshTitle() {
