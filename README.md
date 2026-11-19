@@ -63,7 +63,23 @@ python server.py --ide
 
 <img src="docs/screenshot-ide.png" width="880" alt="分栏编辑器">
 
-> `--ide` 等于开放「写文件 + 执行 Python」，所以**默认关闭**，并且不能和 `--lan` / `--bind` 一起用。
+> `--ide` 等于开放「写文件 + 执行代码」，所以**默认关闭**，并且不能和 `--lan` / `--bind` 一起用。
+
+支持的语言由 `_webapp/plugins/` 里的**语言包**决定，开箱带 5 个：
+
+| 语言 | 扩展名 | 需要 |
+|---|---|---|
+| Python | `.py` `.pyw` | 无（用同一个解释器） |
+| C / C++ | `.c` / `.cpp` `.cc` `.cxx` | `gcc` / `g++` |
+| Node.js | `.js` `.mjs` `.cjs` | `node` |
+| Rust | `.rs` | `rustc` |
+
+没装对应编译器的语言，设置面板里会标红「缺 xxx」，不会假装能用。
+
+**第三方 Python 库**（`openai` / `requests`…）不装进系统环境，而是装到平台自己的私有目录：
+
+设置 → 私有 Python 库 → 填包名 → 安装。装之前会**先查系统里有没有**，已有的一律跳过。
+运行时这个目录被前置进 `PYTHONPATH`，**删目录即完整回滚**，系统 Python 一个字节都不动。
 
 ---
 
@@ -75,7 +91,8 @@ python server.py --ide
 | 🐟 **AI 陪读** | `Ctrl+J` 唤出。知道当前章节；划词即问；快捷键：总结本章 / 出题 / 举盲点 |
 | 🔍 **全文搜索** | `Ctrl+K`，搜讲义、代码、教材（支持 GBK 编码文件） |
 | 📊 **进度记录** | 打开 30 秒自动标记已读；侧栏进度条；首页统计 |
-| ✍️ **练习区** | 分栏编辑器（Monaco）；保存到 `练习区/`；一键运行 Python（`--ide`） |
+| ✍️ **练习区** | 分栏编辑器（Monaco）；保存到 `练习区/`；运行 Python / C / C++ / Node / Rust（`--ide`）；第三方库装到私有目录 |
+| 🧩 **语言包** | 加一门语言 = 往 `_webapp/plugins/` 放一个 `plugin.json`（纯声明，无脚本）；缺依赖会明确标出 |
 | 📱 **手机版** | `/m` 独立单栏界面，陪读改悬浮球 |
 | 🌓 **明暗主题** | 跟随系统或手动切换 |
 | 🗂 **书库** | 自己的 Markdown/PDF 资料也能读（`--library` 启用删除 / 排序） |
@@ -96,6 +113,23 @@ python server.py --ide
 
 ---
 
+## 与 DeepSeek Harness 协同（可选）
+
+平台可以单独用（浏览器里读 + 陪读），也可以接进 [DSH](https://github.com/deepseek-ai/deepseek-harness)：
+**会话在主区、讲义在右栏、划词直接问**。装的是另一个仓库的插件：
+
+```
+https://gitee.com/haveink/dsh-study
+```
+
+装上后：右栏出现「讲义」页签、左下角出现入口、新会话多出「学习模式」；
+讲义里划词不再走平台自己的 Key，而是发进 DSH 的对话（同一个大脑，省一次计费）。
+
+它还需要教学法插件 `dsh-learnharness` 才有「探底 → 依赖图 → 出题判分」那一套——
+完整安装步骤见 dsh-study 的 `docs/setup.md`。**不装 DSH 插件不影响本平台任何功能。**
+
+---
+
 ## 目录结构
 
 ```
@@ -104,17 +138,22 @@ Agent-Learning/
 │   ├── server.py                HTTP 层：路由 / 文件 / 搜索 / 统计
 │   ├── app/                     后端模块
 │   │   ├── ai.py                AI 陪读：预设 / 密钥 / 提示词 / 流式调用
-│   │   ├── ide.py               练习区：保存到工作区 + 运行 Python
+│   │   ├── ide.py               练习区：保存到工作区 + 按语言包运行
+│   │   ├── languages.py         语言包：扫描 / 依赖探测 / 命令拼装
+│   │   ├── pylibs.py            私有 Python 库（pip --target，不碰系统环境）
 │   │   ├── courses.py           课程包校验（通过才出现在首页）
 │   │   └── library.py           「我的书库」（--library 才启用）
+│   ├── plugins/                 ★ 语言包（每个目录一个 plugin.json，纯声明）
+│   │   ├── python/ c/ cpp/ node/ rust/
 │   ├── static/                  前端（无构建步骤）
 │   │   ├── index.html           三栏布局 + 陪读面板 + 分栏编辑器容器
 │   │   ├── app.js               目录树 / 路由 / 搜索 / 进度 / 分栏控制
 │   │   ├── companion.js         AI 陪读
+│   │   ├── embed.js · embed.css 嵌入模式（`?embed=1`）：给宿主让出顶栏、划词出口
 │   │   ├── ide/                 编辑器页（Monaco，保存 / 运行 / 设置）
 │   │   ├── renderers.js         Markdown / Notebook / 代码 / PDF 渲染
 │   │   └── vendor/              marked · KaTeX · highlight.js · Monaco
-│   ├── data/                    本机私有配置（已 gitignore，不会提交）
+│   ├── data/                    本机私有配置 + 私有 Python 库（已 gitignore）
 │   ├── tests/                   回归测试（纯标准库 unittest）
 │   ├── dev/                     开发工具（生成器 / 渲染测试 / npm 依赖）
 │   ├── logs/ · shots/           运行日志 · 验证截图（已 gitignore）
