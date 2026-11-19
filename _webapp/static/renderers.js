@@ -272,6 +272,19 @@
   }
 
   /* 主入口：Markdown → { html, toc } */
+  /* TOC 文本是从 HTML 里剥标签得来的，实体必须解码，
+     否则标题里的 " 会变成 &quot;，再被 esc() 二次转义后原样显示出来。 */
+  function decodeEntities(s) {
+    return String(s == null ? '' : s)
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(+n); })
+      .replace(/&amp;/g, '&');
+  }
+
   function renderMarkdown(text, baseDir) {
     initMarked();
     var store = { code: [], math: [], thm: [] };
@@ -291,7 +304,7 @@
         var idm = /id="([^"]+)"/.exec(attrs);
         var id = idm ? idm[1] : 'h-' + toc.length;
         if (!idm) attrs += ' id="' + id + '"';
-        var plain = inner.replace(/<[^>]+>/g, '').trim();
+        var plain = decodeEntities(inner.replace(/<[^>]+>/g, '')).trim();
         if (plain) toc.push({ level: +lv, id: id, text: plain });
         return '<h' + lv + attrs + '>' + inner + '</h' + lv + '>';
       });
