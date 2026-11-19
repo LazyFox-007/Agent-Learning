@@ -1376,13 +1376,16 @@ def main():
             print("  这次不再启动新实例（旧的还在服务）。要强制重启请加 --force")
             return
 
-    # --- 练习区（保存文件 + 运行 Python，默认关闭）---
+    # --- 练习区（保存文件 + 运行代码，默认关闭）---
+    # ROOT 必须先给 ide，哪怕没开 --ide：/api/ide/status 是不受 ENABLED 限制的那一个，
+    # 前端打开编辑器页时一定会调它。不 configure 就会在 status() 里拿 None 做路径运算 → 500，
+    # 用户看到的是"服务器错误"而不是"IDE 未启用"。
+    ide.configure(ROOT)
     if "--ide" in sys.argv:
         if LAN_MODE or extra_binds:
             print("!! --ide 不能和 --lan / --bind 同时用：")
             print("   那等于把「任意代码执行」开放给局域网，风险太高。")
             sys.exit(1)
-        ide.configure(ROOT)
         ide.ENABLED = True
 
     port = find_port()

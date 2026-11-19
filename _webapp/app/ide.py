@@ -124,7 +124,8 @@ def status():
     except Exception:
         ws_ok = False
         ws_rel = cfg["workspace"]
-        ws = ROOT / cfg["workspace"]
+        # ROOT 可能还没配置（例如有人忘了 configure 就调 status）：绝不能拿 None 做路径运算
+        ws = (ROOT or Path.cwd()) / cfg["workspace"]
     pkgs, pkg_errors = _languages()
     libs_view = pylibs.list_libs(WEBAPP)
     return {
@@ -136,8 +137,7 @@ def status():
         "python": python_exe(),
         "pythonCustom": bool(cfg["python"]),
         "timeout": cfg["timeout"],
-        "platform": sys.platform,
-        # 语言包：哪些能跑、缺什么依赖、支持哪些扩展名
+        "platform": sys.platform,        # 语言包：哪些能跑、缺什么依赖、支持哪些扩展名
         "languages": languages.describe(pkgs, python_exe()),
         "languageErrors": pkg_errors,
         "extraPaths": cfg.get("extraPaths", []),
