@@ -1,0 +1,26 @@
+{
+  "id": "rust",
+  "name": "Rust",
+  "ext": [
+    ".rs"
+  ],
+  "requires": [
+    "rustc"
+  ],
+  "build": {
+    "args": [
+      "-O",
+      "-o",
+      "{exe}",
+      "{file}"
+    ],
+    "cmd": "rustc"
+  },
+  "run": {
+    "args": [],
+    "cmd": "{exe}"
+  },
+  "timeout": 25,
+  "kind": "language",
+  "schema": 1
+}

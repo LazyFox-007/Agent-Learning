@@ -79,3 +79,8 @@ _webapp/data/ide-config.tmp
 
 # 练习区：用户自己写的代码，不进仓库
 练习区/
+
+# 私有 Python 库（pip --target 装的第三方包，运行时产物）
+_webapp/data/pylibs/
+_webapp/data/pylibs.tmp/
+

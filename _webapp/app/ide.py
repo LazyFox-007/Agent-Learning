@@ -14,12 +14,16 @@
 
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
 import time
 import urllib.parse
 from pathlib import Path
+
+from . import languages, pylibs
+
 
 ENABLED = False
 ROOT = None
@@ -31,6 +35,7 @@ DEFAULT = {
     "defaultDir": "",        # 工作区内的默认保存子目录（空 = 工作区根）
     "python": "",            # 空 = 用当前解释器
     "timeout": 10,           # 秒
+    "extraPaths": [],        # 额外的 import 搜索路径（自己的库放这儿）
 }
 
 MAX_SAVE = 2 * 1024 * 1024        # 单文件保存上限 2 MB
@@ -66,6 +71,18 @@ def load_config():
         cfg["timeout"] = DEFAULT["timeout"]
     cfg["python"] = str(cfg.get("python") or "").strip()
     cfg["defaultDir"] = str(cfg.get("defaultDir") or "").strip().replace("\\", "/").strip("/")
+    # 额外的 import 路径：自己的库放这儿，运行前注入 PYTHONPATH / NODE_PATH
+    raw_paths = cfg.get("extraPaths")
+    if isinstance(raw_paths, str):
+        raw_paths = [x for x in raw_paths.replace(";", "\n").splitlines() if x.strip()]
+    elif not isinstance(raw_paths, list):
+        raw_paths = []
+    shown = []
+    for item in raw_paths:
+        text = str(item or "").strip().strip('"')
+        if text:
+            shown.append(text)
+    cfg["extraPaths"] = shown[:20]
     return cfg
 
 
@@ -108,6 +125,8 @@ def status():
         ws_ok = False
         ws_rel = cfg["workspace"]
         ws = ROOT / cfg["workspace"]
+    pkgs, pkg_errors = _languages()
+    libs_view = pylibs.list_libs(WEBAPP)
     return {
         "enabled": ENABLED,
         "workspace": ws_rel,
@@ -118,7 +137,77 @@ def status():
         "pythonCustom": bool(cfg["python"]),
         "timeout": cfg["timeout"],
         "platform": sys.platform,
+        # 语言包：哪些能跑、缺什么依赖、支持哪些扩展名
+        "languages": languages.describe(pkgs, python_exe()),
+        "languageErrors": pkg_errors,
+        "extraPaths": cfg.get("extraPaths", []),
+        # 私有 Python 库（装到这里，不碰系统环境）
+        "pylibs": {
+            "dir": str(pylibs.libs_dir(WEBAPP)),
+            "count": libs_view["count"],
+            "bytes": libs_view["bytes"],
+        },
     }
+
+
+def _languages():
+    """扫描语言包（每次现扫：放一个目录就生效，不用重启）。"""
+    return languages.scan(WEBAPP)
+
+
+# ---------------------------------------------------------------------
+# 语言包安装 / 卸载（人和 agent 共用同一个入口）
+# ---------------------------------------------------------------------
+LANG_FIELDS = ("id", "name", "kind", "schema", "ext", "editor",
+               "requires", "build", "run", "env", "timeout")
+
+
+def languages_view():
+    pkgs, errors = _languages()
+    return {
+        "languages": languages.describe(pkgs, python_exe()),
+        "languageErrors": errors,
+        "pluginsDir": str(languages.plugins_dir(WEBAPP)),
+    }
+
+
+def install_language(data):
+    """写入一个语言包：只收声明（JSON），落到 plugins/<id>/plugin.json。
+
+    故意不执行任何插件代码——见 languages.py 顶部说明。
+    重复安装同 id = 覆盖（用户自己装的，没有"只读"一说）。
+    """
+    raw = data if isinstance(data, dict) else {}
+    # 允许前端把整个 plugin.json 直接丢进来
+    payload = {k: raw.get(k) for k in LANG_FIELDS if raw.get(k) is not None}
+    payload["kind"] = "language"
+    payload.setdefault("schema", 1)
+    lang, why = languages._normalize(payload, "user")
+    if not lang:
+        raise UnsafeIDE("语言包不合法：%s" % why)
+
+    target = languages.plugins_dir(WEBAPP) / lang["id"]
+    manifest = target / "plugin.json"
+    target.mkdir(parents=True, exist_ok=True)
+    tmp = manifest.with_suffix(".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, manifest)
+    view = languages_view()
+    view.update({"ok": True, "installed": lang["id"]})
+    return view
+
+
+def remove_language(lang_id):
+    lang_id = str(lang_id or "").strip().lower()
+    if not lang_id or not all(c.isalnum() or c in "-_" for c in lang_id):
+        raise UnsafeIDE("语言包 id 非法")
+    target = languages.plugins_dir(WEBAPP) / lang_id
+    if not target.is_dir():
+        raise UnsafeIDE("没有这个语言包：%s" % lang_id)
+    shutil.rmtree(str(target))
+    view = languages_view()
+    view.update({"ok": True, "removed": lang_id})
+    return view
 
 
 # ---------------------------------------------------------------------
@@ -207,23 +296,9 @@ def _clip(text):
     return "…（前段已省略）\n" + text[-MAX_OUTPUT:], True
 
 
-def run_file(rel):
-    p = resolve_in(ROOT, rel)
-    if not p.is_file():
-        raise UnsafeIDE("文件不存在: %s" % rel)
-    if p.suffix.lower() != ".py":
-        raise UnsafeIDE("目前只支持运行 .py 文件")
-
-    cfg = load_config()
-    timeout = cfg["timeout"]
-    cmd = [python_exe(), "-u", str(p)]
-
-    env = os.environ.copy()
-    env["PYTHONUTF8"] = "1"          # Windows 上强制 UTF-8，避免 GBK 乱码
-    env["PYTHONIOENCODING"] = "utf-8"
-    env["PYTHONUNBUFFERED"] = "1"
-
-    kwargs = dict(cwd=str(p.parent), stdin=subprocess.DEVNULL,
+def _run_step(cmd, cwd, env, timeout):
+    """跑一条命令，返回 (退出码, stdout, stderr, 是否超时, 毫秒)。"""
+    kwargs = dict(cwd=str(cwd), stdin=subprocess.DEVNULL,
                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     if os.name == "nt":
         kwargs["creationflags"] = 0x00000200        # CREATE_NEW_PROCESS_GROUP
@@ -231,13 +306,7 @@ def run_file(rel):
         kwargs["start_new_session"] = True
 
     t0 = time.time()
-    try:
-        proc = subprocess.Popen(cmd, **kwargs)
-    except FileNotFoundError:
-        return {"ok": False, "error": "找不到 Python 解释器：%s" % cmd[0]}
-    except OSError as e:
-        return {"ok": False, "error": "启动失败：%s" % e}
-
+    proc = subprocess.Popen(cmd, **kwargs)
     timed_out = False
     try:
         out, err = proc.communicate(timeout=timeout)
@@ -248,21 +317,105 @@ def run_file(rel):
             out, err = proc.communicate(timeout=5)
         except Exception:
             out, err = b"", b""
-
     ms = int((time.time() - t0) * 1000)
-    stdout, t1 = _clip(out.decode("utf-8", "replace"))
-    stderr, t2 = _clip(err.decode("utf-8", "replace"))
-    return {
+    return (proc.returncode,
+            out.decode("utf-8", "replace"),
+            err.decode("utf-8", "replace"),
+            timed_out, ms)
+
+
+def _env_for(lang, cfg):
+    """环境变量：语言包自带 + 自己的库路径。
+
+    多语言不共用同一个检索路径：Python 认 PYTHONPATH、Node 认 NODE_PATH，
+    其余语言暂时不注入（避免给出"看起来支持"的错觉）。
+    """
+    env = os.environ.copy()
+    for key, val in (lang.get("env") or {}).items():
+        env[str(key)] = str(val)
+    extra = [str(p) for p in (cfg.get("extraPaths") or []) if str(p).strip()]
+    # 私有库目录恒定前置：agent/用户装到这里的包，运行就能 import 到
+    libs = pylibs.libs_dir(WEBAPP)
+    if libs.is_dir():
+        extra.insert(0, str(libs))
+    if extra:
+        target = {"python": "PYTHONPATH", "node": "NODE_PATH"}.get(lang["id"])
+        if target:
+            old = env.get(target) or ""
+            env[target] = os.pathsep.join(extra + ([old] if old else []))
+    return env
+
+
+def run_file(rel):
+    p = resolve_in(ROOT, rel)
+    if not p.is_file():
+        raise UnsafeIDE("文件不存在: %s" % rel)
+
+    cfg = load_config()
+    pkgs, _errors = _languages()
+    lang = languages.find_for(p, pkgs)
+    if not lang:
+        exts = sorted({e for item in pkgs for e in item["ext"]})
+        raise UnsafeIDE("没有语言包认领 %s。当前支持：%s"
+                        % (p.suffix or "（无扩展名）", " ".join(exts) or "无"))
+
+    py = python_exe()
+    missing = languages.probe(lang, py)
+    if missing:
+        return {"ok": False, "lang": lang["id"], "langName": lang["name"],
+                "error": "「%s」需要 %s，但这台机器上找不到；装好再试。"
+                         % (lang["name"], "、".join(missing))}
+
+    timeout = min(cfg["timeout"], int(lang.get("timeout") or cfg["timeout"]))
+    exe = languages.exe_path_for(p)
+    steps = languages.resolve(lang, p, py, exe)
+    env = _env_for(lang, cfg)
+    cwd = p.parent
+
+    result = {
         "ok": True,
-        "code": proc.returncode,
-        "stdout": stdout,
-        "stderr": stderr,
-        "ms": ms,
-        "timedOut": timed_out,
-        "timeout": timeout,
-        "truncated": t1 or t2,
+        "lang": lang["id"],
+        "langName": lang["name"],
         "path": str(p.relative_to(ROOT)).replace("\\", "/"),
+        "timeout": timeout,
     }
+
+    # 两段式语言（C/C++/Rust…）：先编译，编译失败就没有运行的份
+    if steps.get("build"):
+        try:
+            code, out, err, to, ms = _run_step(steps["build"], cwd, env, timeout)
+        except FileNotFoundError:
+            return {"ok": False, "lang": lang["id"], "error": "找不到编译器：%s" % steps["build"][0]}
+        except OSError as exc:
+            return {"ok": False, "lang": lang["id"], "error": "编译启动失败：%s" % exc}
+        b_out, b_t1 = _clip(out)
+        b_err, b_t2 = _clip(err)
+        result["build"] = {
+            "cmd": " ".join(steps["build"]), "code": code, "ms": ms,
+            "stdout": b_out, "stderr": b_err, "timedOut": to,
+        }
+        if code != 0 or to:
+            result.update({
+                "ok": False, "code": code, "stdout": b_out, "stderr": b_err,
+                "ms": ms, "timedOut": to, "truncated": b_t1 or b_t2,
+                "error": "编译失败（退出码 %s）" % code,
+            })
+            return result
+
+    try:
+        code, out, err, to, ms = _run_step(steps["run"], cwd, env, timeout)
+    except FileNotFoundError:
+        return {"ok": False, "lang": lang["id"], "error": "找不到运行命令：%s" % steps["run"][0]}
+    except OSError as exc:
+        return {"ok": False, "lang": lang["id"], "error": "启动失败：%s" % exc}
+
+    stdout, t1 = _clip(out)
+    stderr, t2 = _clip(err)
+    result.update({
+        "code": code, "stdout": stdout, "stderr": stderr,
+        "ms": ms, "timedOut": to, "truncated": t1 or t2,
+    })
+    return result
 
 
 # ---------------------------------------------------------------------
@@ -333,6 +486,8 @@ def handle(handler, path, query):
                 cfg["timeout"] = max(1, min(120, int(data["timeout"])))
             except (TypeError, ValueError):
                 pass
+        if "extraPaths" in data:
+            cfg["extraPaths"] = data.get("extraPaths")
         cfg["workspace"] = cfg["workspace"].strip().replace("\\", "/").strip("/") or DEFAULT["workspace"]
         # 校验的是「即将保存的新配置」，不是磁盘上的旧配置
         try:
@@ -359,5 +514,39 @@ def handle(handler, path, query):
         except UnsafeIDE as e:
             return handler._err(400, str(e))
         return handler._json(res)
+
+    if path == "/api/ide/languages":
+        if getattr(handler, "command", "GET").upper() == "GET":
+            return handler._json(languages_view())
+        try:
+            return handler._json(install_language(_body(handler)))
+        except UnsafeIDE as e:
+            return handler._err(400, str(e))
+        except OSError as e:
+            return handler._err(500, "写入语言包失败：%s" % e)
+
+    if path == "/api/ide/languages/remove":
+        data = _body(handler)
+        try:
+            return handler._json(remove_language(data.get("id")))
+        except UnsafeIDE as e:
+            return handler._err(400, str(e))
+        except OSError as e:
+            return handler._err(500, "删除语言包失败：%s" % e)
+
+    if path == "/api/ide/pylibs":
+        if getattr(handler, "command", "GET").upper() == "GET":
+            view = pylibs.describe(WEBAPP, python_exe())
+            view["ok"] = True
+            return handler._json(view)
+        data = _body(handler)
+        try:
+            res = pylibs.install_planned(WEBAPP, python_exe(), data.get("packages"))
+        except ValueError as e:
+            return handler._err(400, str(e))
+        return handler._json(res)
+
+    if path == "/api/ide/pylibs/clear":
+        return handler._json(pylibs.clear(WEBAPP))
 
     return handler._err(404, "未知 IDE 接口: %s" % path)

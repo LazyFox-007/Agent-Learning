@@ -1,0 +1,11 @@
+{
+  "id": "node",
+  "name": "Node.js",
+  "kind": "language",
+  "schema": 1,
+  "ext": [".js", ".mjs", ".cjs"],
+  "editor": "javascript",
+  "requires": ["node"],
+  "run": { "cmd": "node", "args": ["{file}"] },
+  "timeout": 10
+}

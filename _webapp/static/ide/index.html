@@ -52,6 +52,34 @@
       <input id="cfgTimeout" type="number" min="1" max="120" step="1">
       <small>超过这个时间会连同子进程一起杀掉。</small>
     </label>
+
+    <label>额外 import 路径
+      <textarea id="cfgExtraPaths" rows="3" placeholder="一行一个，例如 D:\mylib"></textarea>
+      <small>运行前会把这些目录前置进 PYTHONPATH / NODE_PATH；自己的模块放这儿就能 import。</small>
+    </label>
+
+    <div class="cfg-block">
+      <div class="cfg-block-head">
+        <b>语言</b>
+        <small>加一门语言 = 在 _webapp/plugins/ 放一个 plugin.json，或者直接让 agent 装。</small>
+      </div>
+      <div class="cfg-langs" id="cfgLangs"></div>
+    </div>
+
+    <div class="cfg-block">
+      <div class="cfg-block-head">
+        <b>私有 Python 库</b>
+        <small>装到这里，<b>不动系统解释器</b>；系统里已有的包会自动跳过。</small>
+      </div>
+      <div class="cfg-libs" id="cfgLibs"></div>
+      <div class="cfg-lib-form">
+        <input id="cfgLibInput" type="text" placeholder="包名，如 openai python-dotenv">
+        <button class="ide-btn" id="btnLibInstall" type="button">安装</button>
+        <button class="ide-btn" id="btnLibClear" type="button">清空</button>
+      </div>
+      <small class="cfg-hint" id="cfgLibHint"></small>
+    </div>
+
     <div class="ide-form-foot">
       <span class="ide-form-msg" id="cfgMsg"></span>
       <button class="ide-btn" value="cancel" type="submit">取消</button>

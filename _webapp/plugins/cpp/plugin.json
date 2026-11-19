@@ -1,0 +1,15 @@
+{
+  "id": "cpp",
+  "name": "C++（g++）",
+  "kind": "language",
+  "schema": 1,
+  "ext": [".cpp", ".cc", ".cxx", ".hpp"],
+  "editor": "cpp",
+  "requires": ["g++"],
+  "build": {
+    "cmd": "g++",
+    "args": ["-O2", "-std=c++17", "-o", "{exe}", "{file}"]
+  },
+  "run": { "cmd": "{exe}", "args": [] },
+  "timeout": 15
+}

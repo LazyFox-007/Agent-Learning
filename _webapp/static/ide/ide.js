@@ -333,15 +333,107 @@
   var cfgTimeout = document.getElementById('cfgTimeout');
   var cfgMsg = document.getElementById('cfgMsg');
   var cfgPythonHint = document.getElementById('cfgPythonHint');
+  var cfgExtraPaths = document.getElementById('cfgExtraPaths');
+  var cfgLangs = document.getElementById('cfgLangs');
+  var cfgLibs = document.getElementById('cfgLibs');
+  var cfgLibInput = document.getElementById('cfgLibInput');
+  var cfgLibHint = document.getElementById('cfgLibHint');
+  var btnLibInstall = document.getElementById('btnLibInstall');
+  var btnLibClear = document.getElementById('btnLibClear');
+
+  /* 语言列表：只读展示，装/卸交给 agent 或 plugins/ 目录 */
+  function renderLangs(list, errors) {
+    if (!cfgLangs) return;
+    cfgLangs.innerHTML = '';
+    (list || []).forEach(function (lang) {
+      var row = document.createElement('div');
+      row.className = 'cfg-lang' + (lang.available ? '' : ' is-off');
+      var name = document.createElement('b');
+      name.textContent = lang.name;
+      var meta = document.createElement('span');
+      meta.textContent = lang.ext.join(' ') + (lang.twoStage ? ' · 两段式' : '');
+      var state_ = document.createElement('em');
+      state_.textContent = lang.available ? '可用' : '缺 ' + (lang.missing || []).join('/');
+      row.appendChild(name);
+      row.appendChild(meta);
+      row.appendChild(state_);
+      cfgLangs.appendChild(row);
+    });
+    (errors || []).forEach(function (msg) {
+      var row = document.createElement('div');
+      row.className = 'cfg-lang is-bad';
+      row.textContent = '插件有问题：' + msg;
+      cfgLangs.appendChild(row);
+    });
+  }
+
+  function renderLibs(info) {
+    if (!cfgLibs) return;
+    var list = (info && info.packages) || [];
+    var kb = Math.round(((info && info.bytes) || 0) / 1024);
+    cfgLibs.innerHTML = '';
+    var head = document.createElement('div');
+    head.className = 'cfg-libs-head';
+    head.textContent = list.length
+      ? '已装 ' + list.length + ' 个，共 ' + kb + ' KB'
+      : '空的（系统里已有的包不用放进来）';
+    cfgLibs.appendChild(head);
+    list.forEach(function (p) {
+      var row = document.createElement('div');
+      row.className = 'cfg-lib';
+      row.textContent = p.name + ' ' + p.version;
+      cfgLibs.appendChild(row);
+    });
+  }
+
+  function loadLibInfo() {
+    return api('/api/ide/pylibs').then(function (info) {
+      renderLibs(info);
+      return info;
+    });
+  }
 
   el.btnSettings.addEventListener('click', function () {
     cfgWorkspace.value = state.workspace;
     cfgPython.value = state.pythonCustom ? state.python : '';
     cfgTimeout.value = state.timeout;
+    if (cfgExtraPaths) cfgExtraPaths.value = (state.extraPaths || []).join('\n');
     cfgMsg.textContent = '';
     cfgPythonHint.textContent = '当前生效：' + state.python;
+    renderLangs(state.languages, state.languageErrors);
+    if (cfgLibHint) cfgLibHint.textContent = '';
+    loadLibInfo().catch(function () {});
     dlgSettings.showModal();
   });
+
+  var LABEL_OK = 'ok';
+  if (btnLibInstall) {
+    btnLibInstall.addEventListener('click', function () {
+      var names = (cfgLibInput.value || '').trim();
+      if (!names) { cfgLibHint.textContent = '先填包名'; return; }
+      btnLibInstall.disabled = true;
+      cfgLibHint.textContent = '安装中…（会先检查系统里有没有）';
+      api('/api/ide/pylibs', { packages: names }).then(function (res) {
+        renderLibs(res);
+        var parts = [];
+        if (res.installed && res.installed.length) parts.push('新装：' + res.installed.join(', '));
+        if (res.skipped && res.skipped.length) parts.push('跳过：' + res.skipped.join(', '));
+        cfgLibHint.textContent = parts.join('；') || '完成';
+        cfgLibInput.value = '';
+      }).catch(function (e) {
+        cfgLibHint.textContent = '失败：' + e.message;
+      }).then(function () { btnLibInstall.disabled = false; });
+    });
+  }
+  if (btnLibClear) {
+    btnLibClear.addEventListener('click', function () {
+      if (!window.confirm('清空私有库目录？（系统解释器里的包不受影响）')) return;
+      api('/api/ide/pylibs/clear', {}).then(function (res) {
+        renderLibs(res);
+        cfgLibHint.textContent = '已清空';
+      }).catch(function (e) { cfgLibHint.textContent = '失败：' + e.message; });
+    });
+  }
 
   dlgSettings.addEventListener('close', function () {
     if (dlgSettings.returnValue !== 'save') return;
@@ -349,16 +441,22 @@
     api('/api/ide/config', {
       workspace: cfgWorkspace.value,
       python: cfgPython.value,
-      timeout: cfgTimeout.value
+      timeout: cfgTimeout.value,
+      extraPaths: (cfgExtraPaths && cfgExtraPaths.value) ? cfgExtraPaths.value : ''
     }).then(function (s) {
       state.workspace = s.workspace;
       state.workspaceAbs = s.workspaceAbs;
       state.python = s.python;
       state.pythonCustom = s.pythonCustom;
       state.timeout = s.timeout;
+      state.extraPaths = s.extraPaths || [];
+      state.languages = s.languages || [];
+      state.languageErrors = s.languageErrors || [];
       refreshSaveBtn();
       refreshBadgeIdle();
-      showOutput('设置已保存', '工作区：' + s.workspace + '\n解释器：' + s.python + '\n超时：' + s.timeout + 's', 'ok');
+      showOutput('设置已保存', '工作区：' + s.workspace + '\n解释器：' + s.python + '\n超时：' + s.timeout + 's'
+        + '\n额外路径：' + (state.extraPaths.length ? state.extraPaths.join(' , ') : '（无）')
+        + '\n语言：' + state.languages.filter(function (l) { return l.available; }).map(function (l) { return l.id; }).join(', '), LABEL_OK);
     }).catch(function (e) {
       cfgMsg.textContent = e.message;
       dlgSettings.showModal();
@@ -389,6 +487,9 @@
     state.python = st.python || '';
     state.pythonCustom = !!st.pythonCustom;
     state.timeout = st.timeout || 10;
+    state.extraPaths = st.extraPaths || [];
+    state.languages = st.languages || [];
+    state.languageErrors = st.languageErrors || [];
 
     if (!st.enabled) {
       fail('IDE 未启用。停止服务后加 --ide 重启：\n\npython server.py --ide');

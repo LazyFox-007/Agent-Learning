@@ -1,0 +1,15 @@
+{
+  "id": "c",
+  "name": "C（gcc）",
+  "kind": "language",
+  "schema": 1,
+  "ext": [".c"],
+  "editor": "c",
+  "requires": ["gcc"],
+  "build": {
+    "cmd": "gcc",
+    "args": ["-O2", "-std=c17", "-o", "{exe}", "{file}"]
+  },
+  "run": { "cmd": "{exe}", "args": [] },
+  "timeout": 15
+}
