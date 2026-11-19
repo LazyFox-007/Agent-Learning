@@ -1,0 +1,18 @@
+/* 嵌入模式：在 DSH「学习台」的 iframe 里运行（URL 带 ?embed=1）。
+ *
+ * 只做一件事：**让「AI 陪读」退场**。
+ *
+ * 原因：嵌进 DSH 之后，旁边就是 DSH 自己的对话（那里才是教师/陪读），
+ * 我们这一层再放一个 AI 输入框，就是第二个 AI 入口，只会打架。
+ * 顶栏（目录/最近/进度 + 主题/搜索）是导航，**不动**。
+ *
+ * 直接打开 http://127.0.0.1:8777/ 时这些规则全不生效。
+ */
+
+body.embed #companion,
+body.embed .companion { display: none !important; }
+body.embed #btnCompanion { display: none !important; }
+body.embed .fab-stack:has(.fab-companion) { display: none; }
+
+/* 陪读面板消失后，浮动按钮组的右侧留白按右栏宽度算，这里把它归位 */
+body.embed .fab-stack { right: 22px; }

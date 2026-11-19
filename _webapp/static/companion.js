@@ -663,6 +663,12 @@
   function askInline(sel, at) {
     sel = String(sel || '').trim();
     if (!sel) return;
+    /* 嵌入模式（iframe 里，带 ?embed=1）：把我们自己的「大肥鱼」换成宿主的对话——
+       回答由 DSH 的模型来给，我们这边不再消耗自己的 Key。 */
+    if (window.__studyhubEmbed && typeof window.__studyhubEmbed.ask === 'function') {
+      window.__studyhubEmbed.ask(sel);
+      return;
+    }
     closeInline();
     var el = inlineBubble();
     el.dataset.q = '请解释我选中的这段内容：\n\n> ' + sel.replace(/\n/g, '\n> ');
